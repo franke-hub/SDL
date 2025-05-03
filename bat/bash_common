@@ -30,13 +30,13 @@
 ##############################################################################
 ## Local functions
 source $HOME/bat/f.nickdir
+source $HOME/bat/f.nickrgb
 
 ##############################################################################
 ## Local aliases
 alias cd='myCD'
 alias cls='clear'
 alias copy='cp -idp'
-alias cs='nickrgb'
 alias df='df -h'
 alias dh='dh -h'
 alias dir='ls -ahlF'

@@ -26,4 +26,3 @@ for i in $HOME/bat/f.*
 do
   . $i
 done
-

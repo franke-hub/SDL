@@ -90,5 +90,6 @@ esac
 ##############################################################################
 ## Return the translated directory name
 echo "$COLORSET"
-  }
+}
 
+alias cs=nickrgb

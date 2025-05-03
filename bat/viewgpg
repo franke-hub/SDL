@@ -16,7 +16,7 @@
 ##       View a GPG encrypted file.
 ##
 ## Last change date-
-##       2024/04/13
+##       2025/04/13
 ##
 ## Usage-
 ##       viewgpg [-as user] filename

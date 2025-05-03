@@ -58,4 +58,3 @@ fi
 
 git gc
 exit 0
-
