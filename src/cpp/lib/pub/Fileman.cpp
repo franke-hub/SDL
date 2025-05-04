@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2024 Frank Eskesen.
+//       Copyright (c) 2020-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Fileman.h object methods
 //
 // Last change date-
-//       2024/10/23
+//       2025/05/03
 //
 // Implementation note-
 //       TODO: Deprecate, rename to Data.h; rename line=>get_list; etc.
@@ -239,7 +239,7 @@ int                                 // Return code, 0 OK
    int rc= stat(_full.c_str(), &st); // Get file information
    if( rc != 0 )                    // If failure
    {
-     errorp("%4d: Data: stat(%s) failure: %d", __LINE__, _full.c_str(), rc);
+     errorp("%4d Data stat(%s) failure: %d", __LINE__, _full.c_str(), rc);
      return rc;
    }
 
@@ -257,7 +257,7 @@ int                                 // Return code, 0 OK
    if( L != size )
    {
      _damaged= true;
-     fprintf(stderr, "%4d Data: File(%s) read failure %ld\n", __LINE__,
+     fprintf(stderr, "%4d Data File(%s) read failure %ld\n", __LINE__,
                      _full.c_str(), (long)L);
      memset(text, 0, size);
    }
@@ -269,7 +269,7 @@ int                                 // Return code, 0 OK
    if( size_t(last-text) < size )   // If file contains '\0' delimiter
    {
      _damaged= true;
-     fprintf(stderr, "%4d Data: File(%s) contains '\\0' delimiter\n", __LINE__,
+     fprintf(stderr, "%4d Data File(%s) contains '\\0' delimiter\n", __LINE__,
                      _full.c_str());
    }
 
@@ -296,7 +296,7 @@ int                                 // Return code, 0 OK
        _line.fifo(new Line(from));
      } else {                       // Last line missing '\n'
        _changed= true;              // Write will change file format
-       fprintf(stderr, "%4d Data: File(%s) last line missing '\\n'\n", __LINE__,
+       fprintf(stderr, "%4d Data File(%s) last line missing '\\n'\n", __LINE__,
                        _full.c_str());
        _line.fifo(new Line(from));
        break;
@@ -335,9 +335,9 @@ int                                 // Return code, 0 OK
 
      rc= fclose(f);
      if( rc )
-       errorp("%4d: Data: close('%s') failure", __LINE__, _full.c_str());
+       errorp("%4d Data close('%s') failure", __LINE__, _full.c_str());
    } else {                         // If open failure
-     errorp("%4d: Data: open('%s') failure", __LINE__, _full.c_str());
+     errorp("%4d Data open('%s') failure", __LINE__, _full.c_str());
    }
 
    return rc;
@@ -618,7 +618,7 @@ std::string                         // The invalid path ("" if none)
    DIR* dir= opendir(S.c_str());    // Open the directory stream
    if( dir == NULL )                // Stream not opened
    {
-     errorp("%4d: Path: opendir('%s') failure", __LINE__, _path.c_str());
+     errorp("%4d Path opendir('%s') failure", __LINE__, _path.c_str());
      return;
    }
 
@@ -638,7 +638,7 @@ std::string                         // The invalid path ("" if none)
      int rc= lstat(full.c_str(), &s);   // Load the file information
      if( rc != 0 )                  // If failure
      {
-       errorp("%4d: Path: lstat(%s) failure: %d", __LINE__, full.c_str(), rc);
+       errorp("%4d Path lstat(%s) failure: %d", __LINE__, full.c_str(), rc);
        continue;
      }
 
@@ -648,7 +648,7 @@ std::string                         // The invalid path ("" if none)
 
    int rc= closedir(dir);           // Done reading the directory
    if( rc != 0 )                    // If error encountered
-     errorp("%4d: Path: closedir('%s') failure", __LINE__, _path.c_str());
+     errorp("%4d Path closedir('%s') failure", __LINE__, _path.c_str());
 
    //-------------------------------------------------------------------------
    // Sort the list
