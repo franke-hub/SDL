@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2025/04/25
+//       2025/5/03
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -35,7 +35,7 @@ The gitk viewer provides a line by line change view.
 Commits are now sorted in date order rather than reverse date order.
 (Oldest first, newest last)
 
-[\[Last change date:\]](#most-recent-change) 2025/04/25
+[\[Last change date:\]](#most-recent-change) 2025/05/03
 
 ----
 
@@ -662,7 +662,7 @@ ID of a key that's on your secret key list.
 
 ----
 
-### <a id=most-recent-change>2025/04/25 trunk/maint</a>
+### 2025/04/25 trunk/maint
 
 Commits are now sorted in date order rather than reverse date order.
 
@@ -670,3 +670,46 @@ Removed unnecessary error checking in the Select::~Select (destructor) method
 implemented in ~/src/cpp/lib/pub/Select.cpp.
 Now that Sockets don't reference Select objects, it's not an issue whether or
 not Socket objects appear in a Select object's database.
+
+----
+
+### <a id=most-recent-change>2025/05/03 trunk/maint</a>
+
+This commit is "much ado about nothing."
+
+I'm having trouble getting a Windows share working. As part of my attempted
+repair, I removed and restored the share. Well, not such a good idea.
+
+Among other things, the share contains the SDL repository. Windows thought it
+would be a good idea to reset all the Cygwin settings to the default, which
+made all the files executable. GIT thought those files whose permissions had
+changed were modifiable, so I had a boatload of file mode restorations to do.
+Too many to do by hand.
+
+So I heavily modified ~/src/cpp/Fileman/Scanner.cpp, which I use to verify
+the distribution (when I run it.) As part of the change I also modified the
+SA30 and SA40 copyright, removing a gratuitous comma. The html copyright
+format was changed to have leading '//' in each line.
+
+But the big problem was determining whether or not a file should have execute
+permissions. The huristic chosen was to check whether or not a file began with
+a "#!" heading. If so, it was an executable script. If not it was a plain
+file. This was mostly OK, but some files had the "#!" heading and weren't
+really meant to be called directly: They were sourced bash scripts or imported
+python files. Now that the headers have been corrected, automatic permission
+setting is just a matter of running the scanner program (in ~/obj/cpp/Fileman)
+
+I have two updates in progress that are not ready to go yet. At least they
+can be worked on without a zillion other updates pending.
+
+So, lots of updates are included but there's not a lot of real changes.
+- ~/src/cpp/Fileman/Scanner.cpp is a real change. These options are now
+completely independent:
+  - copyright verification (including last change date)
+  - file permission mode checking using '#!' header for scripts
+  - unix file format checking (including trailing blanks in lines)
+- SA30 and SA40 copyrights removed an unneeded comma, and are now more
+consistent with other copyright formats.
+- Script v. source file is determined by '#!' beginning the data.
+- ~/src/cpp/lib/pub/Fileman was updated to make its error messages more
+consistent with other such messages in the library.
