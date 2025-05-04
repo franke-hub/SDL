@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!--
-
-         Copyright (C) 2018 Frank Eskesen.
-
-         This file is free content, distributed under creative commons CC0,
-         explicitly released into the Public Domain.
-         (See accompanying html file LICENSE.ZERO or the original contained
-         within https://creativecommons.org/publicdomain/zero/1.0/legalcode)
-
--->
+<!-- -------------------------------------------------------------------------
+//
+//       Copyright (C) 2018 Frank Eskesen.
+//
+//       This file is free content, distributed under creative commons CC0,
+//       explicitly released into the Public Domain.
+//       (See accompanying html file LICENSE.ZERO or the original contained
+//       within https://creativecommons.org/publicdomain/zero/1.0/legalcode)
+//
+-------------------------------------------------------------------------- -->
 <web-app>
   <servlet name="File Server">
     <mapping url="/html" lib="./libFileServer.so.1.0"/>
