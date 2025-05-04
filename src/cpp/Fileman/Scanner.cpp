@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2024 Frank Eskesen.
+//       Copyright (c) 2020-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,40 +16,38 @@
 //       Source file checker.
 //
 // Last change date-
-//       2024/09/22
+//       2025/05/03
 //
-// Verifications-
-//       File permissions. (Auto-correctable)
-//       Path permissions. (Auto-correctable)
-//       Copyright statement. (Auto-correctable)
-//       Copyright year matches last change date year. (Auto-correctable)
-//       File line contains trailing blanks. (Auto-correctable)
-//       Copyright matches some prototype. (Use --verify)
+// Usage-
+//       Scanner {path} options
 //
-// Auto-correctione-
-//       No change or error message occurs unless --verbose >= 0.
-//       Option -x enables auto-correct.
-//       Only one message or correction unless --multi specified.                           ct
+// Options-
+//       --help:       Display options and exit
+//       --verbose{=n} Set verbosity, higher is more verbose
+//       --all:        Check file mode, file format, and copyright text
+//       --auto:       Enable auto-correct (alias of --x)
+//       --copy:       [auto-correct] Verify copyright
+//       --listx:      Get list of file extentions
+//       --mode:       [auto-correct] Verify file mode (permissions)
+//       --multi:      Allow multiple detections or corrections
+//       --unix:       [auto-correct] Verify unix file format
+//       --x:          Enable auto-correct (alias of --auto)
 //
 // Usage notes-
-//       --verbose=-101: Get list of file extention names
+//       scanner src --all --verbose --multi
+//         * Detects all errors, corrects none
 //
-//       scanner src
-//         * Detects errors that cannot be auto-corrected
-//         * Adds copyright text check if --verify also specified
-//           (A summary count for each detected license type is included)
+//       scanner src --all --verbose --multi --x
+//         * Detects all errors, corrects where possible
 //
-//       scanner src --verbose
-//         * Detects ONE correctable error
-//         * Detects ALL correctable errors if --multi also specified
+//       scanner src --all --verbose
+//         * Detects ONE error
 //
-//       scanner src --verbose -x
-//         * Corrects ONE error
-//         * Corrects ALL errors if --multi also specified
+//       scanner src --all --verbose --x
+//         * Corrects ONE error (if possible)
 //
 //       scanner --verbose=2 or more
-//         * Displays options
-//         * Displays TYPE: Filename correspondence if --verify also specified
+//         * Displays TYPE: Filename correspondence
 //
 //       scanner --verbose=3 or more
 //         * Adds IGNORED file information
@@ -61,12 +59,10 @@
 //         * Adds extensive debugging display
 //
 // Implementation notes-
-//       TODO: Use options rather than verbose to activate functions.
 //       TODO: Simplify scanning. All copyrights are identical except for
 //             their leading comment control characters.
 //             Maybe add leading characters to html file comment extensions,
 //             like the ** between /** and **/.
-//       TODO: See what can be done to auto-update file attributes.
 //
 //----------------------------------------------------------------------------
 #undef  _GNU_SOURCE                 // For strcasestr
@@ -102,13 +98,14 @@ typedef Tokenizer::Iterator Iterator;
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
-
-// TEST: opt_verbose == OPT_EXTENSIONS
-,  OPT_EXTENSIONS= -101             // Get list of file extensions?
 }; // Generic enum
 
-// USE_AUTO_UPDATE must be a #define for conditional data defines
-#define USE_AUTO_UPDATE false       // Use extended automatic update?
+//----------------------------------------------------------------------------
+// Forward references
+//----------------------------------------------------------------------------
+static bool                         // TRUE if blanks removed
+   remove_trailing_blanks(          // Remove trailing blanks
+     Data&             data);       // In this file
 
 //----------------------------------------------------------------------------
 // Internal data areas
@@ -138,22 +135,22 @@ static int             bash_count[COPY_TYPES]= {};
 static Data*           code_gpl=  nullptr; // The GPL  code copyright header
 static Data*           code_lgpl= nullptr; // The LGPL code copyright header
 static Data*           code_mit=  nullptr; // The MIT  code copyright header
-static Data*           code_sa30= nullptr; // The SA30 bash copyright header
-static Data*           code_sa40= nullptr; // The SA40 bash copyright header
+static Data*           code_sa30= nullptr; // The SA30 code copyright header
+static Data*           code_sa40= nullptr; // The SA40 code copyright header
 static Data*           code_zero= nullptr; // The NONE code copyright header
 static int             code_count[COPY_TYPES]= {};
 
 static Data*           html_gpl=  nullptr; // The GPL  html copyright header
 static Data*           html_lgpl= nullptr; // The LGPL html copyright header
 static Data*           html_mit=  nullptr; // The MIT  html copyright header
-static Data*           html_sa30= nullptr; // The SA30 bash copyright header
-static Data*           html_sa40= nullptr; // The SA40 bash copyright header
+static Data*           html_sa30= nullptr; // The SA30 html copyright header
+static Data*           html_sa40= nullptr; // The SA40 html copyright header
 static Data*           html_zero= nullptr; // The NONE html copyright header
 static int             html_count[COPY_TYPES]= {};
 
 static Data*           lily_gpl=  nullptr; // The GPL  lily copyright header
-static Data*           lily_lgpl= nullptr; // The LGPL html copyright header
-static Data*           lily_mit=  nullptr; // The MIT  html copyright header
+static Data*           lily_lgpl= nullptr; // The LGPL lily copyright header
+static Data*           lily_mit=  nullptr; // The MIT  lily copyright header
 static Data*           lily_sa30= nullptr; // The SA30 lily copyright header
 static Data*           lily_sa40= nullptr; // The SA40 lily copyright header
 static Data*           lily_zero= nullptr; // The NONE lily copyright header
@@ -212,27 +209,34 @@ static const name2data*misc_table= bash_table;
 // Option values and controls
 //----------------------------------------------------------------------------
 static int             opt_help= false; // --help (or error)
-static int             opt_format= false; // Check/repair file (unix) format
+static int             opt_auto= false; // Use auto-correct?
 static int             opt_index;   // Option index
+static int             opt_listx= false; // Create extension list
+static int             opt_mode= false; // Verify file mode
+static int             opt_unix= false; // Check/repair file (unix) format
 static int             opt_multi= false; // Allow multiple errors
 static int             opt_verbose= VERBOSE; // Verbosity (Higher is more)
-static int             opt_verify= false; // Verify copyright
-static int             opt_x= false; // Auto-correct extended mode
+static int             opt_copy= false; // Verify copyright
 
-static const char*     OSTR= ":x";  // The getopt_long optstring parameter
+static const char*     OSTR= ":";   // The getopt_long optstring parameter
 static struct option   OPTS[]=      // The getopt_long longopts parameter
-{  {"help",    no_argument,       &opt_help,    true}
-,  {"format",  no_argument,       &opt_format,  true}
-,  {"multi",   no_argument,       &opt_multi,   true}
-,  {"verify",  no_argument,       &opt_verify,  true}
-,  {"verbose", optional_argument, &opt_verbose,    1}
+{  {"help",      no_argument,       &opt_help,    true}
+,  {"verbose",   optional_argument, &opt_verbose,    1}
+,  {"all",       no_argument,       nullptr,         0}
+,  {"auto",      no_argument,       &opt_auto,    true}
+,  {"listx",     no_argument,       &opt_listx,   true}
+,  {"mode",      no_argument,       &opt_mode,    true}
+,  {"multi",     no_argument,       &opt_multi,   true}
+,  {"unix",      no_argument,       &opt_unix,    true}
+,  {"copy",      no_argument,       &opt_copy,    true}
+,  {"x",         no_argument,       &opt_auto,    true}
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
 
 enum OPT_INDEX
 {  OPT_HELP= 0
-,  OPT_VERBOSE= 4
-,  OPT_SIZE= 5
+,  OPT_VERBOSE= 1
+,  OPT_ALL= 2
 };
 
 //----------------------------------------------------------------------------
@@ -362,14 +366,14 @@ static void
    html_lgpl= data_none;                // Load the LGPL copyright (disallowed)
    html_mit=  new Data(base, "H.MIT");  // Load the MIT  copyright
    html_sa30= data_none;                // Load the SA30 copyright (undefined)
-   html_sa40= data_none;                // Load the SA40 copyright (undefined)
+   html_sa40= new Data(base, "H.SA40"); // Load the SA40 copyright
    html_zero= new Data(base, "H.ZERO"); // Load the NONE copyright
 
    lily_gpl=  new Data(base, "L.GPL");  // Load the GPL  copyright
    lily_lgpl= data_none;                // Load the LGPL copyright (disallowed)
    lily_mit=  data_none;                // Load the MIT  copyright (undefined)
    lily_sa30= new Data(base, "L.SA30"); // Load the SA30 copyright
-   lily_sa40= data_none;                // Load the SA40 copyright (undefined)
+   lily_sa40= new Data(base, "L.SA40"); // Load the SA40 copyright
    lily_zero= new Data(base, "L.ZERO"); // Load the NONE copyright
 
    // Get list of IGNORE files
@@ -424,14 +428,14 @@ static void
 // delete html_lgpl;
    delete html_mit;
 // delete html_sa30;
-// delete html_sa40;
+   delete html_sa40;
    delete html_zero;
 
    delete lily_gpl;
 // delete lily_lgpl;
 // delete lily_mit;
    delete lily_sa30;
-// delete lily_sa40;
+   delete lily_sa40;
    delete lily_zero;
 
    //-------------------------------------------------------------------------
@@ -512,16 +516,19 @@ static void
    info( void )
 {
    fprintf(stderr,"\n");
-   fprintf(stderr,"Copyright checker\n");
-
-   fprintf(stderr,"\n");
-   fprintf(stderr,"Copyright <options>\n");
+   fprintf(stderr,"Scanner {path} <options>\n");
    fprintf(stderr,"Options:\n"
-                   "  -x\t\tAuto-correct mode\n"
-                   "  --format\tVerify unix file format\n"
-                   "  --multi\tAllow multiple errors/changes\n"
-                   "  --verify\tVerify copyright text\n"
+                   "  --help\tWrite this help message and exit\n"
                    "  --verbose\t{=n} Verbosity, 1 if =n unspecified\n"
+                   "\n"
+                   "  --all\t\tCheck format, mode, and copyright\n"
+                   "  --auto\tAuto-correct mode\n"
+                   "  --copy\tVerify copyright text\n"
+                   "  --listx\tList filename extensions\n"
+                   "  --mode\tVerify file mode\n"
+                   "  --multi\tAllow multiple errors/changes\n"
+                   "  --unix\tVerify unix file format\n"
+                   "  --x\t\tAuto-correct mode (alias for --auto)\n"
           );
 
    exit(1);
@@ -589,15 +596,17 @@ static void
                opt_verbose= parm_int();
              break;
 
+           case OPT_ALL:
+             opt_copy= true;
+             opt_mode= true;
+             opt_unix= true;
+             break;
+
            default:
              break;
          }
          break;
        }}}}
-
-       case 'x':
-         opt_x= true;
-         break;
 
        case ':':
          opt_help= true;
@@ -624,52 +633,33 @@ static void
      }
    }
 
-   if( opt_verbose > 1 )
-   {
-     fprintf(stderr, "-x\t\t%d\n", opt_x);
-     fprintf(stderr, "--format\t%d\n", opt_format);
-     fprintf(stderr, "--multi\t\t%d\n", opt_multi);
-     fprintf(stderr, "--verify\t%d\n", opt_verify);
-     fprintf(stderr, "--verbose\t%d\n", opt_verbose);
-   }
-
    if( opt_help )
      info();
+
+   if( opt_verbose )
+   {
+     fprintf(stderr, "%5d --verbose\n", opt_verbose);
+     fprintf(stderr, "%5s --auto\n",    opt_auto  ? " true" : "false");
+     fprintf(stderr, "%5s --copy\n",    opt_copy  ? " true" : "false");
+     fprintf(stderr, "%5s --listx\n",   opt_listx ? " true" : "false");
+     fprintf(stderr, "%5s --mode\n",    opt_mode  ? " true" : "false");
+     fprintf(stderr, "%5s --multi\n",   opt_multi ? " true" : "false");
+     fprintf(stderr, "%5s --unix\n",    opt_unix  ? " true" : "false");
+     fprintf(stderr, "\n");
+   }
 }
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       debug_opt
-//
-// Purpose-
-//       Display getopt debugging information.
-//
-//----------------------------------------------------------------------------
-static inline void                  // TODO: REMOVE
-   debug_opt(                       // Display getopt debugging information
-     int               line = 0)    // Caller's line number
-{
-   const char* opt_name= "<<null>>";
-   if( opt_index < OPT_SIZE )
-     opt_name= OPTS[opt_index].name;
-   else
-     opt_name= "<<INVALID>>";
-   fprintf(stderr, "%4d index(%d:%s) arg(%s) err(%d) ind(%d) opt(%c)\n",
-                   line, opt_index, opt_name, optarg, opterr, optind, optopt);
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       get_copyline
+//       get_copy_line
 //
 // Function-
 //       Get copyright line
 //
 //----------------------------------------------------------------------------
 static inline Line*                 // The copyright line, nullptr if missing
-   get_copyline(                    // Get copyright line
+   get_copy_line(                   // Get copyright line
      Data&             data)        // From this Data
 {
    Line* line= data.line().get_head();
@@ -735,6 +725,36 @@ static inline bool                  // TRUE iff name is in "bash" format
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       is_binary
+//
+// Function-
+//       Is the file name extension a binary format type?
+//
+//----------------------------------------------------------------------------
+static inline bool                  // TRUE iff name specifies binary format
+   is_binary(                       // Does the name specify binary format?
+     const string&     name)        // The filename
+{
+   string ext= get_extension(name);
+   if( ext == "gif" )
+     return true;
+   if( ext == "gpg" )
+     return true;
+   if( ext == "odt" )
+     return true;
+   if( ext == "pdf" )
+     return true;
+   if( ext == "png" )
+     return true;
+   if( ext == "zip" )
+     return true;
+
+   return false;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       is_code
 //
 // Function-
@@ -767,31 +787,7 @@ static inline bool                  // TRUE iff name is in "html" format
      const string&     name)        // The filename
 {
    string ext= get_extension(name);
-   if( ext == "html" || ext == "htm" || ext == "xml" )
-     return true;
-
-   return false;
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       is_ignored
-//
-// Function-
-//       Is the specified file in an ignored format?
-//
-//----------------------------------------------------------------------------
-static inline bool                  // TRUE iff name is in an ignored format
-   is_ignored(                      // Is file automatically ignored?
-     const string&     name)        // The filename
-{
-   string ext= get_extension(name);
-   if( ext == "odt" )
-     return true;
-   if( ext == "pdf" )
-     return true;
-   if( ext == "zip" )
+   if( ext == "html" || ext == "htm"  || ext == "md"|| ext == "xml" )
      return true;
 
    return false;
@@ -815,6 +811,33 @@ static inline bool                  // TRUE iff name is in "lily" format
      return true;
 
    return false;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       is_script
+//
+// Function-
+//       Is this a script file?
+//
+//----------------------------------------------------------------------------
+static inline bool                  // True if file contains a script heading
+   is_script(                       // Does the data contain a script mark?
+     Data&             data)        // The associated Data object
+{
+   Line* line= data.line().get_head(); // The first Line
+   if( line == nullptr )
+     return false;
+
+   const char* text= line->text;
+   if( text == nullptr )
+     return false;
+
+   if( memcmp(text, "#!", 2) != 0 )
+     return false;
+
+   return true;
 }
 
 //----------------------------------------------------------------------------
@@ -877,14 +900,14 @@ static inline string                // The string, -leading and trailing blanks
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       verify_date_copy
+//       verify_copy_date
 //
 // Function-
 //       Verify copyright date.
 //
 //----------------------------------------------------------------------------
 static int                          // The copyright year, -1 if invalid
-   verify_date_copy(                // Verify copyright date
+   verify_copy_date(                // Verify copyright date
      const string&     date)        // The copyright yyyy or yyyy-yyyy string
 {
    int c_year= -1;
@@ -905,14 +928,14 @@ static int                          // The copyright year, -1 if invalid
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       verify_date_last
+//       verify_last_date
 //
 // Function-
 //       Verify last change date.
 //
 //----------------------------------------------------------------------------
 static void
-   verify_date_last(                // Verify last change date
+   verify_last_date(                // Verify last change date
      Data&             data,        // The associated Data object
      int               year)        // The copyright year
 {
@@ -986,85 +1009,87 @@ static void
      return;
    }
 
-   if( opt_verbose > 0 ) {
-     if( opt_x == false ) {
+   if( opt_auto == false ) {
+     if( opt_verbose )
        printf("File(%s) Correctable last(%d) copy(%d)\n",
               full.c_str(), l_yy, year);
-     } else {
-       Line* line= get_copyline(data); // The copyright line
-       Tokenizer tok_line(line->text); // Our line Tokenizer
-       Iterator  tok_iter= tok_line.begin();
+   } else {
+     Line* line= get_copy_line(data); // The copyright line
+     Tokenizer tok_line(line->text); // Our line Tokenizer
+     Iterator  tok_iter= tok_line.begin();
 
-       // Verify copyright line (an internal assert)
-       bool is_error= false;
-       string comment= (tok_iter++)();  // Get/skip leading comment characters
-       if( tok_iter() != "Copyright" )  // If missing copyright statement
-         is_error= true;
+     // Verify copyright line (an internal assert)
+     bool is_error= false;
+     string comment= (tok_iter++)();  // Get/skip leading comment characters
+     if( tok_iter() != "Copyright" )  // If missing copyright statement
+       is_error= true;
 
-       string S= (++tok_iter)();
-       if( S != "(C)" && S != "(c)" )
-         is_error= true;
+     string S= (++tok_iter)();
+     if( S != "(C)" && S != "(c)" )
+       is_error= true;
 
-       string s_year= (++tok_iter)();
-       int f_year= string2int(s_year.substr(0,4));
-       int t_year= f_year;
-       if( s_year.length() == 9 )
-         t_year= string2int(s_year.substr(5));
-       if( f_year < 0 || t_year < f_year )
-         is_error= true;
+     string s_year= (++tok_iter)();
+     int f_year= string2int(s_year.substr(0,4));
+     int t_year= f_year;
+     if( s_year.length() == 9 )
+       t_year= string2int(s_year.substr(5));
+     if( f_year < 0 || t_year < f_year )
+       is_error= true;
 
-       string owner=  (++tok_iter).remainder();
-       if( !ends_with(owner, ".") )
-         is_error= true;
+     string owner=  (++tok_iter).remainder();
+     if( !ends_with(owner, ".") )
+       is_error= true;
 
-       if( is_error ) {             // Should not occur, but ignorable
-         fprintf(stderr, "%4d file(%s) <<PROGRAM FAULT>> copy(%s)\n", __LINE__,
-                         full.c_str(), line->text);
-         return;
-       }
-
-       if( l_yy < f_year ) {        // if last change date < from year
-         printf("file(%s) copy(%s) last(%d) not correctable\n",
-                full.c_str(), s_year.c_str(), l_yy);
-         return;
-       }
-
-       t_year= l_yy;                // Use last change date as to_year
-       string n_year= pub::utility::to_string("%4d", t_year);
-       if( f_year != t_year )
-         n_year= pub::utility::to_string("%4d-%4d", f_year, t_year);
-
-       comment += " ";
-       if( comment.length() < 9 )
-         comment += string(9 - comment.length(), ' ');
-       comment += "Copyright (c) " + n_year + " " + owner;
-
-       Line* repl= data.get_line(comment);
-       data.line().insert(line, repl, repl);
-       data.line().remove(line, line);
-       delete line;
-
-       printf("File(%s) Corrected last(%d) copy(%s)\n", full.c_str(),
-              l_yy, s_year.c_str());
-       data.write();
+     if( is_error ) {             // Should not occur, but ignorable
+       if( opt_verbose )
+         fprintf(stderr, "%4d file(%s) <<PROGRAM FAULT>> copy(%s)\n"
+                       , __LINE__, full.c_str(), line->text);
+       return;
      }
 
-     if( !opt_multi )
-       exit(0);
+     if( l_yy < f_year ) {        // if last change date < from year
+       if( opt_verbose )
+         printf("file(%s) copy(%s) last(%d) not correctable\n",
+                full.c_str(), s_year.c_str(), l_yy);
+       return;
+     }
+
+     t_year= l_yy;                // Use last change date as to_year
+     string n_year= pub::utility::to_string("%4d", t_year);
+     if( f_year != t_year )
+       n_year= pub::utility::to_string("%4d-%4d", f_year, t_year);
+
+     comment += " ";
+     if( comment.length() < 9 )
+       comment += string(9 - comment.length(), ' ');
+     comment += "Copyright (c) " + n_year + " " + owner;
+
+     Line* repl= data.get_line(comment);
+     data.line().insert(line, repl, repl);
+     data.line().remove(line, line);
+     delete line;
+
+     if( opt_verbose )
+       printf("File(%s) Corrected last(%d) copy(%s)\n", full.c_str(),
+              l_yy, s_year.c_str());
+     data.write();
    }
+
+   if( !opt_multi )
+     exit(0);
 }
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       verify_copy
+//       verify_copy_line
 //
 // Function-
-//       Verify copyright line. (Uses verify_date_copy)
+//       Verify copyright line.
 //
 //----------------------------------------------------------------------------
 static int                          // The copyright year, -1 if invalid
-   verify_copy(                     // Verify copyright string
+   verify_copy_line(                // Verify copyright line
      Data&             data,        // The associated Data object
      Line*             line)        // The copyright Line
 {
@@ -1095,7 +1120,7 @@ static int                          // The copyright year, -1 if invalid
    }
 
    string s_year= (++tok_iter)();
-   int c_year= verify_date_copy(s_year);
+   int c_year= verify_copy_date(s_year);
    if( c_year > 0 ) {
      if( OWNER_NAME != "" ) {
        string owner((++tok_iter).remainder());
@@ -1118,7 +1143,7 @@ static int                          // The copyright year, -1 if invalid
      }
      if( ends_with(next, ".") ) {
        next= next.substr(0, next.length()-1);
-       c_year= verify_date_copy(next);
+       c_year= verify_copy_date(next);
        if( c_year > 0 ) {
          if( (++tok_iter)() != "" ) // If ending date in the middle
            c_year= -1;            // Not correctable
@@ -1144,7 +1169,7 @@ static int                          // The copyright year, -1 if invalid
    //-------------------------------------------------------------------------
    // Correctable date detected
    if( opt_verbose > 0 ) {          // If user is interested
-     if( opt_x ) {                  // If auto-correct allowed
+     if( opt_auto ) {               // If auto-correct allowed
        text= comment + " ";
        if( text.length() < 9 )
          text += string(9 - text.length(), ' ');
@@ -1169,81 +1194,18 @@ static int                          // The copyright year, -1 if invalid
 
 //----------------------------------------------------------------------------
 //
-// Data area-
-//       verify_info_*
-//
-// Function-
-//       Define the obsolete licenses
-//
-//----------------------------------------------------------------------------
-#if USE_AUTO_UPDATE
-/*****************************************************************************
-Auto-update is complete. This should have been done with one verify_info_xxxx
-table, replacing the original comment header characters. There were a lot of
-unique comment headers, and corrections were made fixing these headers one by
-one.
-*****************************************************************************/
-
-static const char*     verify_info_bash[]=
-{ "##"
-, "##       This file is free content, distributed under the \"un-license,\""
-, "##       explicitly released into the Public Domain."
-, "##       (See accompanying file LICENSE.UNLICENSE or the original"
-, "##       contained within http://unlicense.org)"
-, "##"
-, nullptr
-};
-
-static const char*     verify_info_code[]=
-{ "//"
-, "//       This file is free content, distributed under the \"un-license,\""
-, "//       explicitly released into the Public Domain."
-, "//       (See accompanying file LICENSE.UNLICENSE or the original"
-, "//       contained within http://unlicense.org)"
-, "//"
-, nullptr
-};
-
-static const char*     verify_info_html[]=
-{ ""
-, "         This file is free content, distributed under the \"un-license,\""
-, "         explicitly released into the Public Domain."
-, "         (See accompanying file LICENSE.UNLICENSE or the original"
-, "         contained within http://unlicense.org)"
-, ""
-, nullptr
-};
-
-static const char*     verify_info_lily[]=
-{ "%%"
-, "%%       This file is free content, distributed under the \"un-license,\""
-, "%%       explicitly released into the Public Domain."
-, "%%       (See accompanying file LICENSE.UNLICENSE or the original"
-, "%%       contained within http://unlicense.org)"
-, "%%"
-, nullptr
-};
-#else // Referenced by code that's optimized out rather than by #if ... #endif
-static const char*     verify_info_bash[]= { nullptr }; // Wasted space
-static const char*     verify_info_code[]= { nullptr };
-static const char*     verify_info_html[]= { nullptr };
-static const char*     verify_info_lily[]= { nullptr };
-#endif
-
-//----------------------------------------------------------------------------
-//
 // Subroutine-
-//       verify_info
+//       verify_copy_text
 //
 // Function-
 //       Verify copyright matches standard.
 //
 //----------------------------------------------------------------------------
 static void
-   verify_info(                     // Verify copyright information
+   verify_copy_text(                // Verify copyright text
      Data&             data)        // For this data
 {
-   Line* line= get_copyline(data);  // The copyright line
+   Line* line= get_copy_line(data);  // The copyright line
    if( line == nullptr ) {          // If missing
      fprintf(stderr, "File(%s) Copyright missing\n", data.full().c_str());
      return;
@@ -1268,7 +1230,7 @@ static void
 
    for(int i= 0; table[i].name; i++) {
      Data* info= *table[i].data;
-     Line* lhs= get_copyline(*info)->get_next();
+     Line* lhs= get_copy_line(*info)->get_next();
      if( lhs == nullptr ) {
        fprintf(stderr, "Table(%s) undefined, exiting\n", table[i].name);
        exit(1);
@@ -1301,249 +1263,114 @@ static void
        return;
      }
    }
-
-   //-------------------------------------------------------------------------
-   // This code handles a one-time automatic copyright update, changing the
-   // public domain copyright detail.
-   // Once all source update operations complete, USE_AUTO_UPDATE is set false
-   // so that compiler optimization prevents the associated object code
-   // generation.
-   if( USE_AUTO_UPDATE ) {          // Fix/fail copyright update
-     // Determine which old format public domain copyright applies
-     Data*        info= nullptr;
-     const char** oldi= nullptr;
-
-     if( table == bash_table ) {
-       info= bash_zero;
-       oldi= verify_info_bash;
-     } else if( table == code_table ) {
-       info= code_zero;
-       oldi= verify_info_code;
-     } else if( table == html_table ) {
-       info= html_zero;
-       oldi= verify_info_html;
-     } else if( table == lily_table ) {
-       info= lily_zero;
-       oldi= verify_info_lily;
-     } else {                         // (default == bash_table)
-       info= bash_zero;
-       oldi= verify_info_bash;
-     }
-
-     // Compare the current copyright text with the obsolete text
-     int index= 0;
-     const char* lhs= oldi[0];
-     Line*       rhs= line->get_next();
-     while( lhs ) {
-       if( !rhs )
-         break;
-
-       // Account for possible empty lines
-       // If a line is not empty, it must contain at least 2 characters
-       if( *lhs == '\0' ) {
-         if(*rhs->text != '\0' )   // LHS empty but RHS not empty
-           break;
-       } else if( *rhs->text == '\0' ) { // LHS not empty but RHS empty
-         break;
-       } else if( strcmp(lhs+2, rhs->text+2) != 0 ) {
-         break;
-       }
-
-       lhs= oldi[++index];
-       rhs= rhs->get_next();
-     }
-     if( lhs == nullptr ) {
-       printf("File(%s) correct%s public domain (c)\n"
-             , data.full().c_str(), opt_x ? "ed" : "able");
-
-       if( opt_x ) {                // If repair option selected
-         pub::DHDL_list<Line>& list= info->line();
-         index= 0;
-         Line* lhs= get_copyline(*info)->get_next();
-         rhs= line->get_next();
-         while( lhs ) {
-           Line* rhs_prior= rhs->get_prev();
-           list.remove(rhs);
-           rhs= info->get_line(lhs->text);
-           list.insert(rhs_prior, rhs);
-           lhs= lhs->get_next();
-           rhs= rhs->get_next();
-         }
-
-         data.write();
-       }
-       if( !opt_multi )
-         exit(0);
-       return;
-     }
-   }
-
-   // Unable to automatically update the copyright.
-   printf("File(%s) Copyright invalid\n", data.full().c_str());
-   if( !opt_multi )
-     exit(0);
 }
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       handle_bash
+//       copy_bash
 //
 // Function-
-//       Handle a bash (.gitignore/.README/Makefile*) format file
+//       Handle a bash (.gitignore/.README/Makefile*) copyright
 //
 //----------------------------------------------------------------------------
 static void
-   handle_bash(                     // Handle a code format file
+   copy_bash(                       // Handle a bash copyright
      Data&             data)        // The content
 {
    if( data.file() == "README" )
      printf("File(%s) named README\n", data.full().c_str());
 
-   Line* line= get_copyline(data);
+   Line* line= get_copy_line(data);
    if( line == nullptr ) {
      printf("File(%s) (c) Missing\n", data.full().c_str());
      return;
    }
 
-   int c_year= verify_copy(data, line);
+   int c_year= verify_copy_line(data, line);
    if( c_year > 0 )
-     verify_date_last(data, c_year);
+     verify_last_date(data, c_year);
 
-   if( opt_verify )
-     verify_info(data);
+   verify_copy_text(data);
 }
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       handle_code
+//       copy_code
 //
 // Function-
-//       Handle a code (.cpp,...) format file
+//       Handle a code (.cpp,...) copyright
 //
 // Implementation note-
 //       This also handles lily (.ly) format files.
 //
 //----------------------------------------------------------------------------
 static void
-   handle_code(                     // Handle a code format file
+   copy_code(                       // Handle a code copyright
      Data&             data)        // The content
 {
-   Line* line= get_copyline(data);
+   Line* line= get_copy_line(data);
    if( line == nullptr ) {
      printf("File(%s) (c) Missing\n", data.full().c_str());
      return;
    }
 
-   int c_year= verify_copy(data, line);
+   int c_year= verify_copy_line(data, line);
    if( c_year > 0 )
-     verify_date_last(data, c_year);
+     verify_last_date(data, c_year);
 
-   if( opt_verify )
-     verify_info(data);
+   verify_copy_text(data);
 }
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       handle_data
+//       copy_html
 //
 // Function-
-//       Handle all file types, looking for trailing blanks
+//       Handle an html file copyright
 //
 //----------------------------------------------------------------------------
 static void
-   handle_data(                     // Handle all data files
+   copy_html(                       // Handle an html file copyright
      Data&             data)        // The content
 {
-   bool found= false;
-   Line* line= data.line().get_head();
-   while( line ) {
-     size_t L= strlen(line->text);
-     if( L > 0 && line->text[L-1] == ' ' ) {
-       if( !found ) {
-         found= true;
-         printf("File(%s) correct%s line with ending blank(s)\n'%s'\n"
-               , data.full().c_str(), opt_x ? "ed" : "able", line->text);
-       }
-
-       if( opt_x ) {
-         while( L > 0 && line->text[L-1] == ' ' )
-           --L;
-         string S(line->text, L);
-         Line* repl= data.get_line(S);
-         data.line().insert(line, repl, repl);
-         data.line().remove(line, line);
-         delete line;
-         line= repl;
-         if( !opt_multi )
-           break;
-       }
-     }
-
-     line= line->get_next();
-   }
-
-   if( found ) {
-     if( opt_x ) {
-       data.write();
-       data.change(false);
-     }
-
-     if( !opt_multi )
-       exit(0);
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       handle_html
-//
-// Function-
-//       Handle html files
-//
-//----------------------------------------------------------------------------
-static void
-   handle_html(                     // Handle an html file
-     Data&             data)        // The content
-{
-   Line* line= get_copyline(data);
-   if( line == nullptr )
+   Line* line= get_copy_line(data);
+   if( line == nullptr ) {
+     printf("File(%s) (c) Missing\n", data.full().c_str());
      return;
+   }
 
-   int c_year= verify_copy(data, line);
+   int c_year= verify_copy_line(data, line);
    if( c_year > 0 )
-     verify_date_last(data, c_year);
+     verify_last_date(data, c_year);
 
-   if( opt_verify )
-     verify_info(data);
+   verify_copy_text(data);
 }
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       handle_misc
+//       copy_misc
 //
 // Function-
 //       Handle all other files (No error if missing copyright)
 //
 //----------------------------------------------------------------------------
 static void
-   handle_misc(                     // Handle an unspecified file
+   copy_misc(                       // Handle an unspecified file copyright
      Data&             data)        // The content
 {
-   Line* line= get_copyline(data);
+   Line* line= get_copy_line(data);
    if( line == nullptr )
      return;
 
-   int c_year= verify_copy(data, line);
+   int c_year= verify_copy_line(data, line);
    if( c_year > 0 )
-     verify_date_last(data, c_year);
+     verify_last_date(data, c_year);
 
-   if( opt_verify )
-     verify_info(data);
+   verify_copy_text(data);
 }
 
 //----------------------------------------------------------------------------
@@ -1573,12 +1400,10 @@ static void
    Path path_(path);                // The directory content
    for(File* file= path_.list.get_head(); file; file= file->get_next())
    {
-     if( opt_verbose == OPT_EXTENSIONS ) {
+     if( opt_listx ) {
        string extension= get_extension(file->name);
        if( props.get_property(extension) == nullptr )
          props.insert(extension, extension);
-
-       continue;
      }
 
      if( opt_verbose > 4 )
@@ -1601,36 +1426,8 @@ static void
          continue;                  // And ignore it
        }
 
-       if( opt_verbose > 0 ) {
-         mode_t mode= file->st.st_mode & ACCESSPERMS;
-         mode_t want= S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-         mode_t exec= want    | S_IXUSR | S_IXGRP | S_IXOTH;
-         if( mode != want && mode != exec ) {
-           if( opt_x && (mode & S_IXUSR) == 0 ) { // If auto-correct allowed
-             mode= file->st.st_mode & ~(ACCESSPERMS);
-             mode |= want;
-             chmod(full.c_str(), mode);
-             printf("CHMOD File: %s\n", full.c_str());
-           } else {                 // Auto-correct disallowed
-             printf("File: -%s%s%s%s%s%s%s%s%s %s\n"
-                    , mode & S_IRUSR ? "r" : "-"
-                    , mode & S_IWUSR ? "w" : "-"
-                    , mode & S_IXUSR ? "x" : "-"
-                    , mode & S_IRGRP ? "r" : "-"
-                    , mode & S_IWGRP ? "w" : "-"
-                    , mode & S_IXGRP ? "x" : "-"
-                    , mode & S_IROTH ? "r" : "-"
-                    , mode & S_IWOTH ? "w" : "-"
-                    , mode & S_IXOTH ? "x" : "-"
-                    , full.c_str());
-           }
-           if( !opt_multi )
-             exit(0);
-         }
-       }
-
        string name(file->name);
-       if( is_ignored(name) )       // Ignore .odt, .pdf, and .zip files
+       if( is_binary(name) )        // Ignore binary formatted file types
          continue;
 
        Data data(path, name);
@@ -1639,32 +1436,73 @@ static void
          continue;
        }
 
-       if( opt_format ) {           // Check file format?
-         if( data.changed() ) {     // If not in Unix mode
-           if( opt_x ) {
-             printf("File(%s) ==> unix format\n", data.full().c_str());
-             data.write();
-             data.change(false);
-           } else {
-             printf("File(%s) NOT unix format\n", data.full().c_str());
+       if( opt_mode ) {             // If examining file mode
+         mode_t mode= file->st.st_mode & ACCESSPERMS;
+         mode_t want= S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+         mode_t exec= want    | S_IXUSR | S_IXGRP | S_IXOTH;
+         if( is_script(data) )
+           want= exec;
+
+         if( mode != want ) {       // If correction required
+           if( false )
+             debugf("%4d Scanner mode(%.3o) want(%.3o) opt_auto(%s)\n"
+                   , __LINE__, mode, want, opt_auto ? "true" : "false");
+           if( !opt_auto || (mode & S_IWUSR) == 0 ) { // If can't auto-correct
+             if( opt_verbose )
+               printf("File: -%s%s%s%s%s%s%s%s%s %s unchanged\n"
+                     , mode & S_IRUSR ? "r" : "-"
+                     , mode & S_IWUSR ? "w" : "-"
+                     , mode & S_IXUSR ? "x" : "-"
+                     , mode & S_IRGRP ? "r" : "-"
+                     , mode & S_IWGRP ? "w" : "-"
+                     , mode & S_IXGRP ? "x" : "-"
+                     , mode & S_IROTH ? "r" : "-"
+                     , mode & S_IWOTH ? "w" : "-"
+                     , mode & S_IXOTH ? "x" : "-"
+                     , full.c_str());
+           } else {                 // Auto-correct
+             mode= file->st.st_mode & ~(ACCESSPERMS);
+             mode |= want;
+             chmod(full.c_str(), mode);
+             if( opt_verbose )
+               printf("CHMOD File: %s\n", full.c_str());
            }
            if( !opt_multi )
              exit(0);
          }
        }
 
-       if( opt_verbose > 0 )
-         handle_data(data);         // Common file checking
-       if( is_code(name) )          // Implementation note: Sort likely first
-         handle_code(data);
-       else if( is_bash(name) )
-         handle_bash(data);
-       else if( is_lily(name) )
-         handle_code(data);
-       else if( is_html(name) )
-         handle_html(data);
-       else
-         handle_misc(data);
+       if( opt_unix ) {             // Check unix file format?
+         bool had_change= data.changed();
+         bool had_blanks= remove_trailing_blanks(data);
+         if( had_change || had_blanks ) { // If file changed
+           if( opt_auto ) {
+             if( had_change )
+               printf("File(%s) ==> unix format\n", data.full().c_str());
+             data.write();
+             data.change(false);
+           } else {
+             if( had_change )
+               printf("File(%s) NOT IN unix format\n", data.full().c_str());
+             printf("File(%s) unchanged\n", data.full().c_str());
+           }
+           if( !opt_multi )
+             exit(0);
+         }
+       }
+
+       if( opt_copy ) {             // Check copyright?
+         if( is_code(name) )        // Implementation note: Sort likely first
+           copy_code(data);
+         else if( is_bash(name) )
+           copy_bash(data);
+         else if( is_lily(name) )
+           copy_code(data);
+         else if( is_html(name) )
+           copy_html(data);
+         else
+           copy_misc(data);
+       }
      }
    }
 
@@ -1696,7 +1534,7 @@ static void
          mode_t want= S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
          mode_t exec= want    | S_IXUSR | S_IXGRP | S_IXOTH;
          if( mode != exec ) {
-           if( opt_x ) {            // If auto-correct allowed
+           if( opt_auto ) {         // If auto-correct allowed
              mode= file->st.st_mode & ~(ACCESSPERMS);
              mode |= exec;
              chmod(full.c_str(), mode);
@@ -1722,6 +1560,50 @@ static void
        handle_path(full);           // Process the subdirectory
      }
    }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       remove_trailing_blanks
+//
+// Function-
+//       Remove trailing blanks, but don't update file
+//
+//----------------------------------------------------------------------------
+static bool                         // TRUE if blanks removed
+   remove_trailing_blanks(          // Remove trailing blanks
+     Data&             data)        // In this file
+{
+   bool found= false;
+   Line* line= data.line().get_head();
+   while( line ) {
+     size_t L= strlen(line->text);
+     if( L > 0 && line->text[L-1] == ' ' ) {
+       if( !found ) {
+         found= true;
+         printf("File(%s) correct%s line with ending blank(s)\n'%s'\n"
+               , data.full().c_str(), opt_auto ? "ed" : "able", line->text);
+       }
+
+       if( opt_auto ) {
+         while( L > 0 && line->text[L-1] == ' ' )
+           --L;
+         string S(line->text, L);
+         Line* repl= data.get_line(S);
+         data.line().insert(line, repl, repl);
+         data.line().remove(line, line);
+         delete line;
+         line= repl;
+         if( !opt_multi )
+           break;
+       }
+     }
+
+     line= line->get_next();
+   }
+
+   return found;
 }
 
 //----------------------------------------------------------------------------
@@ -1762,16 +1644,14 @@ extern int                          // Return code
    }
 
    //-------------------------------------------------------------------------
-   // Handle bringup cases
+   // List extensions
    //-------------------------------------------------------------------------
-   if( opt_verbose == OPT_EXTENSIONS ) {
+   if( opt_listx ) {
      typedef pub::Properties::MapIter_t MapIter_t;
      printf("List of file types:\n");
      for(MapIter_t it= props.begin(); it != props.end(); ++it) {
        printf("%s\n", it->first.c_str());
      }
-
-     return 0;
    }
 
    //-------------------------------------------------------------------------
