@@ -16,7 +16,7 @@
 //       Editor: Terminal input services.
 //
 // Last change date-
-//       2025/03/04
+//       2025/05/04
 //
 // Implementation notes-
 //       See EdOuts.h for terminal output services.
@@ -79,6 +79,7 @@ enum                                // Generic enum
 WINDOW*                win= nullptr; // The NCURSES window (stdscr)
 
 Cursor                 mouse_cursor= {CS_VISIBLE, 0, 0}; // Mouse cursor
+uint64_t               last_bs= 0;  // Last backspace time
 
 // TOP area background colors
 GC_t                   bg_chg=  0;  // GC: TOP: BG: File changed

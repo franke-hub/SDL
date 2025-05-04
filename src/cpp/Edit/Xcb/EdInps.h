@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2024 Frank Eskesen.
+//       Copyright (C) 2020-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Terminal input services.
 //
 // Last change date-
-//       2024/05/06
+//       2025/05/04
 //
 // Implementation notes-
 //       See EdOuts.h for terminal output services.
@@ -81,6 +81,8 @@ gui::Device*           device= nullptr; // Our Device
 gui::Font*             font= nullptr; // Our Font
 
 Motion                 motion= {CS_VISIBLE, 0, 0, 0}; // System motion controls
+xcb_timestamp_t        last_bs= 0;  // Last backspace timestamp
+uint32_t               _0024;       // Unused (alignment)
 
 // Graphic contexts
 GC_t                   gc_font= 0;  // Graphic Context: Standard line
@@ -308,10 +310,14 @@ void
    key_ctl(                         // Handle this
      xcb_keysym_t      key);        // Ctrl_Key input event
 
-virtual void
+void
    key_input(                       // Handle this
-     xcb_keysym_t      key,         // Key input event
-     int               gui_state);  // Alt/Ctl/Shift state mask
+     xcb_keysym_t      key,         // Input key event
+     xcb_key_press_event_t* event); // The key_press event
+
+virtual void
+   key_press(                       // Handle this
+     xcb_key_press_event_t* event); // The key_press event
 
 //----------------------------------------------------------------------------
 //

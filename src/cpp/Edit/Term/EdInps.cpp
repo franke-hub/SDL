@@ -13,15 +13,16 @@
 //       EdInps.cpp
 //
 // Purpose-
-//       Editor: Implement EdInps.h: Terminal keyboard and mouse handlers.
+//       Editor: Implement EdInps.h: Keyboard and mouse handlers.
 //
 // Last change date-
-//       2025/03/04
+//       2025/05/04
 //
 //----------------------------------------------------------------------------
 #define _XOPEN_SOURCE_EXTENDED 1
 
 #include <cstdio>                   // For sprintf
+#include <ctime>                    // For CLOCK_REALTIME
 #include <string>                   // For std::string
 
 #include <term.h>                   // For ncurses terminal
@@ -62,6 +63,8 @@ enum // Compilation controls
 
 // The color saturation value (Determined experimentally)
 ,  MAX_COLOR= 1000                  // Maximum  color value
+
+,  USE_INTENSIVE_MODE_DEBUGGING= false // If actively debugging
 }; // Compilation controls
 
 enum // Key definitions
@@ -170,7 +173,7 @@ struct curses_error : public std::runtime_error {
 //----------------------------------------------------------------------------
 // EdInps.hpp: Subroutines
 //----------------------------------------------------------------------------
-#include <EdInps.hpp>
+#include "EdInps.hpp"
 
 //----------------------------------------------------------------------------
 //
@@ -186,6 +189,9 @@ struct curses_error : public std::runtime_error {
      traceh("EdInps(%p)::EdInps\n", this);
 
    setlocale(LC_ALL, "");           // (Before initscr)
+
+   if( USE_INTENSIVE_MODE_DEBUGGING ) // If actively debugging
+     debug_set_mode(pub::Debug::MODE_INTENSIVE);
 }
 
 //----------------------------------------------------------------------------
@@ -570,10 +576,20 @@ void
    const char* key_name= key_to_name(key);
    Trace::trace(".KEY", (state | key), key_name);
 
+   // Handle backspace interaction with F10, F11, or F12
+   uint64_t clock= get_clock();
+   if( key == KEY_F(10) || key == KEY_F(11) || key == KEY_F(12) ) {
+     if( (clock - last_bs) < 125'000'000 ) // If less than 1/8 second idle
+       return;                      // Ignore keypress
+   }
+
    // Key translations
+   last_bs= 0;                      // Default, no last backspace
    if( key == KEY_BACKSPACE         // (On xterm)
-       || key == 0x007F )           // (On Cygwin terminal)
+       || key == 0x007F ) {         // (On Cygwin terminal)
      key= '\b';
+     last_bs= clock;
+   }
 
    // Handle protected line
    if( view == data ) {             // Protection only applies to data view

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2024 Frank Eskesen.
+//       Copyright (C) 2020-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -13,10 +13,10 @@
 //       EdInps.cpp
 //
 // Purpose-
-//       Editor: Implement EdInps.h: Terminal keyboard and mouse handlers.
+//       Editor: Implement EdInps.h: Keyboard and mouse handlers.
 //
 // Last change date-
-//       2024/05/24
+//       2025/05/04
 //
 //----------------------------------------------------------------------------
 #include <cstdio>                   // For sprintf
@@ -67,6 +67,8 @@ enum // Compilation controls
 ,  KP_MIN= 0xff80                   // Keypad minimum key value
 
 ,  USE_GRAB_MOUSE= true             // When starting, position the mouse
+
+,  USE_INTENSIVE_MODE_DEBUGGING= false // If actively debugging
 }; // Compilation controls
 
 enum // Key definitions
@@ -347,8 +349,11 @@ static int                          // Return code, TRUE if error message
    gui::opt_verbose= opt_verbose;
 
    // Allocate GUI units
-   gui::Device* device= static_cast<gui::Device*>(get_parent());
+   device= static_cast<gui::Device*>(get_parent());
    font=   new gui::Font(device);
+
+   if( USE_INTENSIVE_MODE_DEBUGGING ) // If actively debugging
+     debug_set_mode(pub::Debug::MODE_INTENSIVE);
 }
 
 //----------------------------------------------------------------------------
@@ -445,8 +450,6 @@ void
 {  if( opt_hcdm ) debugh("EdInps(%p)::start\n", this);
 
    // Initialize the configuration
-   gui::Device* device= static_cast<gui::Device*>(get_parent());
-   // device->insert(this);
    device->configure();             // Configure the gui::Window
 
    // Create the graphic contexts
@@ -823,9 +826,11 @@ void
 //----------------------------------------------------------------------------
 void
    EdInps::key_input(               // Handle this
-     xcb_keysym_t      key,         // Key input event
-     int               gui_state)   // GUI state mask
-{  if( opt_hcdm && opt_verbose > 0 )
+     xcb_keysym_t      key,         // The input key
+     xcb_key_press_event_t* event)  // The key_press event
+{
+   int gui_state= event->state;     // Alt/Shift/Ctrl state mask
+   if( opt_hcdm && opt_verbose > 0 )
      debugh("EdInps(%p)::key_input(0x%.4X,0x%.8X) '%s%s%s'\n", this
            , key, gui_state
            , (gui_state & gui::KS_ALT) ? "ALT-" : ""
@@ -859,6 +864,16 @@ void
      if( key == XK_BackSpace || key == XK_Tab || key == XK_Escape )
        key &= 0x00FF;               // Keys "cleverly chosen to map to ASCII"
    }
+
+   // Handle backspace interaction with F10, F11, or F12
+   if( key == XK_F10 || key == XK_F11 || key == XK_F12 ) {
+     if( (event->time - last_bs) < 125 ) // If less than 1/8 second idle
+       return;                      // Ignore keypress
+   }
+
+   last_bs= 0;                      // Default, no last backspace
+   if( key == XK_BackSpace || key == '\b' ) // If backspace key
+     last_bs= event->time;          // Set last backspace time
 
    // Handle protected line
    if( view == data ) {             // Protection only applies to data view
@@ -1076,4 +1091,24 @@ void
    }
 
    key_state &= ~(KS_ESC | KS_NFC);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdInps::key_press
+//
+// Purpose-
+//       Key press handler
+//
+//----------------------------------------------------------------------------
+void
+   EdInps::key_press(               // Handle this
+     xcb_key_press_event_t* event)  // Key press event
+{
+   xcb_keysym_t key= device->to_keysym(event); // Convert to xcb_keysym_t
+   if( opt_hcdm )
+     debugh("EdInps(%p)::key_press(0x%.6x)\n", this, key);
+
+   key_input(key, event);
 }

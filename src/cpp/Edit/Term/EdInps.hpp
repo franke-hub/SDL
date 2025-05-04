@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2024 Frank Eskesen.
+//       Copyright (C) 2024-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       EdInps.cpp subroutines
 //
 // Last change date-
-//       2024/08/30
+//       2025/05/04
 //
 //----------------------------------------------------------------------------
 #ifndef EDINPS_HPP_INCLUDED
@@ -177,6 +177,25 @@ enum
 ,  ALT_CTL_arrow_up=   01101        // 0x0241 + 0:0476 0x013E
 }; // (Generic enum)
 }; // key_defs
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       get_clock
+//
+// Purpose-
+//       Get the current clock (nanoseconds since epoch)
+//
+//----------------------------------------------------------------------------
+static inline uint64_t              // The current clock
+   get_clock( void )                // Get current clock
+{
+   struct timespec real_time;       // UTC time base
+   clock_gettime(CLOCK_REALTIME, &real_time);
+   uint64_t clock= (uint64_t)real_time.tv_sec * 1'000'000'000;
+   clock += real_time.tv_nsec;
+   return clock;
+}
 
 //----------------------------------------------------------------------------
 //
