@@ -16,7 +16,7 @@
 //       Editor: Terminal input services.
 //
 // Last change date-
-//       2025/05/04
+//       2025/05/06
 //
 // Implementation notes-
 //       See EdOuts.h for terminal output services.
@@ -309,6 +309,12 @@ void
 void
    key_ctl(                         // Handle this
      xcb_keysym_t      key);        // Ctrl_Key input event
+
+virtual void
+   key_input(                       // Handle this
+     xcb_keysym_t      key,         // Key input event
+     int               state)       // Alt/Ctl/Shift state mask
+{  Window::key_input(key, state); }
 
 void
    key_input(                       // Handle this

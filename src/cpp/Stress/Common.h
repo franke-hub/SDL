@@ -253,9 +253,14 @@ virtual
 // Task::Methods
 //----------------------------------------------------------------------------
 public:
+virtual void
+   debug(
+     const char*       info= "") const
+{  Thread::debug(info); }
+
 void
    debug(                           // Debugging display
-     int               line)        // Caller's line number
+     int               line) const  // Caller's line number
 {
    debugh("%4d Task(%s)::debug() Task[%s] Main[%s]\n\t\t    %zd of %zd\n"
           , line, ident, FSM_NAME[fsm], FSM_NAME[main_fsm]

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2019 Frank Eskesen.
+//       Copyright (C) 2019-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
 //       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 //       Network speed test.
 //
 // Last change date-
-//       2019/04/27
+//       2025/05/06
 //
 // Implementation notes-
 //       Setting SO_SNDBUF and SO_RCVBUF significantly slows down Linux.
@@ -439,9 +439,10 @@ public:
 //----------------------------------------------------------------------------
 public:
 virtual void
-   debug( void )
+   debug(
+      const char*      info="") const // Caller information
 {
-   debugf("RecvThread(%p)::debug() fsm(%d)\n", this, fsm);
+   debugf("RecvThread(%p)::debug(%s) fsm(%d)\n", this, info, fsm);
 }
 
 virtual void
@@ -480,9 +481,10 @@ public:
 //----------------------------------------------------------------------------
 public:
 virtual void
-   debug( void )
+   debug(
+      const char*      info="") const // Caller information
 {
-   debugf("XmitThread(%p)::debug() fsm(%d)\n", this, fsm);
+   debugf("XmitThread(%p)::debug(%s) fsm(%d)\n", this, info, fsm);
 }
 
 virtual void
