@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2020-2024 Frank Eskesen.
+##       Copyright (C) 2020-2025 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,9 +15,14 @@
 ##       CYGWIN/LINUX Makefile customization
 ##
 ## Last change date-
-##       2024/03/01
+##       2025/05/04
 ##
 ##############################################################################
+
+##############################################################################
+## Set default paths
+BINDIR = ../../../bin################# Binary directory
+
 
 ##############################################################################
 ## Set default target
@@ -32,6 +37,26 @@ default: $(DEFAULT)
 ## Add library controls and dependencies
 include $(INCDIR)/com/Makefile.BSD
 include $(INCDIR)/pub/Makefile.BSD
+
+##############################################################################
+## Target: install
+.PHONY: install install-fileman install-filedate install-scanner
+
+install: install-fileman install-filedate install-scanner
+install-fileman: $(BINDIR)/fileman
+install-filedate: $(BINDIR)/fileman.date
+install-scanner: $(BINDIR)/scanner
+
+$(BINDIR)/fileman: Fileman
+	strip $<
+	cp -fp $< $@
+
+$(BINDIR)/fileman.date: $(SRCDIR)/fileman.date
+	cp -fp $< $@
+
+$(BINDIR)/scanner: Scanner
+	strip $<
+	cp -fp $< $@
 
 ##############################################################################
 ## Cleanup
