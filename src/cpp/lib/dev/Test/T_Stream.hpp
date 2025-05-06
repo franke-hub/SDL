@@ -16,7 +16,7 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2025/01/20
+//       2025/05/06
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
@@ -238,7 +238,7 @@ std::function<void(void)>
 //
 //----------------------------------------------------------------------------
 void
-   debug(const char* info= "")      // Debugging display
+   debug(const char* info= "") const // Debugging display
 {  debugf("ClientThread(%p)::debug(%s)\n", this, info);
 
    debugf("..[%d] cur_op_count(%'zd)\n", serial, cur_op_count.load());

@@ -16,7 +16,7 @@
 //       Dispatcher timing test.
 //
 // Last change date-
-//       2025/01/09
+//       2025/05/06
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic
@@ -204,7 +204,7 @@ size_t*                item_count;  // COUNTER: Number of times handled/Item
 
 virtual void
    debug(                           // Debugging display
-     const char*       info= "")    // Header information
+     const char*       info= "") const // Header information
 {
    debugf("TimerTask(%p).debug(%s) id(%zd)\n", this, info, identity);
 

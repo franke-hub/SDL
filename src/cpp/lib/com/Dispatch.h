@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010-2020 Frank Eskesen.
+//       Copyright (c) 2010-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Work dispatcher, including local definitions.
 //
 // Last change date-
-//       2020/10/03
+//       2025/05/06
 //
 //----------------------------------------------------------------------------
 #include <com/Debug.h>
@@ -277,6 +277,10 @@ inline List<DispatchTTL>&           // The list
 // DispatchTimers::Methods
 //----------------------------------------------------------------------------
 public:
+virtual void
+   cancel( void )                   // Terminate the Thread
+{  Thread::cancel(); }              // (Was hidden)
+
 void
    cancel(                          // Cancel
      void*             token);      // This timer event
