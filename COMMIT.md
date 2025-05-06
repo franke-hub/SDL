@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2025/5/03
+//       2025/05/06
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -35,7 +35,7 @@ The gitk viewer provides a line by line change view.
 Commits are now sorted in date order rather than reverse date order.
 (Oldest first, newest last)
 
-[\[Last change date:\]](#most-recent-change) 2025/05/03
+[\[Last change date:\]](#most-recent-change) 2025/05/06
 
 ----
 
@@ -673,7 +673,7 @@ not Socket objects appear in a Select object's database.
 
 ----
 
-### <a id=most-recent-change>2025/05/03 trunk/maint</a>
+### 2025/05/03 trunk/maint
 
 This commit is "much ado about nothing."
 
@@ -713,3 +713,17 @@ consistent with other copyright formats.
 - Script v. source file is determined by '#!' beginning the data.
 - ~/src/cpp/lib/pub/Fileman was updated to make its error messages more
 consistent with other such messages in the library.
+
+----
+
+### <a id=most-recent-change>2025/05/06 trunk/maint</a>
+
+Change log:
+- ~/src/cpp/Edit/Xcb/EdInps.*, ~/src/cpp/Edit/Term/EdInps.*:
+Fixed an annoying Editor interaction between backspace and F10, F11, and F12.
+- ~/src/cpp/inc/pub/List.h: Moved internal documentation out of List module.
+Added some error checking for "should not occur" conditions.
+- ~/src/cpp/Fileman/Scanner.cpp: Added some file types to the list of binary
+types.
+- Exposed some methods that were accidently hidden. These errors were
+detected by gcc version 15.1.1.
