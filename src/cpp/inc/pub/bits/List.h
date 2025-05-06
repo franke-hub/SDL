@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2023 Frank Eskesen.
+//       Copyright (c) 2023-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       ../List.h template definitions and internal base classes.
 //
 // Last change date-
-//       2023/09/26
+//       2025/05/05
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_BITS_LIST_H_INCLUDED
@@ -60,17 +60,28 @@ namespace __detail
        end_dereferenced() : domain_error("end() dereferenced") {}
    }; // class end_dereferenced
 
-   /// Common parts of a bidirectional link
-   struct _BIDI_link
+   /// Common parts of a bidirectional doubly linked link
+   struct _BIDL_link
    {
-     typedef _BIDI_link                       _Self;
+     typedef _BIDL_link                       _Self;
 
      _Self* _next= nullptr;
      _Self* _prev= nullptr;
 
      static void
      swap(_Self& lhs, _Self& rhs) noexcept;
-   }; // _BIDI_link
+   }; // _BIDL_link
+
+   /// Common parts of a bidirectional singly linked link
+   ///   AI_list Links use LIFO ordering; AI_iter Links use FIFO ordering
+   struct _BISL_link
+   {
+     typedef _BISL_link                       _Self;
+     _Self* _link= nullptr;
+
+     static void
+     swap(_Self& lhs, _Self& rhs) noexcept;
+   }; // _BISL_link
 
    /// Common parts of a forward link
    struct _NEXT_link
@@ -92,44 +103,68 @@ namespace __detail
      swap(_Self& lhs, _Self& rhs) noexcept;
    };
 
-   /// A dummy end of list value, used internally.
+   /// __detail::end: An end of list pseudo-link, used internally.
    extern const void* __end;
 } // namespace __detail
 
 //----------------------------------------------------------------------------
 //
 // Class-
-//       _AI_iter<T>
+//       AI_list<void>
 //
 // Purpose-
-//       Atomic Insertion list iterator.
-//
-// Implementation notes-
-//       Only one thread (called the consumer thread) may use this iterator.
-//       Any number of producer threads may add elements to the thread
-//       whether or not the consumer thread is active.
+//       AI_list static methods
 //
 //----------------------------------------------------------------------------
-/**
+template<> class AI_list<void>
+   {
+     public:
+       /** *******************************************************************
+         @brief Iterator error: begin but pseudo-link present
+
+         This is a fatal error.
+       ******************************************************************* **/
+       [[noreturn]]
+       static void
+       iterator_begin_error( void ); // Begin but pseudo-link present
+
+       /** *******************************************************************
+         @brief Iterator error: operator++ but pseudo-link missing
+
+         This is a fatal error.
+       ******************************************************************* **/
+       [[noreturn]]
+       static void
+       iterator_increment_error( void ); // AI_iter++ but pseudo-link missing
+
+       /** *******************************************************************
+         @brief [constant time] Verify that the AI_list is empty
+
+         @param tail The current tail pointer
+       ******************************************************************* **/
+       static void
+       verify_nullptr(void* tail);  // Verify: Link must be nullptr
+   }; // AI_list<void>
+
+/** **************************************************************************
    @brief An AI_list<T> iterator
 
-   There isn't an AI_const_iter.
+   @tparam T The (template) type of the element, which *must* be a subclass of
+     AI_list<T>::Link.
 
-   This iterator *REMOVES* all elements from the list, replacing the list with
-   a dummy element, &__detail::__end. The removed links are ONLY associated
-   with the iterator.
+   @details
+   There isn't any AI_const_iter.
+
+   This iterator presents Links to the application in FIFO order, i.e. in the
+   order they were enqueued. The implementation uses get_next() to refer to
+   Links on its FIFO list.
 
    While this iterates in a forward direction, it cannot be a forward_iterator
-   because it is not a multi-pass iterator. Creating the iterator modifies the
-   list.
-
-   The iterator then inverts the list so that elements are presented to the
-   application in the order they were enqueued. The link type is unchanged.
-   In the implementation, get_prev() and _prev now refer to the logically NEXT
-   link.
-**/
+   because it is not a multi-pass iterator. Incrementing the iterator removes
+   the Link from the iterator.
+************************************************************************** **/
 template<typename T>
-   struct _AI_iter
+   struct AI_iter
    {
      typedef ptrdiff_t                        difference_type;
      typedef std::input_iterator_tag          iterator_category;
@@ -139,41 +174,75 @@ template<typename T>
 
      typedef T                                _Link;
      typedef AI_list<T>                       _List;
-     typedef _AI_iter<T>                      _Self;
+     typedef AI_iter<T>                       _Self;
 
-     pointer      _left= nullptr;   // The remaining _Links
+     pointer      _head= nullptr;   // The remaining _Links (in FIFO order)
      pointer      _link= nullptr;   // The current T*
      _List* const _list= nullptr;   // The associated List<T>*
 
-     _AI_iter() noexcept = default;
+     /** *********************************************************************
+       @brief [constant time] The default [end()] constructor
+     ********************************************************************* **/
+     AI_iter() noexcept = default;  // Default, end() constructor
 
-     _AI_iter(const _AI_iter& that) noexcept
-     : _left(that._left), _link(that._link), _list(that._list) {}
+     /** *********************************************************************
+       @brief [constant time] The copy constructor
+     ********************************************************************* **/
+     AI_iter(const AI_iter& that) noexcept
+     : _head(that._head), _link(that._link), _list(that._list) {}
 
+     /** *********************************************************************
+       @brief [linear time] The begin() constructor
+
+       @details
+       This constructor *REMOVES* all elements from the list replacing the
+       list with a single pseudo-link, the constant &__detail::__end.
+
+       The set of removed links are owned by this iterator. When they were
+       on the AI_list, the links had LIFO ordering. This constructor inverts
+       the list, converting it into FIFO ordering.
+     ********************************************************************* **/
      explicit
-     _AI_iter(_List* list) noexcept
+     AI_iter(_List* list) noexcept
      :  _list(list)
      {
        T* tail= _list->reset(&__detail::__end);
        while( tail )
        {
+         if( (void*)tail == &__detail::__end ) // (Should not occur)
+           AI_list<void>::iterator_begin_error();
          T* prev= tail->get_prev();
-         tail->_prev= _left;
-         _left= tail;
+         tail->_link= _head;
+         _head= tail;
          tail= prev;
        }
-       _link= _left;
-       if( _left )
-         _left= _left->get_prev();
+       _link= _head;
+       if( _head )
+         _head= _head->get_prev();
      }
 
+     /** *********************************************************************
+       @brief [constant time] Get the current iteration Link
+
+       @details
+       A nullptr is returned when used on an end() iterator.
+     ********************************************************************* **/
      pointer
      get() const noexcept
      { return _link; }
 
+     /** *********************************************************************
+       @brief [constant time] Returns true iff the current iteration Link != end()
+     ********************************************************************* **/
      operator bool()
      { return bool(_link); }
 
+     /** *********************************************************************
+       @brief [constant time] Dereference the current iteration Link
+
+       @details
+       An "end_dereferenced" error is thrown when used on an end() iterator.
+     ********************************************************************* **/
      reference
      operator*() const
      { if( _link )
@@ -181,6 +250,12 @@ template<typename T>
        throw __detail::end_dereferenced();
      }
 
+     /** *********************************************************************
+       @brief [constant time] Address the current iteration Link
+
+       @details
+       An "end_dereferenced" error is thrown when used on an end() iterator.
+     ********************************************************************* **/
      pointer
      operator->() const
      { if( _link )
@@ -188,12 +263,24 @@ template<typename T>
        throw __detail::end_dereferenced();
      }
 
+     /** *********************************************************************
+       @brief [variable time] Increment the iterator (prefix notation)
+
+       @details
+       An "end_dereferenced" error is thrown when used on an end() iterator.
+
+       This is usually a constant time operation.
+       However, if: 1) We've emptied the AI_iter's Link set and 2) New Links
+       were added to the AI_list's Link set while emptying the AI_iter's set.
+       (We refill the AI_iter's Link set using the newly added Links, taking
+       linear time.)
+     ********************************************************************* **/
      _Self&
      operator++() noexcept
      {
-       if( _left ) {
-         _link= _left;
-         _left= _left->get_prev();
+       if( _head ) {
+         _link= _head;
+         _head= _head->get_next();
        } else {
          _link= nullptr;
          pointer tail= _list->reset(&__detail::__end);
@@ -202,20 +289,25 @@ template<typename T>
            do
            {
              pointer prev= tail->get_prev();
-             if( prev == nullptr )
-               utility::checkstop(__LINE__, __FILE__, "prev == nullptr");
-             tail->_prev= _left;
-             _left= tail;
+             if( prev == nullptr )  // (Should not occur)
+               AI_list<void>::iterator_increment_error();
+             tail->_link= _head;
+             _head= tail;
              tail= prev;
            } while( (void*)tail != &__detail::__end );
-           _link= _left;
-           if( _left )
-             _left= _left->get_prev();
+           _link= _head;
+           _head= _head->get_next();
          }
        }
        return *this;
      }
 
+     /** *********************************************************************
+       @brief [variable time] Increment the iterator (postfix notation)
+
+       @details
+       An "end_dereferenced" error is thrown when used on an end() iterator.
+     ********************************************************************* **/
      _Self
      operator++(int) noexcept
      {
@@ -224,47 +316,19 @@ template<typename T>
        return __tmp;
      }
 
+     /** *********************************************************************
+       @brief [constant time] Iterator equality comparison
+     ********************************************************************* **/
      friend bool
      operator==(const _Self& lhs, const _Self& rhs) noexcept
      { return lhs._link == rhs._link; }
 
+     /** *********************************************************************
+       @brief [constant time] Iterator inequality comparison
+     ********************************************************************* **/
      friend bool
      operator!=(const _Self& lhs, const _Self& rhs) noexcept
      { return lhs._link != rhs._link; }
-
-     //-----------------------------------------------------------------------
-     //
-     // Method-
-     //       AI_iter<T>::is_on_iter
-     //
-     // Purpose-
-     //       Test whether link is present in this AI_iter
-     //
-     // Implementation notes-
-     //       Only the consumer thread can safely use this method.
-     //
-     //-----------------------------------------------------------------------
-     bool                           // TRUE if link is contained
-       is_on_iter(                  // Is link contained?
-         pointer       link) const  // -> Link
-     {
-        if( link )
-        {
-          if( link == _link )       // Is this the current link?
-            return true;
-
-          pointer prev= _left;
-          while( prev != nullptr )
-          {
-            if( prev == link )
-              return true;
-
-            prev= prev->get_prev();
-          }
-        }
-
-        return false;
-     }
    }; // struct AI_iter<T>
 
 //----------------------------------------------------------------------------
@@ -480,11 +544,11 @@ template<typename T>
 template<> class DHDL_list<void>
    {
      public:
-       typedef __detail::_BIDI_link           value_type;
+       typedef __detail::_BIDL_link           value_type;
        typedef value_type*                    pointer;
        typedef value_type&                    reference;
 
-       typedef __detail::_BIDI_link           _Link;
+       typedef __detail::_BIDL_link           _Link;
 
 #if USE_BASE_SORT
        typedef std::function<bool(const _Link*, const _Link*)>

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2007-2023 Frank Eskesen.
+//       Copyright (C) 2007-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,11 +16,12 @@
 //       List object methods.
 //
 // Last change date-
-//       2023/09/21
+//       2025/05/05
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include "pub/List.h"               // For pub::List, implemented
+#include <pub/utility.h>            // For pub::utility::checkstop
 
 using namespace _LIBPUB_NAMESPACE::debugging; // Debugging functions
 
@@ -36,16 +37,73 @@ enum
 //----------------------------------------------------------------------------
 //
 // Global-
-//       __detail::_PREV_link __end
+//       __detail::__end
 //
 // Purpose-
-//       This dummy end-of-list pseudo-link is the oldest link on every
+//       This CONST dummy end-of-list pseudo-link is the oldest link on every
 //       AI_list with an active iterator. Newer elements point to it, but
 //       its value is never referenced. It is removed from the AI_list when
 //       incrementing the begin() iterator to equal the end() iterator.
 //
 //----------------------------------------------------------------------------
 const void*            __detail::__end= nullptr;
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       AI_list<void>::iterator_begin_error
+//
+// Purpose-
+//       Checkstop: begin but pseudo-link present
+//
+//----------------------------------------------------------------------------
+[[noreturn]]
+void
+   AI_list<void>::iterator_begin_error( void ) // Duplicate begin
+{
+   utility::checkstop(__LINE__, __FILE__, "begin invoked but already active");
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       AI_list<void>::iterator_increment_error
+//
+// Purpose-
+//       Checkstop: operator++ but pseudo-link missing
+//
+//----------------------------------------------------------------------------
+[[noreturn]]
+void
+   AI_list<void>::iterator_increment_error( void ) // Pseudo-link missing
+{
+   utility::checkstop(__LINE__, __FILE__, "AI_iter++ but pseudo-link missing");
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       AI_list<void>::verify_nullptr
+//
+// Purpose-
+//       Invoked by destructor to verify that the list is empty.
+//
+// Implementation notes-
+//       If the AI_list isn't empty when its destructor is invoked, an AI_iter
+//       for the list exists. That iterator is still running under control of
+//       some other thread, and it's going to access this list. This situation
+//       must be prevented.
+//
+//----------------------------------------------------------------------------
+void
+   AI_list<void>::verify_nullptr(   // Insure that no link exists
+     void*             link)        // The current _tail
+{
+   if( link == nullptr )
+     return;
+
+   utility::checkstop(__LINE__, __FILE__, "~AI_list invoked while active");
+}
 
 //----------------------------------------------------------------------------
 //
