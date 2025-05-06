@@ -1,0 +1,26 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2023-2025 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       regression
+##
+## Purpose-
+##       Test distribution consistency.
+##
+## Last change date-
+##       2025/05/04
+##
+## Usage-
+##       regression {--multi} {--auto}
+##
+##############################################################################
+set -x
+Scanner .home --verbose --all $@

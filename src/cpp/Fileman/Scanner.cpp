@@ -16,7 +16,7 @@
 //       Source file checker.
 //
 // Last change date-
-//       2025/05/03
+//       2025/05/04
 //
 // Usage-
 //       Scanner {path} options
@@ -736,15 +736,21 @@ static inline bool                  // TRUE iff name specifies binary format
      const string&     name)        // The filename
 {
    string ext= get_extension(name);
+   if( ext == "class" )
+     return true;
    if( ext == "gif" )
      return true;
    if( ext == "gpg" )
+     return true;
+   if( ext == "jar" )
      return true;
    if( ext == "odt" )
      return true;
    if( ext == "pdf" )
      return true;
    if( ext == "png" )
+     return true;
+   if( ext == "tgz" )
      return true;
    if( ext == "zip" )
      return true;
@@ -1442,6 +1448,8 @@ static void
          mode_t exec= want    | S_IXUSR | S_IXGRP | S_IXOTH;
          if( is_script(data) )
            want= exec;
+         else if( name == "!const" )
+           want= S_IRUSR;
 
          if( mode != want ) {       // If correction required
            if( false )
