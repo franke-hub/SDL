@@ -2,7 +2,10 @@
 .home/.git/*
 .home/.licenses/*
 .home/bin/*
-.home/obj/*
+.home/obj/cpp/lib/pub/Test/Timing/*
+.home/obj/java/Applet/*
+.home/obj/java/Webapp/usr/fne/sample/*
+.home/obj/mcs/Dirty/*
 .home/src/asm/x86/boot/*
 .home/src/cpp/Clone/test/*
 .home/src/cpp/Clone.pub/test/*
@@ -27,11 +30,10 @@
 .home/bat/bat-CA/openssl.patch
 .home/doc/.README.md
 .home/doc/Journal/.README.md
-.home/src/cpp/EiDB/Regression.bat
 .home/src/cpp/NNC/.DOC.txt
-.home/src/cpp/Patterns/make.bat
 .home/src/cpp/Sample/.OBSOLETE/opencv/hello_world.cpp
 .home/src/lily/Eskesen/.Private/Crypto.ly.gpg
+.home/src/py/aiml/std-startup.xml
 .home/src/py/InfoDB/.ASIDES.odt
 
 ## BOOST license

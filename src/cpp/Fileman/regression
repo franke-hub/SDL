@@ -16,11 +16,12 @@
 ##       Test distribution consistency.
 ##
 ## Last change date-
-##       2025/05/04
+##       2025/05/07
 ##
 ## Usage-
 ##       regression {--multi} {--auto}
 ##
 ##############################################################################
 set -x
+make Scanner
 Scanner .home --verbose --all $@

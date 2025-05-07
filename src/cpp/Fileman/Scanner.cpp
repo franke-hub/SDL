@@ -16,7 +16,7 @@
 //       Source file checker.
 //
 // Last change date-
-//       2025/05/04
+//       2025/05/07
 //
 // Usage-
 //       Scanner {path} options
@@ -30,6 +30,7 @@
 //       --listx:      Get list of file extentions
 //       --mode:       [auto-correct] Verify file mode (permissions)
 //       --multi:      Allow multiple detections or corrections
+//       --permits:    [auto-correct] Verify file mode (alias of --mode)
 //       --unix:       [auto-correct] Verify unix file format
 //       --x:          Enable auto-correct (alias of --auto)
 //
@@ -227,6 +228,7 @@ static struct option   OPTS[]=      // The getopt_long longopts parameter
 ,  {"listx",     no_argument,       &opt_listx,   true}
 ,  {"mode",      no_argument,       &opt_mode,    true}
 ,  {"multi",     no_argument,       &opt_multi,   true}
+,  {"permits",   no_argument,       &opt_mode,    true}
 ,  {"unix",      no_argument,       &opt_unix,    true}
 ,  {"copy",      no_argument,       &opt_copy,    true}
 ,  {"x",         no_argument,       &opt_auto,    true}
@@ -527,6 +529,7 @@ static void
                    "  --listx\tList filename extensions\n"
                    "  --mode\tVerify file mode\n"
                    "  --multi\tAllow multiple errors/changes\n"
+                   "  --permits\tVerify file mode (alias for --mode)\n"
                    "  --unix\tVerify unix file format\n"
                    "  --x\t\tAuto-correct mode (alias for --auto)\n"
           );
@@ -742,6 +745,8 @@ static inline bool                  // TRUE iff name specifies binary format
      return true;
    if( ext == "gpg" )
      return true;
+   if( ext == "gz" )
+     return true;
    if( ext == "jar" )
      return true;
    if( ext == "odt" )
@@ -749,6 +754,8 @@ static inline bool                  // TRUE iff name specifies binary format
    if( ext == "pdf" )
      return true;
    if( ext == "png" )
+     return true;
+   if( ext == "pyc" )
      return true;
    if( ext == "tgz" )
      return true;
