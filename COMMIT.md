@@ -2,10 +2,12 @@
 //
 //       Copyright (C) 2023-2025 Frank Eskesen.
 //
-//       This file is free content, distributed under the MIT license.
-//       (See accompanying file LICENSE.MIT or the original contained
-//       within https://opensource.org/licenses/MIT)
+//       This file is free content, distributed under cc by-sa version 4.0
+//       with attribution required.
+//       (See accompanying file LICENSE.BY_SA-4.0 or the original contained
+//       within https://creativecommons.org/licenses/by-sa/4.0/us/legalcode)
 //
+// SPDX-License-Identifier: CC-BY-4.0
 //----------------------------------------------------------------------------
 //
 // Title-
@@ -15,16 +17,17 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2025/05/06
+//       2025/05/17
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
 
 Copyright (C) 2023-2025 Frank Eskesen.
 
-This file is free content, distributed under the MIT license.
-(See the accompanying file LICENSE.MIT or the original contained
-within https://opensource.org/licenses/MIT)
+This file is free content, distributed under cc by-sa version 4.0
+with attribution required.
+(See accompanying file LICENSE.BY_SA-4.0 or the original contained
+within https://creativecommons.org/licenses/by-sa/4.0/us/legalcode)
 
 Minor changes are generally not documented here.
 This distribution is maintained using git, which records every change.
@@ -35,7 +38,7 @@ The gitk viewer provides a line by line change view.
 Commits are now sorted in date order rather than reverse date order.
 (Oldest first, newest last)
 
-[\[Last change date:\]](#most-recent-change) 2025/05/06
+[\[Last change date:\]](#most-recent-change) 2025/05/17
 
 ----
 
@@ -716,7 +719,7 @@ consistent with other such messages in the library.
 
 ----
 
-### <a id=most-recent-change>2025/05/06 trunk/maint</a>
+### 2025/05/06 trunk/maint
 
 Change log:
 - ~/src/cpp/Edit/Xcb/EdInps.*, ~/src/cpp/Edit/Term/EdInps.*:
@@ -727,3 +730,14 @@ Added some error checking for "should not occur" conditions.
 types.
 - Exposed some methods that were accidently hidden. These errors were
 detected by gcc version 15.1.1.
+
+----
+
+### <a id=most-recent-change>2025/05/17 trunk/maint</a>
+
+The appropriate SPDX-License-Identifier was added to each copyright header.
+
+~/src/cpp/Fileman/Scanner.cpp automated this task.
+
+A simple check was added to pub::List::insert to detect inverted after and
+link parameters.

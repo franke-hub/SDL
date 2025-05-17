@@ -6,6 +6,7 @@
 @REM     (See accompanying file LICENSE.MIT or the original contained
 @REM     within https://opensource.org/licenses/MIT)
 @REM
+@REM SPDX-License-Identifier: MIT
 @REM #########################################################################
 @echo on
 cl -D_OS_WIN -I. Main.cpp

@@ -6,10 +6,11 @@
 ##       (See accompanying file LICENSE.MIT or the original contained
 ##       within https://opensource.org/licenses/MIT)
 ##
+## SPDX-License-Identifier: MIT
 ##############################################################################
 ## ~/src/.gitignore
 ##############################################################################
-## Links to ../usr/src/* and ../usr/src isn't distributed
+## Links to ../usr/src/* and ../usr/src aren't distributed
 /chrome
 /lsl
 /vbs

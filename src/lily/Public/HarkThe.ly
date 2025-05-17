@@ -2,11 +2,12 @@
 %%
 %%       Copyright (C) 2007-2020 Frank Eskesen.
 %%
-%%       This file is free content, distributed under cc by-sa version 3.0
+%%       This file is free content, distributed under cc by-sa version 4.0
 %%       with attribution required.
-%%       (See accompanying file LICENSE.BY_SA-3.0 or the original contained
-%%       within https://creativecommons.org/licenses/by-sa/3.0/us/legalcode)
+%%       (See accompanying file LICENSE.BY_SA-4.0 or the original contained
+%%       within https://creativecommons.org/licenses/by-sa/4.0/us/legalcode)
 %%
+%% SPDX-License-Identifier: CC-BY-4.0
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%       This copyright applies only to this Lily representation, not to the
 %%       score by Felix Mendelssohn or lyrics by Charles Wesley.

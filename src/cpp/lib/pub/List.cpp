@@ -7,6 +7,7 @@
 //       (See accompanying file LICENSE.GPL-3.0 or the original
 //       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
 //
+// SPDX-License-Identifier: GPL-3.0-only
 //----------------------------------------------------------------------------
 //
 // Title-
@@ -16,14 +17,17 @@
 //       List object methods.
 //
 // Last change date-
-//       2025/05/05
+//       2025/05/12
 //
 //----------------------------------------------------------------------------
+#include <stdexcept>                // For std::invalid_argument
+
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include "pub/List.h"               // For pub::List, implemented
 #include <pub/utility.h>            // For pub::utility::checkstop
 
-using namespace _LIBPUB_NAMESPACE::debugging; // Debugging functions
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB::debugging;     // For debugging methods
 
 namespace _LIBPUB_NAMESPACE {       // The fileman namespace
 //----------------------------------------------------------------------------
@@ -162,6 +166,13 @@ void
    }
    else                             // If the list is not empty
    {
+     // Inverted/Invalid argument checks
+     if( link->_prev == nullptr && this->_head != link )
+       throw std::invalid_argument("Inverted argument list");
+     if( link->_next == nullptr && this->_tail != link )
+       throw std::invalid_argument("Inconsistent List and Link arguments");
+
+     // Insert the link
      _Link* next= link->_next;      // Address the next _Link
      tail->_next= next;             // Set the forward _Link pointer
      head->_prev= link;             // Set the reverse _Link pointer

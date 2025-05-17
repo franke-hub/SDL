@@ -7,6 +7,7 @@
 ##       (See accompanying file LICENSE.MIT or the original contained
 ##       within https://opensource.org/licenses/MIT)
 ##
+## SPDX-License-Identifier: MIT
 ##----------------------------------------------------------------------------
 ##
 ## Title-
@@ -16,7 +17,7 @@
 ##       Extract nickname for subdirectory
 ##
 ## Last change date-
-##       2025/02/25
+##       2025/05/10
 ##
 ## Usage-
 ##       cd `nickdir alias_name`
@@ -135,6 +136,10 @@ case $1 in
 
   cpp)
     __FULLDIR="$HOME/obj/cpp"
+    ;;
+
+  cpp/*)
+    __FULLDIR="$HOME/obj/cpp/${1:4}"
     ;;
 
   dev)

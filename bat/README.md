@@ -2,10 +2,12 @@
 //
 //       Copyright (C) 2023 Frank Eskesen.
 //
-//       This file is free content, distributed under the MIT license.
-//       (See accompanying file LICENSE.MIT or the original contained
-//       within https://opensource.org/licenses/MIT)
+//       This file is free content, distributed under cc by-sa version 4.0
+//       with attribution required.
+//       (See accompanying file LICENSE.BY_SA-4.0 or the original contained
+//       within https://creativecommons.org/licenses/by-sa/4.0/us/legalcode)
 //
+// SPDX-License-Identifier: CC-BY-4.0
 //----------------------------------------------------------------------------
 //
 // Title-
@@ -19,7 +21,14 @@
 //
 //------------------------------------------------------------------------ -->
 
-# ~/bat/README.md
+Copyright (C) 2023-2025 Frank Eskesen.
+
+This file is free content, distributed under cc by-sa version 4.0
+with attribution required.
+(See accompanying file LICENSE.BY_SA-4.0 or the original contained
+within https://creativecommons.org/licenses/by-sa/4.0/us/legalcode)
+
+----
 
 This subdirectory contains Cygwin/Linux batch scripts, most using the bash
 script engine.

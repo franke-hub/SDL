@@ -1,29 +1,25 @@
 ##############################################################################
 ##
-##       Copyright (C) 2018-2023 Frank Eskesen.
+##       Copyright (C) 2018-2025 Frank Eskesen.
 ##
-##       This package distribution contains free content.
+##       This distribution package contains free content.
 ##       Files are individually licensed under one of the following licenses:
 ##
 ##############################################################################
+## (Most restrictive)
 ##
 ##       The GNU General Public License, version 3.0.
 ##       (See accompanying file LICENSE.GPL-3.0 or the original
 ##       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
 ##
-## (Most restrictive)
+## SPDX-License-Identifier: GPL-3.0-only
 ##############################################################################
 ##
 ##       The Lesser GNU General Public License, version 3.0.
 ##       (See accompanying file LICENSE.LGPL-3.0 or the original
 ##       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
 ##
-##############################################################################
-##
-##       The CC-SA license, version 3.0
-##       (See accompanying file LICENSE.BY_SA-3.0 or the original contained
-##       within https://creativecommons.org/licenses/by-sa/3.0/legalcode)
-##
+## SPDX-License-Identifier: LGPL-3.0-only
 ##############################################################################
 ##
 ##       The CC-SA license, version 4.0
@@ -31,25 +27,36 @@
 ##       within https://creativecommons.org/licenses/by-sa/4.0/legalcode.
 ##       This file is in html format.)
 ##
+## SPDX-License-Identifier: CC-BY-4.0
 ##############################################################################
 ##
 ##       The BOOST license, version 1.0.
 ##       (See accompanying file LICENSE.BOOST-1.0 or the original
 ##       contained within https://www.boost.org/users/license.html)
 ##
+## SPDX-License-Identifier: BSL-1.0
+##############################################################################
+##
+##       The 3 Clause BSD license.
+##       (See accompanying file LICENSE.BSD-3 or the original contained
+##       within https://opensource.org/licenses/BSD-3-Clause)
+##
+## SPDX-License-Identifier: BSD-3-Clause
 ##############################################################################
 ##
 ##       The MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
 ##       within https://opensource.org/licenses/MIT)
 ##
+## SPDX-License-Identifier: MIT
 ##############################################################################
-##
-##       The "un-license," explicitly released into the Public Domain.
-##       (See accompanying file LICENSE.UNLICENSE or the original
-##       contained within http://unlicense.org)
-##
 ## (Least restrictive)
+##
+##       The Public Domain license, CC0 1.0.
+##       (See accompanying file LICENSE.ZERO or the original contained
+##       within https://creativecommons.org/publicdomain/zero/1.0/legalcode)
+##
+## SPDX-License-Identifier: CC0-1.0
 ##############################################################################
 ##
 ##       Files without explicit licensing information may exist.

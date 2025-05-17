@@ -7,6 +7,7 @@
 ##       (See accompanying file LICENSE.MIT or the original contained
 ##       within https://opensource.org/licenses/MIT)
 ##
+## SPDX-License-Identifier: MIT
 ##----------------------------------------------------------------------------
 ##
 ## Title-
@@ -16,12 +17,18 @@
 ##       Test distribution consistency.
 ##
 ## Last change date-
-##       2025/05/07
+##       2025/05/12
 ##
 ## Usage-
 ##       regression {--multi} {--auto}
 ##
 ##############################################################################
-set -x
+
+## Recompile (if required)
 make Scanner
-Scanner .home --verbose --all $@
+rc=$?
+[[ $rc != 0 ]] && exit $rc
+
+## Run the scan
+set -x
+Scanner .home --verbose --all $@ 2>&1

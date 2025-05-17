@@ -7,6 +7,7 @@
 //       (See accompanying file LICENSE.LGPL-3.0 or the original
 //       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
 //
+// SPDX-License-Identifier: LGPL-3.0-only
 //----------------------------------------------------------------------------
 //
 // Title-
@@ -107,6 +108,10 @@ std::string                         // The path/file name
 DHDL_list<Line>&                    // The Line list
    line( void )                     // Get Line list
 {  return _line; }
+
+std::string                         // The path name (without the file)
+   path( void )                     // Get path name (without the file)
+{  return _path; }
 
 //----------------------------------------------------------------------------
 // Data::Methods

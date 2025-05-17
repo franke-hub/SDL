@@ -1,12 +1,13 @@
-REM --------------------------------------------------------------------------
-REM
-REM      Copyright (C) 2014 Frank Eskesen.
-REM
-REM      This file is free content, distributed under the MIT license.
-REM      (See accompanying file LICENSE.MIT or the original contained
-REM      within https://opensource.org/licenses/MIT)
-REM
-REM --------------------------------------------------------------------------
+@REM -------------------------------------------------------------------------
+@REM
+@REM     Copyright (C) 2014 Frank Eskesen.
+@REM
+@REM     This file is free content, distributed under the MIT license.
+@REM     (See accompanying file LICENSE.MIT or the original contained
+@REM     within https://opensource.org/licenses/MIT)
+@REM
+@REM SPDX-License-Identifier: MIT
+@REM -------------------------------------------------------------------------
 @echo on
 
 REM --------------------------------------------------------------------------

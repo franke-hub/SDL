@@ -1,5 +1,6 @@
 ## IGNORED paths
 .home/.git/*
+.home/.headings/*
 .home/.licenses/*
 .home/bin/*
 .home/obj/cpp/lib/pub/Test/Timing/*
@@ -16,6 +17,7 @@
 .home/src/cpp/Tools/codec/data/INP/*
 .home/src/cpp/Wilbur/data/*
 .home/src/cpp/Xample/*
+.home/src/data/*
 .home/src/java/Applet/*
 .home/src/java/PMA/*
 .home/src/java/Webapp/usr/fne/sample/*
@@ -30,7 +32,9 @@
 .home/bat/bat-CA/openssl.patch
 .home/doc/.README.md
 .home/doc/Journal/.README.md
+## .home/src/cpp/EiDB/Regression.bat
 .home/src/cpp/NNC/.DOC.txt
+## .home/src/cpp/Patterns/make.bat
 .home/src/cpp/Sample/.OBSOLETE/opencv/hello_world.cpp
 .home/src/lily/Eskesen/.Private/Crypto.ly.gpg
 .home/src/py/aiml/std-startup.xml

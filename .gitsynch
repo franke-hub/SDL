@@ -6,6 +6,7 @@
 ##       (See accompanying file LICENSE.MIT or the original contained
 ##       within https://opensource.org/licenses/MIT)
 ##
+## SPDX-License-Identifier: MIT
 ##############################################################################
 ##
 ## Title-
@@ -15,7 +16,7 @@
 ##       Time/date/version marker for maint branch merge operation.
 ##
 ## Last change date-
-##       2025/05/06 12:00
+##       2025/05/17 15:30
 ##
 ## Implementation note-
 ##       DO NOT UPDATE THE CHANGE DATE WITHOUT RUNNING REGRESSION TESTS!

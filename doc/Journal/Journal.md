@@ -7,6 +7,7 @@
 //       (See accompanying file LICENSE.BY_SA-4.0 or the original contained
 //       within https://creativecommons.org/licenses/by-sa/4.0/us/legalcode)
 //
+// SPDX-License-Identifier: CC-BY-4.0
 //----------------------------------------------------------------------------
 //
 // Title-
@@ -16,7 +17,7 @@
 //       Development journal
 //
 // Last change date-
-//       2025/05/01
+//       2025/05/16
 //
 -------------------------------------------------------------------------- -->
 
@@ -32,14 +33,12 @@ https://creativecommons.org/licenses/by-sa/4.0/us/legalcode)
 <!-- -------------------------------------------------------------------------
 -------------------------------------------------------------------------- -->
 
-----
-
 This journal provides SDL (Software Development Lab) commentary.
 
 It's only updated occasionally, and it is what it is.
 (Incomplete, mostly)
 
-[\[Last change date:\]](#most-recent-change) 2025/04/25
+[\[Last change date:\]](#most-recent-change) 2025/05/16
 
 Journal entries are now sorted in date order rather than reverse date order.
 (Oldest first, newest last)
@@ -712,7 +711,7 @@ The recently DONE list
 
 ----
 
-### <a id=most-recent-change>2025/04/25</a>
+### 2025/04/25
 
 - Journal entries are now sorted in date order rather than reverse date order.
 (Oldest first, newest last)
@@ -721,5 +720,25 @@ The recently DONE list
 method implemented in ~/src/cpp/lib/pub/Select.cpp.
 Now that Sockets don't reference Select objects, it's not an issue whether or
 not Socket objects appear in a Select object's database.
+
+----
+
+### <a id=most-recent-change>2025/05/17</a>
+
+All copyrighted files now have an SPDX-Licence-Identifier added. This means
+that the commit contains almost all the source files.
+
+These changes were automated, modifying ~/src/cpp/Fileman/Scanner.cpp.
+Several problems were found with this process:
+- pub::List::insert was misused, inverting the after and link parameters.
+  - A simple check was added to DHDL_list<void>::insert. When this error is
+detected, a std::invalid_argument exeception is thrown.
+- We didn't propagate the first token in the file's copyright. Copyright
+checking ignored that token.
+  - We added another check that verifies and auto-corrects that mistake.
+- Since we were modifying copyrights, all markdown files were modified to use
+SA40 rather than the MIT copyright.
+  - This was done one file at a time. Some markdown files include the
+copyright statement in published code instead of only the file heading.
 
 ----

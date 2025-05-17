@@ -7,6 +7,7 @@
 //       (See accompanying file LICENSE.LGPL-3.0 or the original
 //       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
 //
+// SPDX-License-Identifier: LGPL-3.0-only
 //----------------------------------------------------------------------------
 //
 // Title-
