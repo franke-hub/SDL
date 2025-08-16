@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2024 Frank Eskesen.
+//       Copyright (C) 2020-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Editor: Implement EdData.h, EdView.h
 //
 // Last change date-
-//       2024/08/30
+//       2025/08/16
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -258,7 +258,7 @@ void
      }
    }
 
-   unit->synch_active();
+   unit->synch_cursor();
    if( rc == 0 )
      unit->draw();
    else

@@ -17,7 +17,7 @@
 //       Editor: Implement EdOuts.h: Terminal output services
 //
 // Last change date-
-//       2025/01/22
+//       2025/08/16
 //
 //----------------------------------------------------------------------------
 #define _XOPEN_SOURCE_EXTENDED 1
@@ -276,7 +276,6 @@ void
      traceh("EdOuts(%p)::activate(%s)\n", this
            , act_file ? act_file->get_name().c_str() : "nullptr");
 
-   EdData* const data= editor::data;
    EdFile* const file= editor::file;
 
    // Trace file activation
@@ -284,19 +283,13 @@ void
 
    // Out with the old
    if( file )
-     synch_file();
+     store_screen_state();
 
    // In with the new
    editor::file= act_file;
    this->head= this->tail= nullptr;
    if( act_file ) {
-     this->head= this->tail= act_file->top_line;
-     data->col_zero= act_file->col_zero;
-     data->row_zero= act_file->row_zero;
-     data->col=  act_file->col;
-     data->row=  act_file->row;
-     if( data->row < USER_TOP )
-       data->row= USER_TOP;
+     fetch_screen_state();
 
      // Update window title, omitting middle of file name if necessary
      char buffer[64];
@@ -313,8 +306,7 @@ void
      }
      set_main_name(buffer);
 
-     // Synchronize, then draw the screen
-     synch_active();
+     // Draw the screen
      draw();
    }
 }
@@ -854,7 +846,7 @@ void
      }
    }
 
-   synch_active();
+   synch_cursor();
    draw();
 }
 

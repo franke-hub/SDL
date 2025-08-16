@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2024 Frank Eskesen.
+//       Copyright (C) 2020-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Editor: Input/output unit interface
 //
 // Last change date-
-//       2024/05/15
+//       2025/08/16
 //
 //----------------------------------------------------------------------------
 #ifndef EDUNIT_H_INCLUDED
@@ -328,10 +328,34 @@ virtual void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdUnit::synch_active
+//       EdUnit::fetch_screen_state
 //
 // Purpose-
-//       Set the Active (cursor) line to the current row.
+//       Load the current screen state
+//
+//----------------------------------------------------------------------------
+void
+   fetch_screen_state( void );      // Load the current screen state
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdUnit::store_screen_state
+//
+// Purpose-
+//       Save the current screen state
+//
+//----------------------------------------------------------------------------
+virtual void
+   store_screen_state( void ) const; // Save the current screen state
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdUnit::synch_cursor
+//
+// Purpose-
+//       Insure the cursor line is in the current screen.
 //
 // Inputs-
 //       this->line= top screen line
@@ -339,19 +363,7 @@ virtual void
 //
 //----------------------------------------------------------------------------
 virtual void
-   synch_active( void );            // Set the Active (cursor) line
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdUnit::synch_file
-//
-// Purpose-
-//       Save the current state in the active file
-//
-//----------------------------------------------------------------------------
-virtual void
-   synch_file( void ) const;        // Synchronize the active file
+   synch_cursor( void );            // Insure the cursor line is on-screen
 
 //----------------------------------------------------------------------------
 //

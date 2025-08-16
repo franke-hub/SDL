@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2024 Frank Eskesen.
+//       Copyright (C) 2024-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Editor: Input/output interface; Handle editor operations.
 //
 // Last change date-
-//       2024/08/30
+//       2025/08/16
 //
 //----------------------------------------------------------------------------
 #include <cstdio>                   // For sprintf
@@ -538,18 +538,64 @@ void
    }
 }
 
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdUnit::fetch_screen_state
+//
+// Purpose-
+//       Load the current screen state
+//
+//----------------------------------------------------------------------------
+void
+   EdUnit::fetch_screen_state( void ) // Load the current screen state
+{  using namespace editor;
+
+   this->head= this->tail= file->top_line;
+   data->col_zero= file->col_zero;
+   data->row_zero= file->row_zero;
+   data->col= file->col;
+   data->row= file->row;
+   if( data->row < USER_TOP )
+     data->row= USER_TOP;
+
+   synch_cursor();
+}
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdUnit::synch_active
+//       EdUnit::store_screen_state
 //
 // Purpose-
-//       Set the Active (cursor) line, usually from the current row.
+//       Save the current screen state
 //
 //----------------------------------------------------------------------------
 void
-   EdUnit::synch_active( void )     // Set the Active (cursor) line
+   EdUnit::store_screen_state( void ) const // Save the current screen state
+{  using namespace editor;
+
+   data->commit();
+
+   file->csr_line= data->cursor;
+   file->top_line= this->head;
+   file->col_zero= data->col_zero;
+   file->row_zero= data->row_zero;
+   file->col= data->col;
+   file->row= data->row;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdUnit::synch_cursor
+//
+// Purpose-
+//       Insure the cursor line is in the current screen.
+//
+//----------------------------------------------------------------------------
+void
+   EdUnit::synch_cursor( void )     // Insure the cursor line is on-screen
 {  using namespace editor;
 
    if( data->row < USER_TOP )       // (File initial row == 0)
@@ -579,33 +625,10 @@ void
      line= next;
    }
 
-   // Set the new active line (with trace)
+   // Set the cursor/active line (with trace)
    Trace::trace(".CSR", match_type, data->cursor, line); // (Old, new)
    data->cursor= line;
    data->active.reset(line->text);
    if( !(view == hist && file->mess_list.get_head()) )
      show_cursor();
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdUnit::synch_file
-//
-// Purpose-
-//       Save the current state in the active file
-//
-//----------------------------------------------------------------------------
-void
-   EdUnit::synch_file( void ) const // Synchronize the active file
-{  using namespace editor;
-
-   data->commit();
-
-   file->csr_line= data->cursor;
-   file->top_line= this->head;
-   file->col_zero= data->col_zero;
-   file->row_zero= data->row_zero;
-   file->col= data->col;
-   file->row= data->row;
 }

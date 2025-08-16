@@ -17,7 +17,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2025/01/20
+//       2025/08/16
 //
 //----------------------------------------------------------------------------
 #include <cstdio>                   // For printf, fopen, fclose, ...
@@ -190,8 +190,8 @@ bool                                // TRUE if file is changed or damaged
 //       Debugging display.
 //
 // Implementation notes-
-//       If the file is active, unit->synch_file commits the active line and
-//       updates the file state.
+//       If the file is active, unit->store_screen_state commits the active
+//       line and updates its screen state.
 //
 //----------------------------------------------------------------------------
 static inline const char*           // "true" or "false"
@@ -206,7 +206,7 @@ void
          , info ? info : "", get_name().c_str());
 
    if( this == editor::file )       // If this is the active file
-     editor::unit->synch_file();    // Synchronize current I/O state
+     editor::unit->store_screen_state(); // Save current screen state
    traceh("..mode(%d) changed(%s) chglock(%s) damaged(%s)\n"
          , mode, TF(changed), TF(chglock), TF(damaged));
    traceh("..contains_UTF8(%s) protect(%s)\n", TF(contains_UTF8), TF(protect));
@@ -703,7 +703,7 @@ int                                 // Return code, 0 OK
            cc= fputc('\n', F);
            if( cc < 0 ) break;      // If write failure
          } else if( line->delim[0] == '\0' ) { // If '\0' delimiter
-           cc= -2;
+           cc= 0;                   // (For NONE delimiter)
            unsigned L= line->delim[1];
            for(unsigned i= 0; i<L; i++) {
              cc= fputc('\0', F);

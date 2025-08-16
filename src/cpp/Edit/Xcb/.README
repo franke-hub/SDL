@@ -16,7 +16,7 @@
 ##       EDITOR README information file. (XCB version)
 ##
 ## Last change date-
-##       2025/04/16
+##       2025/08/16
 ##
 ## Implementation notes-
 ##       See ".USAGE.md" for usage and implementation information.
@@ -26,7 +26,7 @@
 
 ##############################################################################
 ## STATUS:
-2025/04/16 Fully operational, but with 1 open problem.
+2025/08/16 Fully operational, but with 1 open problem.
          In production. Ongoing documentation update.
 
 ##############################################################################
@@ -37,6 +37,9 @@
 
 ##############################################################################
 ## CHANGE LOG:
+2025/08/16 Write appears to fails if final '\n' is missing.
+         No-delimiter line was not handled correctly.
+
 2024/08/23 UTF-8 does not work properly on Linux.
          (Hopefully) temporary bypass: On Linux, xtmedit doesn't allow saving
          files containing UTF characters. These characters do not display
