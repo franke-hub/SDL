@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2025/05/17
+//       2025/08/16
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -741,3 +741,22 @@ The appropriate SPDX-License-Identifier was added to each copyright header.
 
 A simple check was added to pub::List::insert to detect inverted after and
 link parameters.
+
+----
+
+### 2025/08/16 trunk/maint
+
+Change log:
+- ~/bat/make-temp, ~/bat/*gpg:
+Now save stderr output in a /tmp file for use in case there's an error.
+Script make-temp creates the temporary file name.
+(The /tmp file is removed before the script exits.)
+- ~/src/cpp/Edit/Xcb/EdFile.cpp:
+Did not handle no-delimiter line properly. This caused an error message when
+writing files with no final '\n' delimiter even though the file was written
+without error.
+- ~/src/cpp/Edit/Xcb, ~/src/cpp/Edit/Temp:
+This is only a small structure change. No function was added or removed.
+- ~/src/cpp/EiDB/data:
+A (737M) data source file was recovered from an old CD. Since it's so large,
+the change only documents that the file is available upon request.
