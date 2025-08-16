@@ -17,7 +17,7 @@
 ##       Encrypt a file using GPG encryption.
 ##
 ## Last change date-
-##       2025/04/13
+##       2025/08/14
 ##
 ## Usage-
 ##       intogpg [-as user] filename
@@ -126,17 +126,22 @@ fi
 
 ##############################################################################
 ## Encrypt
-gpg $GPGUSER --encrypt $GPGFILE
+TEMP=`source make-temp`
+gpg $GPGUSER --encrypt $GPGFILE 2>$TEMP
 rc=$?
 if [[ $rc != 0 ]] ; then
-  rm $GPGFILE.gpg 2>/dev/null
-  echo ""
+  rm -Rf $GPGFILE.gpg 2>/dev/null
   echo "gpg $GPGUSER --encrypt $GPGFILE"
   echo "ERROR: Encryption failure $rc."
+  echo ""
+  cat $TEMP
+  echo ""
   echo "File $GPGFILE unchanged. File $GPGFILE.gpg removed (if created.)"
   echo "(Do you have permission to write into this subdirectory?)"
+  rm $TEMP
   exit 2
 fi
+rm $TEMP
 
 if [[ -n "$GPGUSER" ]] ; then
   echo "Parameter -as specified, File '$GPGFILE' kept."

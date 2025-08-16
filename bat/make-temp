@@ -1,0 +1,54 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2025 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+## SPDX-License-Identifier: MIT
+##----------------------------------------------------------------------------
+##
+## Title-
+##       make-temp
+##
+## Purpose-
+##       Create a unique temporary file name (in /tmp)
+##
+## Last change date-
+##       2025/08/14
+##
+## Sample script usage-
+##       TEMP=`source make-temp {type}`
+##       {some-command} 2>$TEMP
+##       if [[ -n "$TEMP" ]] ; then {do-something}; else {do-something-else};
+##       :
+##       rm $TEMP 2>/dev/null
+##
+## Implementation notes-
+##       TEMP is in the form "/tmp/$1-$USER-$$" (type defaults to stderr)
+##       If file or directory $TEMP already exists, it's sillently removed.
+##
+##       To create multiple temporaries in the same script, use make-temp
+##       without sourcing it. It's best to remove all of them before exiting.
+##
+##############################################################################
+
+##############################################################################
+## Parameter analysis
+TEMP=$1
+[[ -z "$TEMP" ]] && TEMP=stderr
+
+##############################################################################
+## Create temporary name
+TEMP="/tmp/$TEMP-$USER-$$"
+
+##############################################################################
+## Make sure it's unique
+LS=`ls $TEMP 2>/dev/null`
+[[ -n "$LS" ]] && rm -Rf $TEMP 2>/dev/null
+
+##############################################################################
+## Return unique name
+echo $TEMP

@@ -17,10 +17,10 @@
 ##       Edit a GPG encrypted file.
 ##
 ## Last change date-
-##       2025/04/13
+##       2025/08/14
 ##
 ## Usage-
-##       editgpg [-as user] filename
+##       editgpg filename
 ##
 ## Implementation notes-
 ##       GPG configuration information is kept in ~/.gnupg/.
@@ -129,13 +129,21 @@ fi
 
 ##############################################################################
 ## Decrypt
-gpg --output $GPGFILE --decrypt $GPGFILE.gpg 2>/dev/null
+TEMP=`source make-temp`
+gpg --output $GPGFILE --decrypt $GPGFILE.gpg 2>$TEMP
 rc=$?
 if [[ $rc != 0 ]] ; then
-  echo "ERROR: Decryption failure."
+  rm -Rf $GPGFILE 2>/dev/null
+  echo "gpg --output $GPGFILE --decrypt $GPGFILE.gpg"
+  echo "ERROR: Decryption failure $rc."
+  echo ""
+  cat $TEMP
+  echo ""
   echo "No file changed."
+  rm $TEMP
   exit 1
 fi
+rm $TEMP
 
 ##############################################################################
 ## Edit, check resultant
@@ -147,17 +155,21 @@ fi
 
 ##############################################################################
 ## Encrypt
-rm $GPGFILE.gpg
-gpg --encrypt $GPGFILE
+rm -Rf $GPGFILE.gpg
+gpg --encrypt $GPGFILE 2>$TEMP
 rc=$?
 if [[ $rc != 0 ]] ; then
-  echo ""
-  echo "gpg $GPGUSER --encrypt $GPGFILE"
+  echo "gpg --encrypt $GPGFILE"
   echo "ERROR: Encryption failure $rc."
-  echo "File \"$GPGFILE\" still exists; \"$GPGFILE.gpg\" might not be valid."
-  echo "Consider using \"intogpg $GPGUSER $GPGFILE\" to retry encrypting."
+  echo ""
+  cat $TEMP
+  echo ""
+  echo "File \"$GPGFILE\" still exists; \"$GPGFILE.gpg\" probably invalid."
+  echo "Consider using \"intogpg $GPGFILE\" to retry encrypting."
+  rm $TEMP
   exit 2
 fi
+rm $TEMP
 
 remove $GPGFILE
 exit 0

@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2018-2019 Frank Eskesen.
+##       Copyright (C) 2018-2025 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -17,12 +17,29 @@
 ##       Remove and shred a file.
 ##
 ## Last change date-
-##       2019/10/26
+##       2025/08/14
 ##
 ## Usage-
 ##       remove [filename ...]
 ##
 ##############################################################################
+
+##############################################################################
+## Get options
+OPTS=
+for i in "$@"
+do
+  case $i in
+    -*)
+      OPTS="$OPTS $i"
+      shift
+      ;;
+
+    *)
+      break
+      ;;
+  esac
+done
 
 ##############################################################################
 ## Use shred if available, otherwise use rm
@@ -44,14 +61,18 @@ do
   if [[ -h $i ]] ; then
     echo "File '$i' is a link, try '$REMOVE' instead" 1>&2
     rc=1
-  elif [[ -w $i ]] ; then
-    $REMOVE $i
-    [[ $rc != 0 ]] && rc=$?
-  else
-    echo "File: '$i' non-existent or not writable" 1>&2
+  elif [[ -d $i ]] ; then
+    echo "File: '$i' is a directory" 1>&2
     rc=1
+  elif [[ ! -w $i ]] ; then
+    echo "File: '$i' is not writable (or else it doesn't exist)" 1>&2
+    rc=1
+  else
+    $REMOVE $OPTS $i
+    [[ $rc != 0 ]] && rc=$?
   fi
+
+  [[ $rc != 0 ]] && exit $rc
 done
 
 exit $rc
-

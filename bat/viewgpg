@@ -17,10 +17,10 @@
 ##       View a GPG encrypted file.
 ##
 ## Last change date-
-##       2025/04/13
+##       2025/08/14
 ##
 ## Usage-
-##       viewgpg [-as user] filename
+##       viewgpg filename
 ##
 ## Implementation notes-
 ##       GPG configuration information is kept in ~/.gnupg/.
@@ -104,18 +104,28 @@ fi
 
 ##############################################################################
 ## Decrypt
-gpg --output $GPGFILE --decrypt $GPGFILE.gpg 2>/dev/null
+TEMP=`source make-temp`
+gpg --output $GPGFILE --decrypt $GPGFILE.gpg 2>$TEMP
 rc=$?
 if [[ $rc != 0 ]] ; then
-  rm $GPGFILE 2>/dev/null
+  rm -Rf $GPGFILE 2>/dev/null
+  echo "gpg --output $GPGFILE --decrypt $GPGFILE.gpg"
   echo "ERROR: Decryption failure $rc."
+  echo ""
+  cat $TEMP
+  echo ""
   echo "No file changed."
+  rm $TEMP
   exit 1
 fi
+rm $TEMP
 
 ##############################################################################
-## Edit; discard decrypted file
+## Edit
 $EDITOR $GPGFILE
-remove $GPGFILE 2>/dev/null
+
+##############################################################################
+## Discard decrypted file
+remove $GPGFILE
 
 exit 0

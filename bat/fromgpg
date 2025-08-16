@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2010-2019 Frank Eskesen.
+##       Copyright (C) 2010-2025 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -17,7 +17,7 @@
 ##       Decrypt a GPG encrypted file.
 ##
 ## Last change date-
-##       2019/11/26
+##       2025/08/14
 ##
 ## Usage-
 ##       fromgpg filename
@@ -90,17 +90,24 @@ fi
 
 ##############################################################################
 ## Decrypt
-gpg --output $GPGFILE --decrypt $GPGFILE.gpg 2>/dev/null
+TEMP=`source make-temp`
+gpg --output $GPGFILE --decrypt $GPGFILE.gpg 2>$TEMP
 rc=$?
 if [[ $rc != 0 ]] ; then
-  rm $GPGFILE 2>/dev/null
+  rm -Rf $GPGFILE 2>/dev/null
+  echo "gpg --output $GPGFILE --decrypt $GPGFILE.gpg"
   echo "ERROR: Decryption failure $rc."
+  echo ""
+  cat $TEMP
+  echo ""
   echo "No file changed."
+  rm $TEMP
   exit 1
 fi
+rm $TEMP
 
 ##############################################################################
 ## Discard the original encrypted file
-rm $GPGFILE.gpg
+rm -Rf $GPGFILE.gpg
 
 exit 0
