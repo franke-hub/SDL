@@ -24,6 +24,7 @@
 ## Set default paths
 BINDIR = ../../../bin################# Binary directory
 
+
 ##############################################################################
 ## Set default target
 ifeq "" "$(DEFAULT)"
@@ -40,17 +41,13 @@ include $(INCDIR)/pub/Makefile.BSD
 
 ##############################################################################
 ## Target: install
-.PHONY: install install-fileman install-filedate
+.PHONY: install install-scanner
 
-install: install-fileman install-filedate
-install-fileman: $(BINDIR)/fileman
-install-filedate: $(BINDIR)/fileman.date
+install: install-scanner
+install-scanner: $(BINDIR)/scanner
 
-$(BINDIR)/fileman: Fileman
+$(BINDIR)/scanner: Scanner
 	strip $<
-	cp -fp $< $@
-
-$(BINDIR)/fileman.date: $(SRCDIR)/fileman.date
 	cp -fp $< $@
 
 ##############################################################################

@@ -1,0 +1,22 @@
+##############################################################################
+##
+##       Copyright (C) 2022-2025 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+## SPDX-License-Identifier: MIT
+##############################################################################
+## ~/obj/cpp/Fileman/.gitignore
+##############################################################################
+/*
+!/.gitignore
+!/H
+!/L
+!/M
+!/Makefile
+!/S
+!/.home
+!/.ignore
+!/regression
