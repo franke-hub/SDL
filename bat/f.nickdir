@@ -17,7 +17,7 @@
 ##       Extract nickname for subdirectory
 ##
 ## Last change date-
-##       2025/05/10
+##       2025/08/20
 ##
 ## Usage-
 ##       cd `nickdir alias_name`
@@ -43,8 +43,10 @@ case $1 in
     echo     forth=`nickdir forth`
     echo       gpg=`nickdir gpg`
     echo       gui=`nickdir gui`
+    echo      home=`nickdir hardware`
     echo      home=`nickdir home`
     echo     howto=`nickdir howto`
+    echo      home=`nickdir hw`
     echo       inc=`nickdir inc`
     echo      java=`nickdir java`
     echo java.golf=`nickdir java.golf`
@@ -257,9 +259,13 @@ case $1 in
     ;;
 
   ############################################################################
-  ## Workbook directories
+  ## Workbook directories (Not part of distribution)
   gpg)
     __FULLDIR="$HOME/workbook/gpg"
+    ;;
+
+  hardware | hw)
+    __FULLDIR="$HOME/workbook/log/hardware"
     ;;
 
   howto)
