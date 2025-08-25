@@ -17,7 +17,7 @@
 //       Source file checker.
 //
 // Last change date-
-//       2025/05/17
+//       2025/08/25
 //
 // Usage-
 //       Scanner {path} options
@@ -405,6 +405,33 @@ static const char*                  // First match, or nullptr
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       verify_data
+//
+// Function-
+//       Insure Data file actually contains data.
+//
+// Implementation notes-
+//       EXIT if error detected
+//
+//----------------------------------------------------------------------------
+static void
+   verify_data(                     // Verify Data file contains data
+     Data*             data)        // (The Data file)
+{
+   using pub::data::Line;
+   typedef pub::DHDL_list<Line>     Line_list;
+
+   Line_list& line_list= data->line(); // Get the line list
+   if( line_list.get_head() )       // If data present
+     return;                        // Everything's OK
+
+   fprintf(stderr, "Error: File(%s) is empty/missing\n", data->full().c_str());
+   exit(1);
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       init
 //
 // Function-
@@ -455,6 +482,31 @@ static void
    lily_mit=  data_none;                // Load the MIT  copyright (undefined)
    lily_sa40= new Data(base, "L.SA40"); // Load the SA40 copyright
    lily_zero= new Data(base, "L.ZERO"); // Load the NONE copyright
+
+   // Verify data present
+   verify_data(bash_gpl);
+   verify_data(bash_lgpl);
+   verify_data(bash_mit);
+   verify_data(bash_sa40);
+   verify_data(bash_zero);
+
+   verify_data(code_gpl);
+   verify_data(code_lgpl);
+   verify_data(code_mit);
+   verify_data(code_sa40);
+   verify_data(code_zero);
+
+   verify_data(html_gpl);
+   verify_data(html_lgpl);
+   verify_data(html_mit);
+   verify_data(html_sa40);
+   verify_data(html_zero);
+
+   verify_data(lily_gpl);
+   verify_data(lily_lgpl);
+   verify_data(lily_mit);
+   verify_data(lily_sa40);
+   verify_data(lily_zero);
 
    // Get list of IGNORE files
    IGNORE.open(".", ".ignore");     // List of files to ignore
