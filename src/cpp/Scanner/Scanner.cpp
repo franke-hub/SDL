@@ -444,18 +444,8 @@ static void
 static void
    init( void )                     // Initialize
 {
-   // Get HOME environment variable
-   const char* C= getenv("HOME");   // The HOME environment variable
-   if( C == nullptr ) {
-     fprintf(stderr, "Missing HOME envionment variable\n");
-     exit(2);
-   }
-   HOME= C;
-   if( !ends_with(HOME, "/") )
-     HOME= HOME + "/";
-
    // Load copyright data
-   string base= HOME + ".headings"; // The base license file path
+   string base= "/home/data/SDL/.headings"; // The license file directory
 
    data_none= new Data(base, "README.md"); // Load an unmatchable copyright
 
