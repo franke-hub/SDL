@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2023-2024 Frank Eskesen.
+##       Copyright (C) 2023-2025 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       C++ build control makefile
 ##
 ## Last change date-
-##       2024/08/20
+##       2025/08/25
 ##
 ## Implementation notes-
 ##       ~/obj/cpp/Makefile links to this file.
@@ -52,24 +52,25 @@ endif
 ##############################################################################
 ## C++ source directories (for compile test)
 CPP_ :=
-CPP_ += Brian
-CPP_ += Clean    Clone    Copy
-CPP_ += Darwin   Decoder  Diag
-CPP_ += Edit     Edit/Xcb Edit/Term EiDB
-CPP_ += Fileman  Forth
-CPP_ += Grid
-CPP_ += Hello    Howto
-CPP_ += HTTP/openssl      HTTP/socket
-CPP_ += Math
-CPP_ += Neuron   NN2      NNC
-CPP_ += Poker
-CPP_ += RFC
-CPP_ += Sample   Sorter   Stock     Stress
-CPP_ += Tools    Traffic
-CPP_ += Util
-CPP_ += Viewer
-CPP_ += Wilbur
-CPP_ += Xample   XML
+CPP_ +=  Brian
+CPP_ +=  Clean     Clone     Copy
+CPP_ +=  Darwin    Decoder   Diag
+CPP_ +=  Edit      Edit/Xcb  Edit/Term EiDB
+CPP_ +=  Fileman   Forth
+CPP_ +=  Grid
+CPP_ +=  Hello     Howto
+CPP_ +=  HTTP/openssl        HTTP/socket
+CPP_ +=  Math
+CPP_ +=  Neuron    NN2       NNC
+CPP_ +=  Poker
+CPP_ +=  RFC
+CPP_ +=  Sample    Scanner   Sorter    Stock
+CPP_ +=  Stress
+CPP_ +=  Tools     Traffic
+CPP_ +=  Util
+CPP_ +=  Viewer
+CPP_ +=  Wilbur
+CPP_ +=  Xample    XML
 
 ##############################################################################
 ## TARGETS: check, compile, install, reinstall, uninstall, update
