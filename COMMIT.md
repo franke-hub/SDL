@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2025/08/16
+//       2025/08/26
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -38,7 +38,7 @@ The gitk viewer provides a line by line change view.
 Commits are now sorted in date order rather than reverse date order.
 (Oldest first, newest last)
 
-[\[Last change date:\]](#most-recent-change) 2025/05/17
+[\[Last change date:\]](#most-recent-change) 2025/08/26
 
 ----
 
@@ -745,8 +745,6 @@ link parameters.
 ----
 
 ### 2025/08/16 trunk/maint
-
-Change log:
 - ~/bat/make-temp, ~/bat/*gpg:
 Now save stderr output in a /tmp file for use in case there's an error.
 Script make-temp creates the temporary file name.
@@ -760,3 +758,14 @@ This is only a small structure change. No function was added or removed.
 - ~/src/cpp/EiDB/data:
 A (737M) data source file was recovered from an old CD. Since it's so large,
 the change only documents that the file is available upon request.
+
+----
+
+### <a id=most-recent-change>2025/08/26 trunk/maint
+
+Change log:
+- ~/src/cpp/Fileman/Scanner.cpp moved to ~/src/cpp/Scanner
+- ~/src/cpp/Scanner/Scanner.cpp verifies data presence
+And also does not rely on $HOME to find the ~/.headings subdirectory.
+- ~/src/cpp/Makefile.BSD
+Now includes ~/src/cpp/Scanner in the list of compile test subdirectories.
