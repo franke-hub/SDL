@@ -158,7 +158,16 @@ static Data*           lily_sa40= nullptr; // The SA40 lily copyright header
 static Data*           lily_zero= nullptr; // The NONE lily copyright header
 static int             lily_count[COPY_TYPES]= {};
 
+static Data*           mark_gpl=  nullptr; // The GPL  mark copyright header
+static Data*           mark_lgpl= nullptr; // The LGPL mark copyright header
+static Data*           mark_mit=  nullptr; // The MIT  mark copyright header
+static Data*           mark_sa40= nullptr; // The SA40 mark copyright header
+static Data*           mark_zero= nullptr; // The NONE mark copyright header
+static int             mark_count[COPY_TYPES]= {};
+
 static int             misc_count[COPY_TYPES]= {};
+
+static int             none_count= 0; // (Files without copyright statements)
 
 struct name2data {
    const char*         name;
@@ -198,6 +207,15 @@ static const name2data lily_table[]=
 ,  {  " MIT", &lily_mit }
 ,  {  "SA40", &lily_sa40}
 ,  {  "ZERO", &lily_zero}
+,  {  nullptr, nullptr  }
+};
+
+static const name2data mark_table[]=
+{  {  " GPL", &mark_gpl }
+,  {  "LGPL", &mark_lgpl}
+,  {  " MIT", &mark_mit }
+,  {  "SA40", &mark_sa40}
+,  {  "ZERO", &mark_zero}
 ,  {  nullptr, nullptr  }
 };
 
@@ -253,7 +271,7 @@ static inline void
    if( opt_multi )
      return;
 
-   exit(0);
+   exit(1);
 }
 
 //----------------------------------------------------------------------------
@@ -473,6 +491,12 @@ static void
    lily_sa40= new Data(base, "L.SA40"); // Load the SA40 copyright
    lily_zero= new Data(base, "L.ZERO"); // Load the NONE copyright
 
+   mark_gpl=  html_gpl;             // Load the GPL  copyright
+   mark_lgpl= data_none;            // Load the LGPL copyright (disallowed)
+   mark_mit=  html_mit;             // Load the MIT  copyright
+   mark_sa40= html_sa40;            // Load the SA40 copyright
+   mark_zero= html_zero;            // Load the NONE copyright
+
    // Verify data present
    verify_data(bash_gpl);
    verify_data(bash_lgpl);
@@ -614,10 +638,16 @@ static void
        printf("%s: %6d\n", lily_table[i].name, lily_count[i]);
      }
 
+     printf("\nMark format copyrights:\n");
+     for(int i= 0; i < COPY_TYPES; ++i ) {
+       printf("%s: %6d\n", mark_table[i].name, mark_count[i]);
+     }
+
      printf("\nMisc format copyrights:\n");
      for(int i= 0; i < COPY_TYPES; ++i ) {
        printf("%s: %6d\n", misc_table[i].name, misc_count[i]);
      }
+     printf("NONE: %6d\n", none_count);
    }
 }
 
@@ -907,7 +937,7 @@ static inline bool                  // TRUE iff name is in "code" format
 //       is_html
 //
 // Function-
-//       Is the specified file in html format?
+//       Is the specified file in html or xml format?
 //
 //----------------------------------------------------------------------------
 static inline bool                  // TRUE iff name is in "html" format
@@ -915,7 +945,7 @@ static inline bool                  // TRUE iff name is in "html" format
      const string&     name)        // The filename
 {
    string ext= get_extension(name);
-   if( ext == "html" || ext == "htm" || ext == "md" || ext == "xml" )
+   if( ext == "html" || ext == "htm" || ext == "xml" )
      return true;
 
    return false;
@@ -1131,15 +1161,15 @@ static void
    }
 
    bool future= false;
-   if( l_yy > tod.tm_year || year > tod.tm_year )
+   if( l_yy > tod.tm_year || year > tod.tm_year ) {
      future= true;
-   else if( l_yy == tod.tm_year )
-   {
-     if( l_mm > tod.tm_mon )
+   } else if( l_yy == tod.tm_year ) {
+     if( l_mm > tod.tm_mon ) {
        future= true;
-     else if( l_mm == tod.tm_mon ) {
-       if( l_dd > tod.tm_mday )
+     } else if( l_mm == tod.tm_mon ) {
+       if( l_dd > tod.tm_mday ) {
          future= true;
+       }
      }
    }
 
@@ -1350,6 +1380,10 @@ static int                          // The copyright year, -1 if invalid
 // Function-
 //       Verify that the copyright matches a supported one.
 //
+// Implementation notes-
+//       For miscellaneous extensions, if the copyright date line isn't found
+//       this function is not invoked.
+//
 //----------------------------------------------------------------------------
 static void
    verify_copy_text(                // Verify copyright text
@@ -1380,9 +1414,14 @@ static void
    } else if( is_lily(file) ) {
      count= lily_count;
      table= lily_table;
-   } else if( false ) {
-     printf("File(%s) MISC format\n", full);
-     allow_multi();
+   } else if( is_mark(file) ) {
+     count= mark_count;
+     table= mark_table;
+   } else {                         // Miscellaneous (misc_count, misc_table)
+     if( false ) {
+       printf("File(%s) MISC format\n", full);
+       allow_multi();
+     }
    }
 
    string prefix= line->text;       // (The file's copyright line)
@@ -1638,6 +1677,33 @@ static void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       copy_mark
+//
+// Function-
+//       Handle an mark file copyright
+//
+//----------------------------------------------------------------------------
+static void
+   copy_mark(                       // Handle an mark file copyright
+     Data&             data)        // The content
+{
+   Line* line= get_copy_line(data);
+   if( line == nullptr ) {
+     printf("File(%s) (c) Missing\n", data.full().c_str());
+     allow_multi();
+     return;
+   }
+
+   int c_year= verify_copy_line(data, line);
+   if( c_year > 0 )
+     verify_last_date(data, c_year);
+
+   verify_copy_text(data);
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       copy_misc
 //
 // Function-
@@ -1649,8 +1715,12 @@ static void
      Data&             data)        // The content
 {
    Line* line= get_copy_line(data);
-   if( line == nullptr )            // (Missing copyright allowed)
+   if( line == nullptr ) {          // (Missing copyright allowed)
+     ++none_count;
+     if( opt_verbose > 1 )
+       printf("[NONE]: '%s'\n", data.full().c_str());
      return;
+   }
 
    int c_year= verify_copy_line(data, line);
    if( c_year > 0 )
@@ -1789,6 +1859,8 @@ static void
            copy_code(data);
          else if( is_html(name) )
            copy_html(data);
+         else if( is_mark(name) )
+           copy_mark(data);
          else
            copy_misc(data);
        }

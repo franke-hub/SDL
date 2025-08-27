@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (C) 2023 Frank Eskesen.
+//       Copyright (C) 2023-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under cc by-sa version 4.0
 //       with attribution required.
@@ -17,13 +17,13 @@
 //       SDL (Software Development Laboratory) project contributors
 //
 // Last change date-
-//       2023/07/22
+//       2025/08/27
 //
 //------------------------------------------------------------------------ -->
 
 # ~/CONTRIBUTORS.md
 
-Copyright (C) 2023 Frank Eskesen.
+Copyright (C) 2023-2025 Frank Eskesen.
 
 This file is free content, distributed under cc by-sa version 4.0
 with attribution required.
@@ -32,18 +32,16 @@ within https://creativecommons.org/licenses/by-sa/4.0/us/legalcode)
 
 ----
 
-While imported content always contains the originator's copyright and licensing
-information, these authors are not considered direct contributers.
-
-----
-
-#### Frank Eskesen[^1] 2006-present
+#### Frank Eskesen 2006-present
 
 There are currently no other contributors.
 
 ----
 
-[^1]: Contributor is unconcerned with license attribution clauses, but
-the open source nature of licensed content must be preserved.
-No entity may claim exclusive ownership of any extracted content or otherwise
-restrict extracted content usage by any other entity.
+#### Imported content
+
+This distribution contains content imported from public sources.
+
+Imported content always contains the originator's copyright and licensing
+information, but these authors are not considered direct contributers and
+are not listed here.

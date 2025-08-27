@@ -17,7 +17,7 @@
 //       Document difficult to debug problems.
 //
 // Last change date-
-//       2025/05/01
+//       2025/08/27
 //
 -------------------------------------------------------------------------- -->
 
@@ -38,7 +38,14 @@ This journal records problems that were particularly difficult to debug.
 ----
 
 # <a id="kex_exchange_id">SSH fails reporting "kex_exchange_identification" error.</a>
-## (This fix is pretty obscure.)
+## ~~Initial (obscure) fix~~
+**in which we describe a "trip down the rabbit hole," fixing a problem without
+really understanding its cause.**
+
+See [**Key Exchange Fix**](#key_exchange_fix) for a rabbit hole free problem
+and solution description.
+
+......
 
 I have a LAN containing multiple physical and virtual machines.
 
@@ -61,7 +68,7 @@ Meanwhile, Fedora logged this:
 
 Connection reset by 192.168.50.xxx port [some port]
 
-## The Fix
+### The Fix
 
 **I had to manually change Window's IP subnet mask from `255.255.255.0` to
 `255.255.255.255`.**
@@ -70,7 +77,7 @@ Yes, really.
 
 After that change, SSH to Fedora worked immediately.
 
-## How I Found It
+### How I Found It
 
 I have two virtual Ubuntu machines
 - Ubuntu[0] could SSH everywhere
@@ -82,7 +89,7 @@ The only significant network difference was the subnet mask.
 Setting the mask to `255.255.255.255` (which normally means no subnet )
 _somehow_ fixed the handshake failure, even on the Windows machines.
 
-## Why This Works
+### Why This Works
 
 Maybe it was because my network configuration changed recently:
 
@@ -98,13 +105,13 @@ My fedora machine also has a virtual box virtual adapter (virbr0) which has a
 network adapter of 192.168.122.1.
 It hasn't had any virtual machines configured for a long time.
 
-### But the truth is, I don't know what causes this problem or why the fix works.
+#### But the truth is, I don't know what causes this problem or why the fix works.
 
 But if you're seeing this error *and everything else seems fine*, try this.
 
-## How to fix it.
+### How to fix it.
 
-### On the router itself
+#### On the router itself
 
 [(Reference)](https://www.digitalcitizen.life/change-subnet-mask-windows-10/)
 See: "How to change the Subnet Mask from the router's interface"
@@ -112,7 +119,7 @@ See: "How to change the Subnet Mask from the router's interface"
 I didn't actually see this until writing this note and can't vouch for it,
 but it looks like maybe I should've tried this first.
 
-### Windows 10 or 11 with manual IP
+#### Windows 10 or 11 with manual IP
 
 1. Go to `Control Panel > Network and Internet > Network Connections`
 2. Right-click your active adapter → Properties
@@ -124,7 +131,7 @@ but it looks like maybe I should've tried this first.
 
 Apply, save, and try SSH again.
 
-### Windows using DHCP
+#### Windows using DHCP
 
 [(Reference)](https://www.digitalcitizen.life/change-subnet-mask-windows-10/)
 See: How to change the Subnet Mask in Windows using PowerShell
@@ -140,23 +147,39 @@ reboot.)
 Because the change didn't persist, I changed my DHCP Windows machine to static
 IP and used the manual method instead.
 
-### Ubuntu with manual IP
+#### Ubuntu with manual IP
 
 - Use the "Edit Connections" menu from network conections menu on the top of
 the display screen.
 - Select the network to change
 - Change the netmask to 32 (indicating 32 bits, or 255,255,255,255)
 
-### Fedora with manual IP
+#### Fedora with manual IP
 
 - nmcli connection show (Displays the device names)
 - sudo ifconfig {device} netmask 255.255.255.255
 - ifconfig ## Verify the change
 
-### Reboot test
+#### Reboot test
 
 After making network changes on any machine, reboot to make sure they still
 work. If there are problems, now's the time to fix them.
+
+------------------------------------------------------------------------------
+
+## <a id="key_exchange_fix">Key Exchange Fix
+
+### The actual problem
+During the network update, the Fedora machine subnet mask was (somehow)
+changed from 255.255.255.0 (a 24-bit mask) into 255.255.255.255 (a 32-bit
+mask.)
+
+The fix was to change the mask back to 255.255.255.0, its original value.
+This would have been simpler if the actual problem was determined before other
+subnet masks were also changed.
+
+So the net is: **Make sure that *all* devices communicating using SSH use the
+same subnet mask.**
 
 ----
 

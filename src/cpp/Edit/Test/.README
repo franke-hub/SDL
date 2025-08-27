@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2010 Frank Eskesen.
+##       Copyright (C) 2025 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -8,15 +8,7 @@
 ##
 ## SPDX-License-Identifier: MIT
 ##############################################################################
-## ~/src/asm/x86/boot/.gitignore
-##
-##       This subdirectory contained a sample bootloader for a floppy disk
-##       along with a memory test program.
-##       It may have worked at one time, but it doesn't now.
-##       Even if it did, floppy disks are pretty much obsolete.
-##
-##       Google "x86 assembler bootloader" to find a sample boot loader.
-##
+## ~/src/cpp/Edit/Test/.README
 ##############################################################################
-*
-!/.gitignore
+## This subdirectory contains editor testing files, all of which are also
+## distributed under the MIT license.

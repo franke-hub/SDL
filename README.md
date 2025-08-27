@@ -17,7 +17,7 @@
 //       SDL Project overview information.
 //
 // Last change date-
-//       2025/05/17
+//       2025/08/27
 //
 //------------------------------------------------------------------------ -->
 
@@ -31,10 +31,9 @@ within https://opensource.org/licenses/MIT)
 
 - [About](#about)
 - [Quick Start](#quick-start)
-- [Documentation](#documentation)
 - [Contributing](./CONTRIBUTORS.md)
-- [Copying](#copying)
-- [License](#license)
+- [Copying](./COPYING.md)
+- [License](./LICENSE.md)
 - [Overview](#overview)
 
 - [SDL C++ Library Reference manual](doc/cpp/REFERENCE.md)
@@ -59,88 +58,17 @@ Windows support is deprecated and is no longer tested.
 All content is distributed AS-IS, without purpose or warranty of any kind;
 not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-### <a id="copying">Copying</a>
-This is an open source project, consisting of free content distributed under
-an open source license.
-
-While the distribution author retains the open source copyright,
-no additional restrictive rights are or will be claimed.
-In particular but not exclusively, the author warrants that no trade mark or
-patent rights exist and none will be generated for any content in this
-distribution. This distribution is and will remain open source.
-
-**ALL** content in this distribution may be copied, but
-- Your license is not exclusive. No person or entity can restrict any other
-person or entity's usage of *any* content.
-- Imported content retains the copyright, copying, and licensing restrictions
-of the original author (or source, if no copyright information was included
-in the imported content.)
-Every SDL distribution file containing imported content contains
-originating copyright and licensing information
-
-Small content segments may be copied under the public domain license
-without attribution or licensing requirements[^1].
-The GNU GPL applies to any significant content aggregation.
-
-### <a id="license">Licensing</a>
-All imported content retains the copyright and licensing restrictions of
-the original authors.
-
-Most original C++ source code is distributed under the GNU Public License.
-Most original include headers are distributed under the Lesser GPL.
-
-Control files (e.g. make files) and most documentation (such as this file) are
-distributed using the MIT license.
-
-The Creative Commons license is used for Lilypond (music) files.
-
-Some sample content explictly uses the public domain license.
-This content does not require attribution or licensing.
-
-Any and all "look and feel" content in this entire distribution is explicitly
-licensed under the public domain license.
-
-License detail:
-- [Boost](.licenses/LICENSE.BOOST-1.0)
-  - SPDX-License-Identifier: BSL-1.0
-  - ~/src/cpp/inc/pub/memory.h (UNUSED/UNTESTED)
-  - ~/src/cpp/lib/pub/Debug.cpp (Includes: <boost/stacktrace.hpp>)
-- [BSD](.licenses/LICENSE.BSD-3)
-  - SPDX-License-Identifier: BSD-3-Clause
-  - ~/src/py/Sample/GUI/Qt/widgets-example.py
-- [Creative Commons V4.0](.licenses/LICENSE.BY_SA-4.0)
-  - SPDX-License-Identifier: CC-BY-4.0
-  - ~/src/lily/Eskesen/* (Cheesy, but original, music)
-  - ~/src/lily/Public/* (Lily representations of out of copyright music.)
-  - ~/src/lily/Sample/* (Incomplete sample Lily layouts.
-    Probably should be MIT or public domain license.)
-  - ~/src/java/Sample/Swing/Main.java
-- [GNU GPL (General Public License)](.licenses/LICENSE.GPL-3.0)
-  - SPDX-License-Identifier: GPL-3.0-only
-  - Almost all source code.
-- [GNU LGPL (Lesser General Public License)](.licenses/LICENSE.LGPL-3.0)
-  - SPDX-License-Identifier: LGPL-3.0-only
-  - Almost all library include files.
-- [MIT License](.licenses/LICENSE.MIT)
-  - SPDX-License-Identifier: MIT
-  - Almost all Makefile segments, control and documentation files.
-- [Public domain license](.licenses/LICENSE.ZERO) (Creative Commons CC0)
-  - SPDX-License-Identifier: CC0-1.0
-  - All control Makefile segments (in ~/src/cpp/ctl/.)
-  - All example code.
-  - All BASH control files in ~/bat/.home/ except for .bash_logout.
-(.bash_logout contains no original content.)
-
 ### <a id="quick-start">Quick Start Guide</a>
 Prerequisite packages:
-- [Cygwin](#prereq-cygwin)
-- [Fedora](#prereq-fedora)
-- [Ubuntu](#prereq-ubuntu)
+- [For Cygwin](#prereq-cygwin)
+- [For Fedora](#prereq-fedora)
+- [For Ubuntu](#prereq-ubuntu)
 
 (The prequisites are the same for each environment, but they don't use the
 same naming conventions.)
 
 These instructions use the SDL package as delivered to install the C++ and
+python libraries.
 
 ```bash
 git clone https://github.com/franke-hub/SDL.git
@@ -162,7 +90,8 @@ a new Linux version.)
 make uninstall.
 
 __TODO__ Implement C# and Java library installation Makefiles.
-(Only C++ and Python library Makefiles are currently implemented.)
+(Only the C++ and Python library installation Makefiles are currently
+implemented.)
 
 <!-- --------------------------------------------------------------------- -->
 ### <a id="prereq-cygwin">Cygwin prerequisite packages</a>
@@ -181,7 +110,7 @@ Build environment packages:
 - patch
 - pkgconf
 
-Build library packages:
+Build library and sample program packages:
 - bzip2
 - glm-devel
 - ImageMagick           (Version >= 7.0)
@@ -274,20 +203,20 @@ Build library packages:
 ### <a id="about">The Distribution</a>
 The distribution primarily uses two git branches:
 - The trunk branch, relatively well tested.
-- The maint branch, more current but more unstable.
-This branch may contain known errors when used for distribution testing.
+- The maint branch, distributed for trunk testing.
+This branch sometimes contains known errors.
 
 The distribution is kept locally in /home/data/SDL on all local machines,
-physical or virtual.
+physical or virtual. (Some links rely on this placement.)
 In addition to this public distribution, the /home/data/ subdirectory contains
 private information shared via rsync between machines.
 One of these machines (NFS) exports /home/data in read-only mode and some
 local virtual machines access that.
 
-An Ubuntu build test (virtual) machine updates only via github.
+The Ubuntu build test (virtual) machine updates only via github.
 It does not access the exported /home/data Network File System.
-It's used to verify maint and trunk releases operate properly as distributed,
-and does not access the NFS file system.
+It's used to verify that maint and trunk releases operate properly as
+distributed. (It does not access the exported /home/data NFS file system.)
 
 #### Subdirectory structure:
 
@@ -374,21 +303,22 @@ Multiple libraries are also provided:
 
 All C++ libraries have an associated Test subdirectory:
 `~/src/cpp/lib/*/Test`
-The dev and pub libraries also have a regression test script, `regression`,
+The dev and pub libraries also contain a regression test script, `regression`,
 used for distribution testing.
 These can be invoked from the root directory using `make check`.
 
 For C++ programs, two build helper programs are required.
-These programs are built in the `~/obj/cpp/sys/` subdirectory and installed
-into $HOME/bin using `make install`.
-(The $HOME/bin directory location is not currrently configurable.)
+These programs are built in the `~/obj/cpp/sys/` subdirectory and are
+automatically installed into $SDL_ROOT/bin using `make install`.
 
 - makeproj: Used to create or update dependencies.
 - filecomp: Used in regression testing to (partially) compare files.
 
 In addition to the libraries, (many) sample programs are provided.
 
-__TODO__ Document the sample programs.
-
 The project Wiki contains complete build instructions starting from an
 "Ubuntu Desktop for developers" package.
+
+__TODO__ Complete the library documentation.
+
+__TODO__ Document the sample programs.
