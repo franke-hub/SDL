@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2025/08/26
+//       2025/08/31
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -761,7 +761,7 @@ the change only documents that the file is available upon request.
 
 ----
 
-### <a id=most-recent-change>2025/08/26 trunk/maint
+### 2025/08/26 trunk/maint
 
 Change log:
 - ~/src/cpp/Fileman/Scanner.cpp moved to ~/src/cpp/Scanner
@@ -769,3 +769,14 @@ Change log:
 And also does not rely on $HOME to find the ~/.headings subdirectory.
 - ~/src/cpp/Makefile.BSD
 Now includes ~/src/cpp/Scanner in the list of compile test subdirectories.
+
+----
+
+### <a id=most-recent-change>2025/08/31 trunk/maint
+
+Change log:
+- Updated/Added copyright statements.
+- Removed files that shouldn't have been distributed.
+- ~/src/cpp/Scanner/Scanner.cpp
+  - `Always counts files without copyright statements.
+  - If --verbose > 1 displays files without copyright statements.
