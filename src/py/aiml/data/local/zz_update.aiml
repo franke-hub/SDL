@@ -1,14 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <aiml version="1.0">
-<!-- -->
-<!-- Free software (c) 2017 Frank Eskesen. -->
-<!-- This program is open source code released under -->
-<!-- the terms of the GNU General Public License  -->
-<!-- as published by the Free Software Foundation. -->
-<!-- Complies with AIML 1.0 Tag Set Specification -->
-<!-- as adopted by the ALICE A.I. Foundation. -->
-<!-- Last modified 12/15/2017 -->
-<!-- -->
+<!--                                                                       -->
+<!--     Copyright (C) 2017-2020 Frank Eskesen.                            -->
+<!--                                                                       -->
+<!--     This file is free content, distributed under the GNU General      -->
+<!--     Public License, version 3.0.                                      -->
+<!--     (See accompanying file LICENSE.GPL-3.0 or the original            -->
+<!--     contained within https://www.gnu.org/licenses/gpl-3.0.en.html)    -->
+<!--                                                                       -->
+<!-- SPDX-License-Identifier: GPL-3.0-only                                 -->
+<!--                                                                       -->
+<!-- Title-                                                                -->
+<!--     zz_update.aiml                                                    -->
+<!--                                                                       -->
+<!-- Purpose-                                                              -->
+<!--     Local AIML additions, final file.                                 -->
+<!--                                                                       -->
+<!-- Last change date-                                                     -->
+<!--     2020/02/13                                                        -->
+<!--                                                                       -->
+<!-- Implementation notes-                                                 -->
+<!--     Complies with AIML 1.0 Tag Set Specification as adopted by the    -->
+<!--     ALICE A.I. Foundation.                                            -->
+<!--                                                                       -->
 
 <!-- alice/atomic.aiml ONLY FIXED IN SOURCE -->
 

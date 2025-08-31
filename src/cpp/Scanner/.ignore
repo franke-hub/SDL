@@ -1,3 +1,26 @@
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2025 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+## SPDX-License-Identifier: MIT
+##----------------------------------------------------------------------------
+##
+## Title-
+##       .ignore
+##
+## Purpose-
+##       Scanner ignore path/file control
+##
+## Last change date-
+##       2025/08/31
+##
+##############################################################################
+
+##############################################################################
 ## IGNORED paths
 .home/.git/*
 .home/.headings/*
@@ -11,40 +34,56 @@
 .home/src/cpp/Clone/test/*
 .home/src/cpp/Clone.pub/test/*
 .home/src/cpp/Dirty/*
+.home/src/cpp/Edit/.OBSOLETE/*
 .home/src/cpp/Edit/Test/*
-.home/src/cpp/EiDB/data/OUT/*
+.home/src/cpp/EiDB/data/*
 .home/src/cpp/inc/gsl/*
+.home/src/cpp/lib/com/Test/data/*
+.home/src/cpp/lib/dev/Test/timing/*
+.home/src/cpp/lib/pub/Test/script/inp/*
+.home/src/cpp/lib/pub/Test/script/out/*
+.home/src/cpp/NNC/data/*
 .home/src/cpp/Tools/codec/data/INP/*
+.home/src/cpp/Tools/Secure/data/*
 .home/src/cpp/Wilbur/data/*
 .home/src/cpp/Xample/*
+.home/src/cpp/XML/Test/*
 .home/src/data/*
 .home/src/java/Applet/*
 .home/src/java/PMA/*
+.home/src/java/Webapp/install/sample/Test/*
 .home/src/java/Webapp/usr/fne/sample/*
 .home/src/js/Dirty/*
 .home/src/js/http/node_modules/*
 .home/src/js/sudoku/*
+.home/src/lily/Eskesen/.Private/*
 .home/src/mcs/Dirty/*
+.home/src/mcs/lib/pkgconfig/*
 .home/src/mcs/lib/Import/*
 .home/usr/*
 
 ## IGNORED files
 .home/bat/bat-CA/openssl.patch
+.home/doc/obj/Doxygen/Doxyfile
 .home/doc/.README.md
 .home/doc/Journal/.README.md
-## .home/src/cpp/EiDB/Regression.bat
+.home/obj/cpp/lib/shared/.SHARED
+.home/obj/cpp/lib/static/.STATIC
 .home/src/cpp/NNC/.DOC.txt
-## .home/src/cpp/Patterns/make.bat
 .home/src/cpp/Sample/.OBSOLETE/opencv/hello_world.cpp
-.home/src/lily/Eskesen/.Private/Crypto.ly.gpg
-.home/src/py/aiml/std-startup.xml
 .home/src/py/InfoDB/.ASIDES.odt
+
+## AIML copyright not supported (yet)
+.home/src/py/aiml/std-startup.xml
+.home/src/py/aiml/data/local/silly.aiml
+.home/src/py/aiml/data/local/zz_update.aiml
+
+## Unable to add copyright
+.home/src/js/http/package-lock.json
+.home/src/js/http/package.json
 
 ## BOOST license
 .home/src/cpp/inc/pub/memory.h
-
-## Files are read-only (and some are zip)
-## .home/src/c/lib/1st/jpeg/*
 
 ## Imported, non-standard code copyright.
 .home/src/cpp/Spell/example.cpp

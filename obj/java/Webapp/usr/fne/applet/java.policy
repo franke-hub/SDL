@@ -1,5 +1,1 @@
-// All permissions
-grant {
-	permission java.security.AllPermission;
-};
-
+S/java.policy

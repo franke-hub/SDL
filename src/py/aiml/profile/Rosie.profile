@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2007 Free Software Foundation
+##       Copyright (C) 2007 Free Software Foundation.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.

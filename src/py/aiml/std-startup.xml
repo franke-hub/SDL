@@ -1,5 +1,28 @@
-<aiml version="1.0.1" encoding="UTF-8">
-    <!-- std-startup.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<aiml version="1.0">
+<!--                                                                       -->
+<!--     Copyright (C) 2017-2025 Frank Eskesen.                            -->
+<!--                                                                       -->
+<!--     This file is free content, distributed under the GNU General      -->
+<!--     Public License, version 3.0.                                      -->
+<!--     (See accompanying file LICENSE.GPL-3.0 or the original            -->
+<!--     contained within https://www.gnu.org/licenses/gpl-3.0.en.html)    -->
+<!--                                                                       -->
+<!-- SPDX-License-Identifier: GPL-3.0-only                                 -->
+<!--                                                                       -->
+<!-- Title-                                                                -->
+<!--     std-startup.xml                                                   -->
+<!--                                                                       -->
+<!-- Purpose-                                                              -->
+<!--     Initial AIML startup file.                                        -->
+<!--                                                                       -->
+<!-- Last change date-                                                     -->
+<!--     2025/08/31                                                        -->
+<!--                                                                       -->
+<!-- Implementation notes-                                                 -->
+<!--     Complies with AIML 1.0 Tag Set Specification as adopted by the    -->
+<!--     ALICE A.I. Foundation.                                            -->
+<!--                                                                       -->
 
     <!-- Category is an atomic AIML unit -->
     <category>
@@ -23,4 +46,5 @@
             <!--<learn>more_aiml.aiml</learn>-->
         </template>
     </category>
+
 </aiml>

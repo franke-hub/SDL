@@ -1,2 +1,26 @@
 #!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+## SPDX-License-Identifier: MIT
+##----------------------------------------------------------------------------
+##
+## Title-
+##       fileman.date
+##
+## Purpose-
+##       fileman | sort (by date)
+##
+## Last change date-
+##       2020/01/06
+##
+## Usage-
+##       fileman.date {file/directory name ...}
+##
+##############################################################################
 fileman $* | sort --key=4n,4n --key=2M,2M --key=3n,3n --key=5,5 --key=7

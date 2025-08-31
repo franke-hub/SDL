@@ -1,17 +1,39 @@
 #!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2020-2025 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+## SPDX-License-Identifier: MIT
+##----------------------------------------------------------------------------
 ##
 ## Title-
-##       /home/data/.BACKUP.sh
+##       ~/src/log/howto/.BACKUP.sh
 ##
 ## Purpose-
-##       Run backup to remote machine
+##       SAMPLE: Run backup to remote machine
+##
+## Last change date-
+##       2025/08/31
 ##
 ## Usage-
+##       [cd /home/data/SDL]
 ##       .BACKUP.sh [OPTIONS...] hostname
 ##
 ## Local backup-
-##         Windows: rdserver; /E/Backups/data rdclient
-##         MyLinux: backup.raid data
+##       cd /home/data/ ; rdserver &
+##       cd /E/Backups/data ; rdclient {-E}
+##       killer rdserver
+##
+## Remote backup-
+##       cd /home/data/
+##       backup.raid {-del} {hostname}
+##
+## Implementation notes-
+##       NOT VERIFIED
 ##
 ##############################################################################
 
