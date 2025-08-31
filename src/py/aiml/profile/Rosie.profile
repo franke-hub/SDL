@@ -1,10 +1,23 @@
 ##############################################################################
 ##
+##       Copyright (C) 2007 Free Software Foundation
+##
+##       This file is free content, distributed under the GNU General
+##       Public License, version 3.0.
+##       (See accompanying file LICENSE.GPL-3.0 or the original
+##       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
+##
+## SPDX-License-Identifier: GPL-3.0-only
+##############################################################################
+##
 ## Title-
 ##       Rosie.profile
 ##
 ## Purpose-
 ##       Profile data: Rosie bot
+##
+## Derived from-
+##       https://github.com/pandorabots/rosie/blob/master/lib/system/rosie.properties
 ##
 ##############################################################################
 
