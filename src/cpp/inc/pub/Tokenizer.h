@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2022 Frank Eskesen.
+//       Copyright (c) 2020-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Tokenizer object.
 //
 // Last change date-
-//       2022/09/02
+//       2025/09/02
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_TOKENIZER_H_INCLUDED
@@ -64,6 +64,7 @@ size_t                 offset;      // The current offset
 size_t                 length;      // The current token length
 const char*            delim;       // The token delimiter, may be nullptr
 size_t                 ldelim;      // strlen(delim)
+bool                   _quote= true; // Enable quoted strings
 
 //----------------------------------------------------------------------------
 // Tokenizer::Iterator::Constructors
@@ -97,6 +98,13 @@ Iterator
    operator++( int );               // Postfix operator++, parameter ignored
 
 //----------------------------------------------------------------------------
+// Tokenizer::Iterator:Accessor methods
+//----------------------------------------------------------------------------
+void
+   set_quote(bool quote)            // Enable quoted strings?
+{  _quote= quote; }
+
+//----------------------------------------------------------------------------
 // Tokenizer::Iterator::Methods
 //----------------------------------------------------------------------------
 Iterator&                           // Always *this
@@ -126,7 +134,6 @@ Tokenizer& operator=(const Tokenizer&) = default; // Assignment operator
 //----------------------------------------------------------------------------
 // Tokenizer::Methods
 //----------------------------------------------------------------------------
-public:
 Iterator                            // The begin Iterator
    begin( void )                    // Get begin Iterator
 {  return Iterator(input, delim); }
