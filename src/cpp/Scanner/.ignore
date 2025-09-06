@@ -16,7 +16,7 @@
 ##       Scanner ignore path/file control
 ##
 ## Last change date-
-##       2025/08/31
+##       2025/09/02
 ##
 ##############################################################################
 
@@ -73,17 +73,9 @@
 .home/src/cpp/Sample/.OBSOLETE/opencv/hello_world.cpp
 .home/src/py/InfoDB/.ASIDES.odt
 
-## AIML copyright not supported (yet)
-.home/src/py/aiml/std-startup.xml
-.home/src/py/aiml/data/local/silly.aiml
-.home/src/py/aiml/data/local/zz_update.aiml
-
 ## Unable to add copyright
 .home/src/js/http/package-lock.json
 .home/src/js/http/package.json
-
-## BOOST license
-.home/src/cpp/inc/pub/memory.h
 
 ## Imported, non-standard code copyright.
 .home/src/cpp/Spell/example.cpp

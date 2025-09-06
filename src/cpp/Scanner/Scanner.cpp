@@ -17,7 +17,7 @@
 //       Source file checker.
 //
 // Last change date-
-//       2025/08/25
+//       2025/09/06
 //
 // Usage-
 //       Scanner {path} options
@@ -73,7 +73,6 @@
 #include <cctype>                   // For isprint()
 #include <cerrno>                   // For errno
 #include <climits>                  // For INT_MAX, INT_MIN
-#include <cstdio>                   // For printf, ...
 #include <cstdlib>                  // For exit, ...
 #include <cstring>                  // For strcmp, ...
 #include <ctime>                    // For localtime, ...
@@ -85,11 +84,13 @@
 #include <pub/Properties.h>         // For pub::Properties
 #include <pub/Tokenizer.h>          // For pub::Tokenizer
 #include <pub/utility.h>            // For pub::utility::to_string
+#include <pub/utility.i>            // For pub::s2c
 
 using namespace pub::data;
 using namespace pub::debugging;
 using std::string;
 using pub::List;
+using pub::s2c;
 using pub::Tokenizer;
 typedef Tokenizer::Iterator Iterator;
 
@@ -99,6 +100,10 @@ typedef Tokenizer::Iterator Iterator;
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
+
+,  _USE_AUTOCORRECT_CODE= true      // Use auto_correct_code function?
+,  _USE_AUTOCORRECT_HTML= false     // Use auto_correct_html function?
+,  _USE_AUTOCORRECT_PREFIX= true    // Use auto_correct_prefix function?
 }; // Generic enum
 
 //----------------------------------------------------------------------------
@@ -128,44 +133,54 @@ static const string    blanks= "                "; // Blank string
 // Copyright tables and controls
 //----------------------------------------------------------------------------
 #define COPY_TYPES 5
+#define MORE_TYPES 7
 static Data*           data_none= nullptr; // Common: unmatchable copyright
 
 static Data*           bash_gpl=  nullptr; // The GPL  bash copyright header
 static Data*           bash_lgpl= nullptr; // The LGPL bash copyright header
 static Data*           bash_mit=  nullptr; // The MIT  bash copyright header
 static Data*           bash_sa40= nullptr; // The SA40 bash copyright header
-static Data*           bash_zero= nullptr; // The NONE bash copyright header
+static Data*           bash_zero= nullptr; // The ZERO bash copyright header
 static int             bash_count[COPY_TYPES]= {};
 
 static Data*           code_gpl=  nullptr; // The GPL  code copyright header
 static Data*           code_lgpl= nullptr; // The LGPL code copyright header
 static Data*           code_mit=  nullptr; // The MIT  code copyright header
 static Data*           code_sa40= nullptr; // The SA40 code copyright header
-static Data*           code_zero= nullptr; // The NONE code copyright header
+static Data*           code_zero= nullptr; // The ZERO code copyright header
 static int             code_count[COPY_TYPES]= {};
 
 static Data*           html_gpl=  nullptr; // The GPL  html copyright header
 static Data*           html_lgpl= nullptr; // The LGPL html copyright header
 static Data*           html_mit=  nullptr; // The MIT  html copyright header
 static Data*           html_sa40= nullptr; // The SA40 html copyright header
-static Data*           html_zero= nullptr; // The NONE html copyright header
+static Data*           html_zero= nullptr; // The ZERO html copyright header
 static int             html_count[COPY_TYPES]= {};
 
 static Data*           lily_gpl=  nullptr; // The GPL  lily copyright header
 static Data*           lily_lgpl= nullptr; // The LGPL lily copyright header
 static Data*           lily_mit=  nullptr; // The MIT  lily copyright header
 static Data*           lily_sa40= nullptr; // The SA40 lily copyright header
-static Data*           lily_zero= nullptr; // The NONE lily copyright header
+static Data*           lily_zero= nullptr; // The ZERO lily copyright header
 static int             lily_count[COPY_TYPES]= {};
 
 static Data*           mark_gpl=  nullptr; // The GPL  mark copyright header
 static Data*           mark_lgpl= nullptr; // The LGPL mark copyright header
 static Data*           mark_mit=  nullptr; // The MIT  mark copyright header
 static Data*           mark_sa40= nullptr; // The SA40 mark copyright header
-static Data*           mark_zero= nullptr; // The NONE mark copyright header
+static Data*           mark_zero= nullptr; // The ZERO mark copyright header
 static int             mark_count[COPY_TYPES]= {};
 
 static int             misc_count[COPY_TYPES]= {};
+
+static Data*           more_bsd3= nullptr; // The BSD3 copyright header
+static Data*           more_bsl1= nullptr; // The BSL1 copyright header
+static Data*           more_gpl=  nullptr; // The GPL  copyright header
+static Data*           more_lgpl= nullptr; // The LGPL copyright header
+static Data*           more_mit=  nullptr; // The MIT  copyright header
+static Data*           more_sa40= nullptr; // The SA40 copyright header
+static Data*           more_zero= nullptr; // The ZERO copyright header
+static int             more_count[MORE_TYPES]= {};
 
 static int             none_count= 0; // (Files without copyright statements)
 
@@ -220,6 +235,17 @@ static const name2data mark_table[]=
 };
 
 static const name2data*misc_table= bash_table;
+
+static const name2data more_table[]=
+{  {  "BSD3", &more_bsd3}
+,  {  "BSL1", &more_bsl1}
+,  {  " GPL", &more_gpl }
+,  {  "LGPL", &more_lgpl}
+,  {  " MIT", &more_mit }
+,  {  "SA40", &more_sa40}
+,  {  "ZERO", &more_zero}
+,  {  nullptr, nullptr  }
+};
 
 //----------------------------------------------------------------------------
 // Option values and controls
@@ -308,7 +334,7 @@ static inline bool                  // TRUE iff string ends with value
 //----------------------------------------------------------------------------
 static string                       // The resultant substring
    findb(                           // Skip to next blank in
-     string            str)         // This string
+     const string      str)         // This string
 {
    for(size_t i= 0; i<str.size(); ++i) {
      if( str[i] == ' ' )
@@ -321,7 +347,7 @@ static string                       // The resultant substring
 
 static string                       // The resultant substring
    skipb(                           // Skip to next non-blank in
-     string            str)         // This string
+     const string      str)         // This string
 {
    for(size_t i= 0; i<str.size(); ++i) {
      if( str[i] != ' ' )
@@ -338,9 +364,10 @@ static string                       // The resultant substring
 //       get_token
 //
 // Function-
-//       Return next token, updating input string
+//       Return next blank-delimited token, updating input string
 //
 //----------------------------------------------------------------------------
+#if 0  // CURRENTLY UNUSED
 static __attribute__ ((noinline)) string // The resultant token
    get_token(                       // Return the next token
      string&           str)         // Updating this string to the remainder
@@ -358,6 +385,7 @@ static __attribute__ ((noinline)) string // The resultant token
    str= "";
    return token;
 }
+#endif // CURRENTLY UNUSED
 
 //----------------------------------------------------------------------------
 //
@@ -382,47 +410,6 @@ static inline bool                  // TRUE iff string starts with value
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       strcasestr
-//
-// Function-
-//       Case insensitive strstr.
-//
-// Implementation notes-
-//       TODO: Move to utility.h
-//
-//----------------------------------------------------------------------------
-#if 0                               // (Included in /usr/include/cstring)
-static const char*                  // First match, or nullptr
-   strcasestr(                      // Case insensitive strstr
-     const char*       lhs,         // Source string
-     const char*       rhs)         // Compare string
-{
-   if( *rhs == '\0' )               // Match empty string?
-     return lhs;
-
-   const char* result= lhs;         // Resultant, if match
-   while( *result != '\0' ) {
-     const char* lhs_test= result;
-     const char* rhs_test= rhs;
-     for(; *rhs_test != '\0'; ++rhs_test, ++lhs_test) {
-       if( toupper(*lhs_test) != toupper(*rhs_test) )
-         break;
-     }
-     if( *rhs_test == '\0' )
-       return result;
-     if( *lhs_test == '\0' )
-       break;
-
-     ++result;
-   }
-
-   return nullptr;
-}
-#endif                              // (Included in /usr/include/cstring)
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
 //       verify_data
 //
 // Function-
@@ -443,7 +430,7 @@ static void
    if( line_list.get_head() )       // If data present
      return;                        // Everything's OK
 
-   fprintf(stderr, "Error: File(%s) is empty/missing\n", data->full().c_str());
+   errorf("Error: File(%s) is empty/missing\n", s2c(data->full()));
    exit(1);
 }
 
@@ -470,34 +457,44 @@ static void
    bash_gpl=  new Data(base, "B.GPL");  // Load the GPL  copyright
    bash_lgpl= data_none;                // Load the LGPL copyright (disallowed)
    bash_mit=  new Data(base, "B.MIT");  // Load the MIT  copyright
-   bash_sa40= data_none;                // Load the SA40 copyright (undefined)
-   bash_zero= new Data(base, "B.ZERO"); // Load the NONE copyright
+   bash_sa40= data_none;                // Load the SA40 copyright (disallowed)
+   bash_zero= new Data(base, "B.ZERO"); // Load the ZERO copyright
 
    code_gpl=  new Data(base, "C.GPL");  // Load the GPL  copyright
    code_lgpl= new Data(base, "C.LGPL"); // Load the LGPL copyright
    code_mit=  new Data(base, "C.MIT");  // Load the MIT  copyright
    code_sa40= new Data(base, "C.SA40"); // Load the SA40 copyright
-   code_zero= new Data(base, "C.ZERO"); // Load the NONE copyright
+   code_zero= new Data(base, "C.ZERO"); // Load the ZERO copyright
 
    html_gpl=  new Data(base, "H.GPL");  // Load the GPL  copyright
    html_lgpl= data_none;                // Load the LGPL copyright (disallowed)
    html_mit=  new Data(base, "H.MIT");  // Load the MIT  copyright
    html_sa40= new Data(base, "H.SA40"); // Load the SA40 copyright
-   html_zero= new Data(base, "H.ZERO"); // Load the NONE copyright
+   html_zero= new Data(base, "H.ZERO"); // Load the ZERO copyright
 
    lily_gpl=  new Data(base, "L.GPL");  // Load the GPL  copyright
    lily_lgpl= data_none;                // Load the LGPL copyright (disallowed)
-   lily_mit=  data_none;                // Load the MIT  copyright (undefined)
+   lily_mit=  data_none;                // Load the MIT  copyright (disallowed)
    lily_sa40= new Data(base, "L.SA40"); // Load the SA40 copyright
-   lily_zero= new Data(base, "L.ZERO"); // Load the NONE copyright
+   lily_zero= new Data(base, "L.ZERO"); // Load the ZERO copyright
 
    mark_gpl=  html_gpl;             // Load the GPL  copyright
    mark_lgpl= data_none;            // Load the LGPL copyright (disallowed)
    mark_mit=  html_mit;             // Load the MIT  copyright
    mark_sa40= html_sa40;            // Load the SA40 copyright
-   mark_zero= html_zero;            // Load the NONE copyright
+   mark_zero= html_zero;            // Load the ZERO copyright
+
+   more_bsd3= new Data(base, "M.BSD3"); // Load the BSD3 copyright
+   more_bsl1= new Data(base, "M.BSL1"); // Load the BSL1 copyright
+   more_gpl=  new Data(base, "M.GPL");  // Load the GPL  copyright
+   more_lgpl= new Data(base, "M.LGPL"); // Load the LGPL copyright
+   more_mit=  new Data(base, "M.MIT");  // Load the MIT  copyright
+   more_sa40= new Data(base, "M.SA40"); // Load the SA40 copyright
+   more_zero= new Data(base, "M.ZERO"); // Load the ZERO copyright
 
    // Verify data present
+   verify_data(data_none);
+
    verify_data(bash_gpl);
    verify_data(bash_lgpl);
    verify_data(bash_mit);
@@ -522,7 +519,15 @@ static void
    verify_data(lily_sa40);
    verify_data(lily_zero);
 
-   // Get list of IGNORE files
+   verify_data(more_bsd3);
+   verify_data(more_bsl1);
+   verify_data(more_gpl);
+   verify_data(more_lgpl);
+   verify_data(more_mit);
+   verify_data(more_sa40);
+   verify_data(more_zero);
+
+   // Get list of IGNORED files
    IGNORE.open(".", ".ignore");     // List of files to ignore
    Line fake(nullptr);              // Replacement for comment line
    for(Line* line= IGNORE.line().get_head(); line; line= line->get_next()) {
@@ -580,6 +585,14 @@ static void
    delete lily_sa40;
    delete lily_zero;
 
+   delete more_bsd3;
+   delete more_bsl1;
+   delete more_gpl;
+   delete more_lgpl;
+   delete more_mit;
+   delete more_sa40;
+   delete more_zero;
+
    //-------------------------------------------------------------------------
    // Verify all IGNORE entries found
    //-------------------------------------------------------------------------
@@ -590,27 +603,26 @@ static void
      for(Line* line= IGNORE.line().get_head(); line; line= line->get_next())
      {
        if( files == 0 && paths == 0 )
-         fprintf(stderr, "Missing .ignores:\n");
+         errorf("Missing .ignores:\n");
        size_t L= strlen(line->text);
        if( L > 1 && strcmp(&line->text[L-2], "/*") == 0 ) { // If ignored path
-         fprintf(stderr, "Path: %s\n", line->text);
+         errorf("Path: %s\n", line->text);
          ++paths;
        } else {                     // If ignore file
-         fprintf(stderr, "File: %s\n", line->text);
+         errorf("File: %s\n", line->text);
          ++files;
        }
      }
      if( paths == 0 )
-       printf("*ALL* .ignore paths found\n");
+       debugf("*ALL* .ignore paths found\n");
      else
-       fprintf(stderr, "%5d .ignore path%s not found\n", paths
-              , paths == 1 ? "" : "s");
+       errorf("%5d .ignore path%s not found\n", paths
+             , paths == 1 ? "" : "s");
 
      if( files == 0 )
-       printf("*ALL* .ignore files found\n");
+       debugf("*ALL* .ignore files found\n");
      else
-       fprintf(stderr, "%5d .ignore file%s not found\n", files
-              , files == 1 ? "" : "s");
+       errorf("%5d .ignore file%s not found\n", files, files == 1 ? "" : "s");
    }
    IGNORE.close();
 
@@ -618,36 +630,43 @@ static void
    // Display verification statistics
    //-------------------------------------------------------------------------
    if( true ) {
-     printf("\nBash format copyrights:\n");
+     debugf("\nBash format copyrights:\n");
      for(int i=  0; i < COPY_TYPES; ++i ) {
-       printf("%s: %6d\n", bash_table[i].name, bash_count[i]);
+       debugf("%s: %6d\n", bash_table[i].name, bash_count[i]);
      }
 
-     printf("\nCode format copyrights:\n");
+     debugf("\nCode format copyrights:\n");
      for(int i= 0; i < COPY_TYPES; ++i ) {
-       printf("%s: %6d\n", code_table[i].name, code_count[i]);
+       debugf("%s: %6d\n", code_table[i].name, code_count[i]);
      }
 
-     printf("\nHtml format copyrights:\n");
+     debugf("\nHtml format copyrights:\n");
      for(int i= 0; i < COPY_TYPES; ++i ) {
-       printf("%s: %6d\n", html_table[i].name, html_count[i]);
+       debugf("%s: %6d\n", html_table[i].name, html_count[i]);
      }
 
-     printf("\nLily format copyrights:\n");
+     debugf("\nLily format copyrights:\n");
      for(int i= 0; i < COPY_TYPES; ++i ) {
-       printf("%s: %6d\n", lily_table[i].name, lily_count[i]);
+       debugf("%s: %6d\n", lily_table[i].name, lily_count[i]);
      }
 
-     printf("\nMark format copyrights:\n");
+     debugf("\nMark format copyrights:\n");
      for(int i= 0; i < COPY_TYPES; ++i ) {
-       printf("%s: %6d\n", mark_table[i].name, mark_count[i]);
+       debugf("%s: %6d\n", mark_table[i].name, mark_count[i]);
      }
 
-     printf("\nMisc format copyrights:\n");
+     debugf("\nMisc format copyrights:\n");
      for(int i= 0; i < COPY_TYPES; ++i ) {
-       printf("%s: %6d\n", misc_table[i].name, misc_count[i]);
+       debugf("%s: %6d\n", misc_table[i].name, misc_count[i]);
      }
-     printf("NONE: %6d\n", none_count);
+
+     debugf("\nMore format copyrights:\n");
+     for(int i= 0; i < MORE_TYPES; ++i ) {
+       debugf("%s: %6d\n", more_table[i].name, more_count[i]);
+     }
+
+     // No copyright found
+     debugf("NONE: %6d\n", none_count);
    }
 }
 
@@ -663,22 +682,22 @@ static void
 static void
    info( void )
 {
-   fprintf(stderr,"\n");
-   fprintf(stderr,"Scanner {path} <options>\n");
-   fprintf(stderr,"Options:\n"
-                   "  --help\tWrite this help message and exit\n"
-                   "  --verbose\t{=n} Verbosity, 1 if =n unspecified\n"
-                   "\n"
-                   "  --all\t\tCheck format, mode, and copyright\n"
-                   "  --auto\tAuto-correct mode\n"
-                   "  --copy\tVerify copyright text\n"
-                   "  --listx\tList filename extensions\n"
-                   "  --mode\tVerify file mode\n"
-                   "  --multi\tAllow multiple errors/changes\n"
-                   "  --permits\tVerify file mode (alias for --mode)\n"
-                   "  --unix\tVerify unix file format\n"
-                   "  --x\t\tAuto-correct mode (alias for --auto)\n"
-          );
+   errorf("\n");
+   errorf("Scanner {path} <options>\n");
+   errorf("Options:\n"
+          "  --help\tWrite this help message and exit\n"
+          "  --verbose\t{=n} Verbosity, 1 if =n unspecified\n"
+          "\n"
+          "  --all\t\tCheck format, mode, and copyright\n"
+          "  --auto\tAuto-correct mode\n"
+          "  --copy\tVerify copyright text\n"
+          "  --listx\tList filename extensions\n"
+          "  --mode\tVerify file mode\n"
+          "  --multi\tAllow multiple errors/changes\n"
+          "  --permits\tVerify file mode (alias for --mode)\n"
+          "  --unix\tVerify unix file format\n"
+          "  --x\t\tAuto-correct mode (alias for --auto)\n"
+         );
 
    exit(1);
 }
@@ -704,13 +723,11 @@ static int                          // The integer value
    if( errno ) {
      opt_help= true;
      if( errno == ERANGE )
-       fprintf(stderr, "--%s, range error: '%s'\n", OPTS[opt_index].name
-                     , optarg);
+       errorf("--%s, range error: '%s'\n", OPTS[opt_index].name, optarg);
      else if( *optarg == '\0' )
-       fprintf(stderr, "--%s, no value specified\n", OPTS[opt_index].name);
+       errorf("--%s, no value specified\n", OPTS[opt_index].name);
      else
-       fprintf(stderr, "--%s, format error: '%s'\n", OPTS[opt_index].name
-              , optarg);
+       errorf("--%s, format error: '%s'\n", OPTS[opt_index].name, optarg);
    }
 
    return value;
@@ -762,24 +779,23 @@ static void
        case ':':
          opt_help= true;
          if( optopt == 0 )
-           fprintf(stderr, "Option requires an argument '%s'\n",
-                           argv[optind-1]);
+           errorf("Option requires an argument '%s'\n", argv[optind-1]);
          else
-           fprintf(stderr, "Option requires an argument '-%c'\n", optopt);
+           errorf("Option requires an argument '-%c'\n", optopt);
          break;
 
        case '?':
          opt_help= true;
          if( optopt == 0 )
-           fprintf(stderr, "Unknown option '%s'\n", argv[optind-1]);
+           errorf("Unknown option '%s'\n", argv[optind-1]);
          else if( isprint(optopt) )
-           fprintf(stderr, "Unknown option '-%c'\n",optopt);
+           errorf("Unknown option '-%c'\n",optopt);
          else
-           fprintf(stderr, "Unknown option character '0x%x'\n", optopt);
+           errorf("Unknown option character '0x%x'\n", optopt);
          break;
 
        default:
-         fprintf(stderr, "%4d ShouldNotOccur ('%c',0x%x)\n", __LINE__, C, C);
+         errorf("%4d ShouldNotOccur ('%c',0x%x)\n", __LINE__, C, C);
          break;
      }
    }
@@ -787,16 +803,15 @@ static void
    if( opt_help )
      info();
 
-   if( opt_verbose )
-   {
-     fprintf(stderr, "%5d --verbose\n", opt_verbose);
-     fprintf(stderr, "%5s --auto\n",    opt_auto  ? " true" : "false");
-     fprintf(stderr, "%5s --copy\n",    opt_copy  ? " true" : "false");
-     fprintf(stderr, "%5s --listx\n",   opt_listx ? " true" : "false");
-     fprintf(stderr, "%5s --mode\n",    opt_mode  ? " true" : "false");
-     fprintf(stderr, "%5s --multi\n",   opt_multi ? " true" : "false");
-     fprintf(stderr, "%5s --unix\n",    opt_unix  ? " true" : "false");
-     fprintf(stderr, "\n");
+   if( opt_verbose ) {
+     debugf("%5d --verbose\n", opt_verbose);
+     debugf("%5s --auto\n",    opt_auto  ? " true" : "false");
+     debugf("%5s --copy\n",    opt_copy  ? " true" : "false");
+     debugf("%5s --listx\n",   opt_listx ? " true" : "false");
+     debugf("%5s --mode\n",    opt_mode  ? " true" : "false");
+     debugf("%5s --multi\n",   opt_multi ? " true" : "false");
+     debugf("%5s --unix\n",    opt_unix  ? " true" : "false");
+     debugf("\n");
    }
 }
 
@@ -840,7 +855,7 @@ static inline string                // The filename extension, "" if none
    get_extension(                   // Get filename extension
      const string&     name)        // For this filename
 {
-   const char* S= name.c_str();     // Get the associated string
+   const char* S= s2c(name);        // Get the associated string
    ssize_t L= name.length();        // Get the string length
    L--;
    while( L > 0 && S[L] != '.' )
@@ -1035,7 +1050,7 @@ static int                          // The value
      const string&     inps)        // The string
 {
    int result= 0;
-   const char* S= inps.c_str();
+   const char* S= s2c(inps);
    if( *S == '\0' )
      return -1;
 
@@ -1066,13 +1081,62 @@ static inline string                // The string, -leading and trailing blanks
    trim(                            // Trim
      const string&     inps)        // This string
 {
-   const char* S= inps.c_str();
+   const char* S= s2c(inps);
    while( *S == ' ' )               // Skip blanks
      S++;
    size_t L= strlen(S);
    while( L > 0 && S[L-1] == ' ' )
      L--;
    return string(S, L);
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       replace_copyright
+//
+// Function-
+//       Replace copyright text
+//
+//----------------------------------------------------------------------------
+static void
+   replace_copyright(               // Replace copyright text
+     Data&             data,        // For this data file
+     Data*             have_copy,   // Having this copyright
+     Data*             want_copy)   // Replacement copyright
+{
+   typedef pub::DHDL_list<Line>     List; // The Data's line list type
+
+   Line* lhs= get_copy_line(*have_copy)->get_next();
+   Line* rhs= get_copy_line(data)->get_next();
+   Line* head= rhs;
+   Line* tail= rhs;
+   for(;;) {
+     lhs= lhs->get_next();
+     if( lhs == nullptr )
+       break;
+
+     tail= tail->get_next();
+   }
+   Line* after= head->get_prev();   // (The line to insert after
+
+   List& list= data.line();         // (The File's line list)
+   list.remove(head, tail);
+   while( head != tail ) {          // Delete the removed lines
+     Line* next= head->get_next();
+     delete head;
+     head= next;
+   }
+
+   List insert;                     // The replacement list
+   lhs= get_copy_line(*want_copy)->get_next();
+   while( lhs ) {
+     insert.fifo( data.get_line(lhs->text) );
+     lhs= lhs->get_next();
+   }
+   list.insert(after, insert.get_head(), insert.get_tail());
+
+   data.write();
 }
 
 //----------------------------------------------------------------------------
@@ -1106,6 +1170,30 @@ static int                          // The copyright year, -1 if invalid
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       verify_copy_ending
+//
+// Function-
+//       Verify copyright has a token ending with "."
+//
+//----------------------------------------------------------------------------
+static void
+   verify_copy_ending(              // Verify copyright token ending
+     const string      file,        // The file name
+     const Line*       line)        // The copyright line
+{
+   Tokenizer lt(line->text);        // Our line Tokenizer
+   for(Iterator ti= lt.begin(); ti != lt.end(); ++ti) {
+     if( ends_with(ti(), ".") )
+       return;
+   }
+
+   errorf("File(%s) (c) Missing ending '.'\n", s2c(file));
+   allow_multi();
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       verify_last_date
 //
 // Function-
@@ -1121,7 +1209,7 @@ static void
 
    // Verify copyright year
    if( year < EARLY_YEAR )
-     printf("File(%s) Early copyright(%d)\n", full.c_str(), year);
+     errorf("File(%s) Early copyright(%d)\n", s2c(full), year);
 
    // Find last change date line (NOT an error if missing)
    int lineno= 0;                   // The current line counter
@@ -1137,7 +1225,7 @@ static void
      return;                        // Nothing to compare against
    line= line->get_next();          // The actual last change date line
    if( line == nullptr ) {          // If not found
-     printf("File(%s) Missing last change date\n", full.c_str());
+     errorf("File(%s) Missing last change date\n", s2c(full));
      allow_multi();
      return;
    }
@@ -1154,8 +1242,8 @@ static void
    int l_dd= string2int((++tok_iter)());
    if( l_yy < 1 || l_mm < 1 || l_mm > 12 || l_dd < 1 || l_dd > 31
        || (++tok_iter)() != "" ) {
-     printf("File(%s) Malformed last change date(%s)\n",
-            full.c_str(), date.c_str());
+     errorf("File(%s) Malformed last change date(%s)\n",
+            s2c(full), s2c(date));
      allow_multi();
      return;
    }
@@ -1174,7 +1262,7 @@ static void
    }
 
    if( future ) {
-     printf("File(%s) Future copy(%d) last(%s)\n", full.c_str(), year, text);
+     errorf("File(%s) Future copy(%d) last(%s)\n", s2c(full), year, text);
      allow_multi();
      return;
    }
@@ -1185,15 +1273,14 @@ static void
    //-------------------------------------------------------------------------
    // Correctable mismatch detected (and copyright line has been verified.)
    if( data.damaged() || data.changed() ) { // Cannot correct if file problem
-     fprintf(stderr, "File(%s) damaged(%d)/changed(%d)\n", full.c_str(),
-                     data.damaged(), data.changed());
+     errorf("File(%s) damaged(%d)/changed(%d)\n", s2c(full)
+           , data.damaged(), data.changed());
      allow_multi();
      return;
    }
 
    if( opt_auto == false ) {
-     printf("File(%s) Correctable last(%d) copy(%d)\n"
-           , full.c_str(), l_yy, year);
+     errorf("File(%s) Correctable last(%d) copy(%d)\n", s2c(full), l_yy, year);
    } else {
      Line* line= get_copy_line(data); // The copyright line
      Tokenizer tok_line(line->text); // Our line Tokenizer
@@ -1222,15 +1309,15 @@ static void
        is_error= true;
 
      if( is_error ) {             // Invalid copyright text (UNEXPECTED)
-       fprintf(stderr, "%4d File(%s) Copy(%s) Invalid\n"
-                     , __LINE__, full.c_str(), line->text);
+       errorf("%4d File(%s) Copy(%s) Invalid\n"
+             , __LINE__, s2c(full), line->text);
        allow_multi();
        return;
      }
 
      if( l_yy < f_year ) {        // if last change date < from year
-       printf("file(%s) copy(%s) last(%d) not correctable\n",
-              full.c_str(), s_year.c_str(), l_yy);
+       errorf("file(%s) copy(%s) last(%d) not correctable\n"
+             , s2c(full), s2c(s_year), l_yy);
        allow_multi();
        return;
      }
@@ -1251,8 +1338,8 @@ static void
      delete line;
 
      data.write();
-     printf("File(%s) Corrected last(%d) copy(%s)\n", full.c_str(),
-            l_yy, s_year.c_str());
+     errorf("File(%s) Corrected last(%d) copy(%s)\n", s2c(full)
+           , l_yy, s2c(s_year));
    }
 
    allow_multi();
@@ -1277,38 +1364,35 @@ static int                          // The copyright year, -1 if invalid
    Tokenizer           tok_line(line->text); // Our line Tokenizer
    Iterator            tok_iter= tok_line.begin();
 
-   // Verify copyright line
-   // The copyright line contains either a two character token or two blanks
+   // Verify copyright line: must begin with a token or a blank
    string comment= "  ";
    if( text[0] != ' ' )             // If a leading token exists
      comment= (tok_iter++)();       // Get/skip leading comment token
    if( tok_iter() != "Copyright" ) { // If missing copyright statement
-     printf("File(%s) (c) Malformed(%s)\n", full.c_str(), text.c_str());
+     errorf("File(%s) '%s' != 'Copyright'\n", s2c(full), s2c(text));
      allow_multi();
      return -1;
    }
 
+   // Verify the copyright symbol
    string S= (++tok_iter)();
    if( S != "(C)" && S != "(c)" ) {
-     printf("File(%s) (c) Malformed(%s)\n", full.c_str(), text.c_str());
+     errorf("File(%s) (c) Malformed(%s)\n", s2c(full), s2c(text));
      allow_multi();
      return -1;
    }
 
-   if( !ends_with(text, ".") ) {
-     printf("File(%s) (c) Missing ending '.'\n", full.c_str());
-     allow_multi();
-     return -1;
-   }
+   // Verify that the copyright statement ends with a "."
+   verify_copy_ending(full, line);
 
+   // Verify the copyright year
    string s_year= (++tok_iter)();
    int c_year= verify_copy_date(s_year);
    if( c_year > 0 ) {
      if( OWNER_NAME != "" ) {
        string owner((++tok_iter).remainder());
        if( owner != OWNER_NAME )
-         printf("File(%s) (c) Non-standard owner(%s)\n",
-                full.c_str(), owner.c_str());
+         errorf("File(%s) (c) Non-standard owner(%s)\n", s2c(full), s2c(owner));
      }
      return c_year;
    }
@@ -1338,14 +1422,14 @@ static int                          // The copyright year, -1 if invalid
    }
 
    if( c_year < 0 ) {
-     printf("File(%s) Invalid (c) date(%s)\n", full.c_str(), text.c_str());
+     errorf("File(%s) Invalid (c) date(%s)\n", s2c(full), s2c(text));
      allow_multi();
      return -1;
    }
 
    if( data.damaged() || data.changed() ) {
-     fprintf(stderr, "%4d File(%s) damaged(%d)/changed(%d)\n", __LINE__
-                   , full.c_str(), data.damaged(), data.changed());
+     errorf("%4d File(%s) damaged(%d)/changed(%d)\n", __LINE__
+           , s2c(full), data.damaged(), data.changed());
      return c_year;
    }
 
@@ -1363,13 +1447,187 @@ static int                          // The copyright year, -1 if invalid
      delete line;
 
      data.write();
-     printf("File(%s) Copyright line corrected\n", full.c_str());
+     errorf("File(%s) Copyright line corrected\n", s2c(full));
    } else {                         // Auto-correct disallowed
-     printf("File(%s) Copyright line correctable\n", full.c_str());
+     errorf("File(%s) Copyright line correctable\n", s2c(full));
    }
    allow_multi();
 
    return c_year;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       auto_correct_code
+//
+// Function-
+//       Auto-detect code files with "SA40" copyright
+//
+//----------------------------------------------------------------------------
+static void
+   auto_correct_code(               // Automatically correct code files
+     Data&             data,        // For this data file
+     const string      type)        // And this copyright type
+{
+   if( _USE_AUTOCORRECT_CODE && is_code(data.file()) ) {
+     // Disallow "SA40" copyright (but allow for java)
+     if( type == "SA40" && get_extension(data.file()) != "java" ) {
+       errorf("Code file(%s) has disallowed SA40 copyright\n"
+             , s2c(data.full()));
+       allow_multi();
+     }
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       auto_correct_html
+//
+// Function-
+//       Auto-detect html files with "GPL" or "MIT" copyright
+//
+// Implementation note-
+//       DISABLED
+//
+//----------------------------------------------------------------------------
+static void
+   auto_correct_html(               // Automatically correct html files
+     Data&             data,        // For this data file
+     const string      type)        // And this copyright type
+{
+   if( _USE_AUTOCORRECT_HTML &&is_html(data.file()) ) {
+     // HTML cannot have "GPL" or "MIT" format
+     if( type == " GPL" ) {
+        errorf("HTML file(%s) has disallowed GPL copyright\n"
+              , s2c(data.full()));
+        allow_multi();
+     } else
+     if( type == " MIT" ) {
+       errorf("HTML file(%s) has disallowed MIT copyright\n"
+             , s2c(data.full()));
+       allow_multi();
+     }
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       auto_correct_mark
+//
+// Function-
+//       Auto-correct markdown files: require "SA40" copyright
+//
+//----------------------------------------------------------------------------
+static void
+   auto_correct_mark(               // Automatically correct markdown files
+     Data&             data,        // For this data file
+     Data*             copy,        // And this copyright file
+     const string      type)        // For this data type name
+{
+   if( is_mark(data.file()) ) {
+     if( type != "SA40" ) {
+       if( opt_auto ) {             // If auto-correcting
+         replace_copyright(data, copy, html_sa40);
+         errorf("Markdown file(%s) format(%s=>SA40)\n"
+               , s2c(data.full()), s2c(type));
+
+       } else {
+         errorf("Markdown file(%s) requires SA40 copyright\n"
+               , s2c(data.full()));
+       }
+
+       allow_multi();
+     }
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       auto_correct_prefix
+//
+// Function-
+//       Auto-correct inconsistent prefix
+//
+//----------------------------------------------------------------------------
+static void
+   auto_correct_prefix(             // Automatically correct prefix
+     Data&             data,        // For this data file
+     Data*             copy,        // And this copyright file
+     const string      prefix)      // And this prefix
+{
+   if( _USE_AUTOCORRECT_PREFIX ) {  // If function is enabled
+     typedef pub::DHDL_list<Line>     List; // The Data's line list type
+
+     Tokenizer tokenizer(prefix, " ");
+     Iterator  iterator= tokenizer.begin();
+     iterator.set_quote(false);
+     string prefix_token= iterator();
+
+     Line* lhs= get_copy_line(*copy)->get_next();
+     Line* rhs= get_copy_line(data)->get_next();
+     bool  corrected= false;
+     while( lhs ) {
+       bool is_valid= false;        // Default, invalid format
+       string rh_str= rhs->text;
+       if( rh_str == prefix_token ) { // If no data except for prefix_token
+         is_valid= true;
+       } else if( starts_with(rh_str, prefix_token) ) {
+         if( starts_with(rh_str, (prefix_token + " SPDX-License")) )
+           is_valid= true;
+         else if( starts_with(rh_str, prefix) ) {
+           if( rh_str[prefix.size()] != ' ' ) // If consistent alignment
+             is_valid= true;
+           else if( opt_verbose > 1 ) // ERROR: Inconsistent alignment
+             errorf("ERROR: alignment inconsistent\n");
+         }
+       } else if( opt_verbose > 1 ) { // ERROR: Does not start with prefix_token
+         errorf("ERROR: prefix_token(%s) line(%s)\n"
+               , s2c(prefix_token), rhs->text);
+       }
+
+       if( !is_valid ) {
+         if( opt_auto ) {             // If auto-correct allowed
+           string old_text= rhs->text;
+           string new_text= prefix_token;
+           string lh_str= skipb(findb(lhs->text)); // Get the associated text
+           if( skipb(lh_str) != "" ) { // If associated text exists
+             if( starts_with(lh_str, "SPDX-License-Identifier:") )
+               new_text= prefix_token + " " + lh_str;
+             else
+               new_text= prefix + lh_str;
+           }
+           Line* line= data.get_line(new_text);
+
+           // Correct the prefix
+           List& list= data.line();   // (The File's line list)
+           list.insert(rhs->get_prev(), line);
+           list.remove(line->get_next());
+
+           if( !corrected ) {
+             corrected= true;
+             errorf("File(%s) modified:\n", s2c(data.full()));
+           }
+           errorf("old: '%s'\nnew: '%s'\n", s2c(old_text), line->text);
+         } else {
+           errorf("File(%s) Inconsistent copyright format (unchanged)\n"
+                 , s2c(data.full()));
+           allow_multi();
+         }
+       }
+
+       lhs= lhs->get_next();
+       rhs= rhs->get_next();
+     }
+
+     if( corrected ) {
+       data.write();
+       allow_multi();
+     }
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -1391,14 +1649,14 @@ static void
 {
    Line* line= get_copy_line(data); // The copyright line
    if( line == nullptr ) {          // If missing
-     fprintf(stderr, "File(%s) Copyright missing\n", data.full().c_str());
+     errorf("File(%s) Copyright missing\n", s2c(data.full()));
      allow_multi();
      return;
    }
 
    typedef pub::DHDL_list<Line>     List; // The Data's line list type
    string       data_full= data.full(); // (The string must be persistent)
-   const char*       full= data_full.c_str(); // Fully qualified file name
+   const char*       full= s2c(data_full); // Fully qualified file name
    int*             count= misc_count; // Default: misc (a.k.a bash)
    const name2data* table= misc_table;
    string file= data.file();
@@ -1418,19 +1676,19 @@ static void
      count= mark_count;
      table= mark_table;
    } else {                         // Miscellaneous (misc_count, misc_table)
-     if( false ) {
-       printf("File(%s) MISC format\n", full);
+     if( false ) {                  // (Not an error)
+       debugf("File(%s) MISC format\n", full);
        allow_multi();
      }
    }
 
    string prefix= line->text;       // (The file's copyright line)
-   prefix= get_token(prefix);       // (The file's copyright line prefix)
+   prefix= prefix.substr(0, strcasestr(line->text, "copyright") - line->text);
    for(int i= 0; table[i].name; i++) {
-     Data* info= *table[i].data;
-     Line* lhs= get_copy_line(*info)->get_next();
+     Data* copy= *table[i].data;
+     Line* lhs= get_copy_line(*copy)->get_next();
      if( lhs == nullptr ) {
-       fprintf(stderr, "Table(%s) invalid, exiting\n", table[i].name);
+       errorf("Table(%s) invalid, exiting\n", table[i].name);
        exit(1);
      }
      Line* rhs= line->get_next();
@@ -1452,106 +1710,17 @@ static void
      }
 
      // If copyright text matched, handle special cases
-     if( lhs == nullptr ) {         // (Conditionally compiled)
-       // Convert all markdown files to SA40 format
-       if( false && is_mark(file) && strcmp(table[i].name, "SA40") != 0 ) {
-         if( opt_auto ) {           // If auto-correct allowed
-           List& list= data.line(); // (The File's line list)
-           Line* lhs= get_copy_line(*info)->get_next();
-           Line* rhs= line->get_next();
-           Line* head= rhs;
-           Line* tail= rhs;
-           for(;;) {
-             lhs= lhs->get_next();
-             if( lhs == nullptr )
-               break;
-             tail= tail->get_next();
-           }
-           list.remove(head, tail);
-           while( head != tail ) {  // Delete the removed lines
-             Line* next= head->get_next();
-             delete head;
-             head= next;
-           }
-
-           List copy;               // The replacement list
-           lhs= get_copy_line(*html_sa40)->get_next();
-           while( lhs ) {
-             copy.fifo( data.get_line(lhs->text) );
-             lhs= lhs->get_next();
-           }
-           list.insert(line, copy.get_head(), copy.get_tail());
-
-           data.write();
-           printf("File(%s) format(%s=>SA40)\n", full, table[i].name);
-         } else {                   // Auto-correct not allowed
-           printf("File(%s) format(%s)\n", full, table[i].name);
-         }
-         allow_multi();
-       } else
-
-       // Look for HTML in GPL or MIT format
-       if( false && is_html(file) && strcmp(table[i].name, " GPL") == 0 ) {
-         printf("File(%s) GPL format\n", full);
-         allow_multi();
-       } else
-       if( false && is_html(file) && strcmp(table[i].name, " MIT") == 0 ) {
-         printf("File(%s) MIT format\n", full);
-         allow_multi();
-       } else
-
-       // Look for CODE in SA40 format
-       if( false && is_code(file) && strcmp(table[i].name, "SA40") == 0 ) {
-         printf("File(%s) SA40 format\n", full);
-         allow_multi();
-       } else
-       {}
-     }
-
-     // If copyright text matched, verify prefix consistency
      if( lhs == nullptr ) {
-       Line* lhs= get_copy_line(*info);
-       Line* rhs= line;
-       while( lhs ) {
-         string rh_str= rhs->text;
-         string token= get_token(rh_str);
-         if( prefix != token ) {
-           if( opt_auto ) {         // If auto-correct allowed
-             string replaced= rhs->text;
-             string S= prefix;      // Default, no associated text
-             string lh_str= skipb(lhs->text+2); // Get the associated text
-             if( skipb(lh_str) != "" ) { // If associated text exists
-               if( starts_with(lh_str, "SPDX-License-Identifier:") )
-                 S += ' ';
-                else
-                 S += blanks.substr(0, 9 - prefix.size());
-               S += lh_str;         // (We already know the text matches)
-             }
-             Line* line= data.get_line(S);
+       string type= table[i].name;  // The copyright type
+       auto_correct_code(data, type); // Auto-detect code files
+       auto_correct_html(data, type); // Auto-detect html files
+       auto_correct_mark(data, copy, type); // Auto-correct markdown files
 
-             // Correct the prefix
-             List& list= data.line();   // (The File's line list)
-             list.insert(rhs->get_prev(), line);
-             list.remove(line->get_next());
-
-             data.write();
-             printf("File(%s) prefix('%s'=>'%s') in line\n'%s'\n"
-                   , full, token.c_str(), prefix.c_str(), replaced.c_str());
-           } else {
-             printf("File(%s) prefix(%s) inconsistent line(%s)\n"
-                   , full, prefix.c_str(), rhs->text);
-           }
-           allow_multi();
-           break;
-         }
-
-         lhs= lhs->get_next();
-         rhs= rhs->get_next();
-       }
+       auto_correct_prefix(data, copy, prefix); // Correct prefix inconsistency
 
        // Update match count
        if( opt_verbose > 1 )
-         printf("[%s]: '%s'\n", table[i].name, full);
+         debugf("[%s]: '%s'\n", table[i].name, full);
 
        ++count[i];
        return;
@@ -1561,7 +1730,6 @@ static void
      // Check for missing "SPDX-License-Identifier:"
      if( rhs && memcmp(lhs->text+3, "SPDX-License-Identifier:", 24) == 0 ) {
        if( opt_auto ) {             // If auto-correct allowed
-         typedef pub::DHDL_list<Line>         List;
          List& list= data.line();   // (The file line list)
 
          string S(prefix);
@@ -1570,10 +1738,10 @@ static void
          list.insert(rhs->get_prev(), line);
 
          data.write();
-         printf("File(%s) %s SPDX-License-Identifier added\n"
+         errorf("File(%s) %s SPDX-License-Identifier added\n"
                , full, table[i].name);
        } else {                     // Auto-correct disallowed
-         printf("File(%s) %s SPDX-License-Identifier missing\n"
+         errorf("File(%s) %s SPDX-License-Identifier missing\n"
                , full, table[i].name);
        }
        allow_multi();
@@ -1581,7 +1749,51 @@ static void
      }
    }
 
-   printf("File(%s): No copyright match\n", full);
+   // Check for other copyright formats
+   for(int i= 0; more_table[i].name; ++i) {
+     Line* lhs= (*more_table[i].data)->line().get_head();
+     if( lhs == nullptr ) {
+       errorf("More(%s) invalid, exiting\n", more_table[i].name);
+       exit(1);
+     }
+
+     lhs= lhs->get_next();
+     Line* rhs= line->get_next();
+
+     // (LHS: copyright line; RHS: file line) Position: copy_line->get_next()
+     // Verify the copyright text
+     while( lhs ) {
+       if( !rhs )                   // If file ends inside copyright
+         break;
+
+       // Compare line for line, ignoring prefix
+       string lh_str= lhs->text;    // No prefix in copyright file
+       string rh_str= rhs->text;
+       if( rh_str.size() > 0 && rh_str[0] != ' ' )
+         rh_str= skipb(findb(rhs->text));
+
+       if( lh_str.size() > rh_str.size() )
+         break;
+
+       rh_str= rh_str.substr(0, lh_str.size());
+       if( lh_str != rh_str )
+         break;
+
+       lhs= lhs->get_next();
+       rhs= rhs->get_next();
+     }
+
+     if( lhs == nullptr ) {         // If copyright found
+       // Update match count
+       if( opt_verbose > 1 )
+         debugf("[%s]: '%s'\n", more_table[i].name, full);
+
+       ++more_count[i];
+       return;
+     }
+   }
+
+   errorf("File(%s): No copyright match\n", full);
    allow_multi();
 }
 
@@ -1599,13 +1811,13 @@ static void
      Data&             data)        // The content
 {
    if( data.file() == "README" ) {
-     printf("File(%s) named README\n", data.full().c_str());
+     errorf("File(%s) named README\n", s2c(data.full()));
      allow_multi();
    }
 
    Line* line= get_copy_line(data);
    if( line == nullptr ) {
-     printf("File(%s) (c) Missing\n", data.full().c_str());
+     errorf("File(%s) (c) Missing\n", s2c(data.full()));
      allow_multi();
      return;
    }
@@ -1635,7 +1847,7 @@ static void
 {
    Line* line= get_copy_line(data);
    if( line == nullptr ) {
-     printf("File(%s) (c) Missing\n", data.full().c_str());
+     errorf("File(%s) (c) Missing\n", s2c(data.full()));
      allow_multi();
      return;
    }
@@ -1662,7 +1874,7 @@ static void
 {
    Line* line= get_copy_line(data);
    if( line == nullptr ) {
-     printf("File(%s) (c) Missing\n", data.full().c_str());
+     errorf("File(%s) (c) Missing\n", s2c(data.full()));
      allow_multi();
      return;
    }
@@ -1689,7 +1901,7 @@ static void
 {
    Line* line= get_copy_line(data);
    if( line == nullptr ) {
-     printf("File(%s) (c) Missing\n", data.full().c_str());
+     errorf("File(%s) (c) Missing\n", s2c(data.full()));
      allow_multi();
      return;
    }
@@ -1718,7 +1930,7 @@ static void
    if( line == nullptr ) {          // (Missing copyright allowed)
      ++none_count;
      if( opt_verbose > 1 )
-       printf("[NONE]: '%s'\n", data.full().c_str());
+       errorf("[NONE]: '%s'\n", s2c(data.full()));
      return;
    }
 
@@ -1748,7 +1960,7 @@ static void
    // Debugging
    //-------------------------------------------------------------------------
    if( opt_verbose > 4 )
-     fprintf(stderr, "D: %s\n", path.c_str());
+     debugf("D: %s\n", s2c(path));
 
    //-------------------------------------------------------------------------
    // Handle items in this directory
@@ -1766,20 +1978,19 @@ static void
      }
 
      if( opt_verbose > 4 )
-       fprintf(stderr, "F: %.8x %10ld %s/%s\n", file->st.st_mode,
-               file->st.st_size, path.c_str(), file->name.c_str());
+       debugf("F: %.8x %10ld %s/%s\n", file->st.st_mode
+             , file->st.st_size, s2c(path), s2c(file->name));
 
      if( S_ISREG(file->st.st_mode) ) {
        string full= path + "/" + file->name; // The fully qualified name
        for(line= IGNORE.line().get_head(); line; line= line->get_next())
        {
-         if( strcmp(line->text, full.c_str()) == 0 ) // If IGNORE file
+         if( strcmp(line->text, s2c(full)) == 0 ) // If IGNORE file
            break;
        }
-       if( line )                   // If IGNORE file
-       {
+       if( line ) {                 // If IGNORE file
          if( opt_verbose > 2 )
-           fprintf(stderr, "SKIP: %s (file)\n", full.c_str());
+           debugf("SKIP: %s (file)\n", s2c(full));
          IGNORE.line().remove(line, line); // Remove the IGNORE line
          delete line;               // Delete it
          continue;                  // And ignore it
@@ -1791,7 +2002,7 @@ static void
 
        Data data(path, name);
        if( data.damaged() ) {
-         fprintf(stderr, "File(%s) Damaged\n", data.full().c_str());
+         errorf("File(%s) Damaged\n", s2c(data.full()));
          allow_multi();
          continue;
        }
@@ -1808,10 +2019,10 @@ static void
 
          if( mode != want ) {       // If correction required
            if( false )
-             printf("%4d Scanner mode(%.3o) want(%.3o) opt_auto(%s)\n"
+             errorf("%4d Scanner mode(%.3o) want(%.3o) opt_auto(%s)\n"
                    , __LINE__, mode, want, opt_auto ? "true" : "false");
            if( !opt_auto || (mode & S_IWUSR) == 0 ) { // If can't auto-correct
-             printf("File: -%s%s%s%s%s%s%s%s%s %s unchanged\n"
+             errorf("File: -%s%s%s%s%s%s%s%s%s %s unchanged\n"
                    , mode & S_IRUSR ? "r" : "-"
                    , mode & S_IWUSR ? "w" : "-"
                    , mode & S_IXUSR ? "x" : "-"
@@ -1821,12 +2032,12 @@ static void
                    , mode & S_IROTH ? "r" : "-"
                    , mode & S_IWOTH ? "w" : "-"
                    , mode & S_IXOTH ? "x" : "-"
-                   , full.c_str());
+                   , s2c(full));
            } else {                 // Auto-correct
              mode= file->st.st_mode & ~(ACCESSPERMS);
              mode |= want;
-             chmod(full.c_str(), mode);
-             printf("CHMOD File: %s\n", full.c_str());
+             chmod(s2c(full), mode);
+             errorf("CHMOD File: %s\n", s2c(full));
            }
            allow_multi();
          }
@@ -1838,13 +2049,13 @@ static void
          if( had_change || had_blanks ) { // If file changed
            if( opt_auto ) {
              if( had_change )
-               printf("File(%s) ==> unix format\n", data.full().c_str());
+               errorf("File(%s) ==> unix format\n", s2c(data.full()));
              data.write();
              data.change(false);
            } else {
              if( had_change )
-               printf("File(%s) NOT IN unix format\n", data.full().c_str());
-             printf("File(%s) unchanged\n", data.full().c_str());
+               errorf("File(%s) NOT IN unix format\n", s2c(data.full()));
+             errorf("File(%s) unchanged\n", s2c(data.full()));
            }
            allow_multi();
          }
@@ -1883,7 +2094,7 @@ static void
 
        if( line ) {                 // If directory in IGNORE list
          if( opt_verbose > 2 )
-           fprintf(stderr, "SKIP: %s (path)\n", full.c_str());
+           debugf("SKIP: %s (path)\n", s2c(full));
          IGNORE.line().remove(line, line); // Remove the IGNORE Line*
          delete line;               // Delete it
          continue;                  // And ignore it
@@ -1898,10 +2109,10 @@ static void
            if( opt_auto ) {         // If auto-correct allowed
              mode= file->st.st_mode & ~(ACCESSPERMS);
              mode |= exec;
-             chmod(full.c_str(), mode);
-             printf("CHMOD Path: %s\n", full.c_str());
+             chmod(s2c(full), mode);
+             errorf("CHMOD Path: %s\n", s2c(full));
            } else {                 // Auto-correct disallowed
-             printf("Path: -%s%s%s%s%s%s%s%s%s %s\n"
+             errorf("Path: -%s%s%s%s%s%s%s%s%s %s\n"
                     , mode & S_IRUSR ? "r" : "-"
                     , mode & S_IWUSR ? "w" : "-"
                     , mode & S_IXUSR ? "x" : "-"
@@ -1911,7 +2122,7 @@ static void
                     , mode & S_IROTH ? "r" : "-"
                     , mode & S_IWOTH ? "w" : "-"
                     , mode & S_IXOTH ? "x" : "-"
-                    , full.c_str());
+                    , s2c(full));
            }
            allow_multi();
          }
@@ -1942,8 +2153,8 @@ static bool                         // TRUE if blanks removed
      if( L > 0 && line->text[L-1] == ' ' ) {
        if( !found ) {
          found= true;
-         printf("File(%s) correct%s line with ending blank(s)\n'%s'\n"
-               , data.full().c_str(), opt_auto ? "ed" : "able", line->text);
+         errorf("File(%s) correct%s line with ending blank(s)\n'%s'\n"
+               , s2c(data.full()), opt_auto ? "ed" : "able", line->text);
        }
 
        if( opt_auto ) {
@@ -2005,9 +2216,9 @@ extern int                          // Return code
    //-------------------------------------------------------------------------
    if( opt_listx ) {
      typedef pub::Properties::MapIter_t MapIter_t;
-     printf("List of file types:\n");
+     debugf("List of file types:\n");
      for(MapIter_t it= props.begin(); it != props.end(); ++it)
-       printf("%s\n", it->first.c_str());
+       debugf("%s\n", s2c(it->first));
    }
 
    //-------------------------------------------------------------------------
