@@ -38,7 +38,6 @@
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Fileman.h>            // For namespace pub::fileman
 #include <pub/List.h>               // For pub::List
-#include <pub/Tokenizer.h>          // For pub::Tokenizer
 #include <pub/utility.h>            // For pub::utility methods
 
 using namespace pub::debugging;     // For debugf, ...

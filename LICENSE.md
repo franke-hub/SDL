@@ -32,7 +32,7 @@ within https://creativecommons.org/licenses/by-sa/4.0/us/legalcode)
 
 ----
 
-### Licensing</a>
+### Licensing
 Almost all files contain an SPDX header containing the license information for
 that file.
 

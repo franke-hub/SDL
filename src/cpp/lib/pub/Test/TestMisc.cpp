@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2023 Frank Eskesen.
+//       Copyright (c) 2018-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Miscellaneous tests.
 //
 // Last change date-
-//       2023/11/13
+//       2025/09/08
 //
 //----------------------------------------------------------------------------
 #include <functional>               // For std::function
@@ -303,6 +303,31 @@ static inline int
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       show_Tokenizer
+//
+// Purpose-
+//       Display a Tokenizer.
+//
+//----------------------------------------------------------------------------
+static inline void
+   show_Tokenizer(                  // Display
+     const PUB::Tokenizer&  tokenizer) // This Tokenizer
+{
+   typedef PUB::Tokenizer           Tokenizer;
+   typedef PUB::Tokenizer::Iterator Iterator;
+
+   Tokenizer izer(tokenizer);
+
+   if( opt_verbose ) {
+     printf("\n");
+     for(Iterator it= izer.begin(); it != izer.end(); ++it)
+       printf("'%s'\n", it().c_str());
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       test_Tokenizer
 //
 // Purpose-
@@ -331,11 +356,36 @@ static inline int
    error_count += VERIFY( ++it == izer.end() );
    error_count += VERIFY( ++it == izer.end() );
    error_count += VERIFY( it() == "" );
+   show_Tokenizer(izer);
 
-   if( opt_verbose ) {
-     for(it= izer.begin(); it != izer.end(); ++it)
-       printf("%s\n", it().c_str());
-   }
+   izer.reset(" alpha ' beta gamma ' delta");
+   it= izer.begin();
+   error_count += VERIFY( it() == "alpha" );
+   error_count += VERIFY( (++it)() == " beta gamma " );
+   error_count += VERIFY( (++it)() == "delta" );
+   error_count += VERIFY( (++it)   == izer.end() );
+   show_Tokenizer(izer);
+
+   it= izer.begin();
+   it.set_quote(false);
+   error_count += VERIFY( it() == "alpha" );
+   error_count += VERIFY( (++it)() == "\'" );
+   error_count += VERIFY( (++it)() == "beta" );
+   error_count += VERIFY( (++it)() == "gamma" );
+   error_count += VERIFY( (++it)() == "\'" );
+   error_count += VERIFY( (++it)() == "delta" );
+   error_count += VERIFY( (++it)   == izer.end() );
+   show_Tokenizer(izer);
+
+   Tokenizer date(" 08/09/2025 17:50 ", " /:=");
+   it= date.begin();
+   error_count += VERIFY( it() == "08" );
+   error_count += VERIFY( (++it)() == "09" );
+   error_count += VERIFY( (++it)() == "2025" );
+   error_count += VERIFY( (++it)() == "17" );
+   error_count += VERIFY( (++it)() == "50" );
+   error_count += VERIFY( (++it)   == date.end() );
+   show_Tokenizer(date);
 
    return error_count;
 }

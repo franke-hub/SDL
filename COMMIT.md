@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2025/08/31
+//       2025/09/09
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -38,7 +38,7 @@ The gitk viewer provides a line by line change view.
 Commits are now sorted in date order rather than reverse date order.
 (Oldest first, newest last)
 
-[\[Last change date:\]](#most-recent-change) 2025/08/26
+[\[Last change date:\]](#last-change-date) 2025/09/09
 
 ----
 
@@ -733,7 +733,7 @@ detected by gcc version 15.1.1.
 
 ----
 
-### <a id=most-recent-change>2025/05/17 trunk/maint</a>
+### 2025/05/17 trunk/maint
 
 The appropriate SPDX-License-Identifier was added to each copyright header.
 
@@ -772,7 +772,7 @@ Now includes ~/src/cpp/Scanner in the list of compile test subdirectories.
 
 ----
 
-### <a id=most-recent-change>2025/08/31 trunk/maint
+### 2025/08/31 trunk/maint
 
 Change log:
 - Updated/Added copyright statements.
@@ -780,3 +780,15 @@ Change log:
 - ~/src/cpp/Scanner/Scanner.cpp
   - `Always counts files without copyright statements.
   - If --verbose > 1 displays files without copyright statements.
+
+----
+
+### <a id="last-change-date">2025/09/09 maint</a>
+
+Change log:
+- Fixed ~/src/cpp/lib/pub/Tokenizer
+  - Multiple delimiters weren't handled properly.
+- Updated ~/src/cpp/lib/pub/Test/TestMisc.cpp
+  - Added additional Tokenizer tests.
+- Fixed ~/src/cpp/Edit/EdMark.cpp (method format)
+  - Now treats quotes as normal characters

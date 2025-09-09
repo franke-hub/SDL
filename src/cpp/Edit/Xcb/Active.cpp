@@ -198,7 +198,7 @@ Active::Length                      // The current buffer used length
 void
    Active::append_text(             // Concatenate text
      const char*       join,        // The join substring
-     Length            size)        // The substring Length
+     Length            size)        // The substring Length (in bytes)
 {
    if( size == 0 )                  // If nothing to insert
      return;                        // (Line unchanged)

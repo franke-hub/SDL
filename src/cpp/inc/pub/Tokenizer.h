@@ -17,7 +17,7 @@
 //       Tokenizer object.
 //
 // Last change date-
-//       2025/09/02
+//       2025/09/08
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_TOKENIZER_H_INCLUDED
@@ -62,8 +62,7 @@ protected:
 const char*            input;       // The input string
 size_t                 offset;      // The current offset
 size_t                 length;      // The current token length
-const char*            delim;       // The token delimiter, may be nullptr
-size_t                 ldelim;      // strlen(delim)
+const char*            delim;       // The token delimiters, usually nullptr
 bool                   _quote= true; // Enable quoted strings
 
 //----------------------------------------------------------------------------
@@ -145,10 +144,7 @@ Iterator                            // The end Iterator
 void
    reset(                           // Reset the Tokenizer string
      const string&     input)       // The replacement string
-{
-   _input= input;
-   this->input= _input.c_str();
-}
+{  _input= input; this->input= _input.c_str(); }
 }; // class Tokenizer
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_TOKENIZER_H_INCLUDED

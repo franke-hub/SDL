@@ -14,10 +14,10 @@
 //       Tokenizer.cpp
 //
 // Purpose-
-//       Tokenizer object methods.
+//       Tokenizer and Tokenizer::Iterator object methods.
 //
 // Last change date-
-//       2025/09/02
+//       2025/09/08
 //
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::out_of_range exception, ...
@@ -25,7 +25,10 @@
 #include <cctype>                   // For isspace
 #include <cstring>                  // For memcmp, strstr
 
+#include <pub/Debug.h>              // For namespace pub::debugging
 #include "pub/Tokenizer.h"          // For pub::Tokenizer, implemented
+
+using namespace pub::debugging;     // For debugging
 
 namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
@@ -45,11 +48,14 @@ const Tokenizer::Iterator
 //----------------------------------------------------------------------------
    Tokenizer::Iterator::Iterator(   // Constructor
      const char*       _input,      // The source string
-     const char*       _delim)      // The token delimiter, may be nullptr
-:  input(_input), offset(0), length(0), delim(_delim), ldelim(0)
+     const char*       _delim)      // The token delimiter, usually nullptr
+:  input(_input), offset(0), length(0), delim(_delim)
 {
-   if( delim )
-     ldelim= strlen(delim);
+   if( delim ) {                    // If delimiter specified
+     _quote= false;                 // Disable quotes
+     if( *delim == '\0' )           // If delimiter == empty string
+       delim= nullptr;              // Treat as isspace delimiter
+   }
 
    next();
 }
@@ -67,46 +73,50 @@ Tokenizer::Iterator&                 // The next Iterator, always *this
    Tokenizer::Iterator::next( void ) // Get next Iterator
 {
    offset += length;                // Skip over the current token, if any
-   if( delim )                      // If delimiter specified
-   {
-     if( ldelim != 0 )              // Skip leading delimiters
-     {
-       while( memcmp(delim, input + offset, ldelim) == 0 )
-         offset += ldelim;
+   if( delim ) {                    // If delimiters specified
+     // Skip leading delimiters
+     unsigned C= *((unsigned char*)input + offset);
+     while( strchr(delim, C) != nullptr ) {
+       if( C == 0 ) {
+         length= 0;
+         return *this;
+       }
+
+       ++offset;
+       C= *((unsigned char*)input + offset);
      }
 
+     // Find first trailing delimiter (or *ending == '\0')
      const char* origin= input + offset;
-     if( *origin == '\0' )          // If Nothing left
-       length= 0;
-     else
-     {
-       const char* ending= strstr(origin+1, delim);
-       if( ending )
-         length= ending - origin;
-       else
-         length= strlen(origin);
+     const char* ending= origin + 1;
+     C= *(unsigned char*)ending;
+     while( strchr(delim, C) == nullptr ) { // strchr(delim, 0) is never nullptr
+       ++ending;
+       C= *(unsigned char*)ending;
      }
+     length= ending - origin;
    } else {                         // If whitespace delimiter
      while( isspace(input[offset]) ) // Skip leading whitespace
-       offset++;
+       ++offset;
 
      const char* origin= input + offset;
-     if( *origin == '\0' )          // If nothing left
-       length= 0;                   // Nothing left
-     else if( _quote )              // If quotes are enabled
-     {
-       int quote= 0;                // Not quoted
-       if( *origin == '\'' || *origin == '\"' )
-         quote= *origin;
-       const char* ending= origin + 1;
-       if( quote ) {                // If quoted
-         while( *ending != '\0' && *ending != quote )
-           ending++;
-         if( *ending == quote )
-           ending++;
-       } else {
-         while( *ending != '\0' && !isspace(*ending) )
-           ending++;
+     const char* ending= origin;
+     unsigned Q= *(unsigned char*)origin;
+     if( _quote && (Q == '\'' || Q == '\"') ) { // If beginning quote
+       ++ending;                    // Skip beginning quote
+       unsigned E= *(unsigned char*)ending;
+       while( E != 0 && E != Q ) {
+         ++ending;
+         E= *(unsigned char*)ending;
+       }
+       if( E == Q )                 // If ending quote
+         ++ending;                  // Include it in the string
+       length= ending - origin;
+     } else {                       // If quotes are disabled or not present
+       unsigned E= *(unsigned char*)ending;
+       while( E != 0 && !isspace(E) ) {
+         ++ending;
+         E= *(unsigned char*)ending;
        }
        length= ending - origin;
      }
@@ -128,12 +138,15 @@ std::string                         // The associated substring
    Tokenizer::Iterator::operator()( void ) // Get associated substring
 {
    // Handle quoted string
-   if( _quote && (*(input+offset) == '\'' || *(input+offset) == '\"') ) {
-     size_t size= length-1;
-     if( *(input+offset) == *(input+offset+size) )
-       size--;
-     string result(input+offset+1, size);
-     return result;
+   if( _quote ) {                   // If quotes are enabled
+     unsigned Q= *((unsigned char*)input+offset);
+     if( Q == '\'' || Q == '\"') {
+       size_t size= length-1;
+       if( Q == *((unsigned char*)input+offset+size) )
+         size--;
+       string result(input+offset+1, size); // (The string without quotes)
+       return result;
+     }
    }
 
    string result(input+offset, length);

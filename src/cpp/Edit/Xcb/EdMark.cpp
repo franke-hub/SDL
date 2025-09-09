@@ -17,7 +17,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2025/01/22
+//       2025/09/08
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -28,6 +28,7 @@
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/Utf.h>                // For pub::utf8_decoder
 #include <pub/utility.h>            // For pub::utility (when debugging)
+#include <pub/utility.i>            // For pub::s2c (when debugging)
 
 #include "Config.h"                 // For namespace config
 #include "EdData.h"                 // For EdData
@@ -40,6 +41,7 @@
 using namespace pub::debugging;     // For debugging
 using pub::Debug;                   // For debugging
 using pub::Trace;                   // For pub::Trace
+using pub::s2c;                     // For pub::s2c
 using pub::utf8_decoder;            // For pub::decoder
 using pub::utility::dump;           // For pub::utility::dump (when debugging)
 
@@ -253,7 +255,7 @@ void
 {
    traceh("EdMark::debug(%s)\n", info ? info : "");
 
-   traceh("..mark_file.name(%s)\n", mark_file ? mark_file->name.c_str() : "");
+   traceh("..mark_file.name(%s)\n", mark_file ? s2c(mark_file->name) : "");
    traceh("..mark_file(%p) [%p,%p,%p] [%zd,%zd,%zd]\n", mark_file
          , mark_head, mark_line, mark_tail
          , mark_lh, mark_col, mark_rh);
@@ -263,7 +265,7 @@ void
      if( line == mark_tail )
        break;
    }
-   traceh("..copy_file.name(%s)\n", copy_file ? copy_file->name.c_str() : "");
+   traceh("..copy_file.name(%s)\n", copy_file ? s2c(copy_file->name) : "");
    traceh("..copy_file(%p) [%p,%p,%zd] [%zd,%zd,%zd]\n", copy_file
          , copy_list.get_head(), copy_list.get_tail(), copy_rows
          , copy_lh, copy_col, copy_rh);
@@ -465,6 +467,7 @@ const char*                         // Error message, nullptr expected
 
    Tokenizer tokenizer(removed);
    Iterator  tix= tokenizer.begin();
+   tix.set_quote(false);
    pub::List<EdLine> list;          // Replacement line list
 
    bool combo= EdOpts::has_unicode_combining();
@@ -474,8 +477,8 @@ const char*                         // Error message, nullptr expected
    while( tix != tokenizer.end() ) {
      string token_str= tix();
      size_t token_col= combo
-       ? utf8_decoder(token_str.c_str(), token_str.size()).get_column_count()
-       : utf8_decoder(token_str.c_str(), token_str.size()).get_symbol_count();
+       ? utf8_decoder(s2c(token_str), token_str.size()).get_column_count()
+       : utf8_decoder(s2c(token_str), token_str.size()).get_symbol_count();
      if( insert_col == 0) {
        insert_str= margin_str + token_str;
        insert_col= token_col;
@@ -485,7 +488,7 @@ const char*                         // Error message, nullptr expected
 
      if( (l_margin + insert_col + token_col) > r_margin ) {
        active->reset();
-       active->append_text(insert_str.c_str(), insert_str.length());
+       active->append_text(s2c(insert_str), insert_str.length());
        EdLine* line= edFile->new_text(active->get_changed());
        line->delim[0]= delim[0]; line->delim[1]= delim[1];
        line->flags= EdLine::F_MARK;
@@ -503,7 +506,7 @@ const char*                         // Error message, nullptr expected
 
    if( insert_col ) {
      active->reset();
-     active->append_text(insert_str.c_str(), insert_str.length());
+     active->append_text(s2c(insert_str), insert_str.length());
      EdLine* line= edFile->new_text(active->get_changed());
      line->delim[0]= delim[0]; line->delim[1]= delim[1];
      line->flags= EdLine::F_MARK;
