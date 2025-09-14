@@ -17,7 +17,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2025/01/22
+//       2025/09/14
 //
 //----------------------------------------------------------------------------
 #include <iostream>                 // For std::cout
@@ -58,25 +58,16 @@ using std::string;
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
+enum                                // Generic enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSITY= 0                     // VERBOSITY, higher is more verbose
+}; // Generic enum
+
 // Reverse the #define and #undef statements to change the selection
 #ifndef TEST_COMPILE_ERRORS         // Test compilation errors?
 #define TEST_COMPILE_ERRORS true    // Test compilation errors
 #undef  TEST_COMPILE_ERRORS         // Don't test compilation errors
 #endif
-
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
-#endif
-
-#ifndef CHECK                       // If defined, use parameter checking
-#undef  CHECK                       // SHOULD match Trace.cpp
-#endif
-
-#ifndef TRACE                       // If defined, use internal trace
-#define TRACE                       // (We test the iftrace macro)
-#endif
-
-#include "pub/ifmacro.h"            // Dependent macro
 
 //----------------------------------------------------------------------------
 // Options
@@ -1237,40 +1228,6 @@ static inline int
    int                 error_count= 0; // Number of errors encountered
    uint32_t            size;        // Working size
 
-   // Test IFTRACE macro (Reqires: error_count == 0)
-   #ifdef TRACE
-     error_count++;
-     IFTRACE(
-       error_count--;
-       IFHCDM( debugf("%4d HCDM TRACE defined, IFTRACE active\n", __LINE__); )
-     )
-     if( error_count )
-       debugf("TRACE defined, but IFTRACE() inactive\n");
-   #else
-     IFHCDM( debugf("%4d HCDM TRACE undefined\n", __LINE__); )
-     IFTRACE(
-       error_count++;
-       debugf("TRACE undefined, but IFTRACE() active\n");
-     )
-   #endif
-
-   // Test IFCHECK macro (Reqires: error_count == 0)
-   #ifdef CHECK
-     error_count++;
-     IFCHECK(
-       error_count--;
-       IFHCDM( debugf("%4d HCDM CHECK defined, IFCHECK active\n", __LINE__); )
-     )
-     if( error_count )
-       debugf("CHECK defined, but IFCHECK inactive\n");
-   #else
-     IFHCDM( debugf("%4d HCDM CHECK undefined\n", __LINE__); )
-     IFCHECK(
-       debugf("CHECK undefined but IFCHECK active\n");
-       error_count++;
-     )
-   #endif
-
    // Define our Trace::Record
    typedef PUB::Trace::Record Record;
    Record* record= nullptr;         // Working Record*
@@ -1325,45 +1282,43 @@ static inline int
      debugf("%4d Full length Record NOT allocated\n", __LINE__);
    }
 
-   IFCHECK(
-     record= (Record*)trace->allocate(0);
+   record= (Record*)trace->allocate(0);
+   if( record ) {
+     error_count++;
+     debugf("%4d Zero length Record allocated\n", __LINE__);
+   }
+
+   record= (Record*)trace->allocate(size + 1);
+   if( record ) {
+     error_count++;
+     debugf("%4d Over-length Record allocated\n", __LINE__);
+   }
+
+   // Arithmetic overflow error requires an overly large table
+   size= Trace::TABLE_SIZE_MAX;
+   void* addr= malloc(size);
+   if( addr == nullptr )
+     debugf("%4d Unable to malloc(%d)\n", __LINE__, size);
+
+   if( addr ) {                     // Check arithmetic overflow?
+     Trace* table= Trace::make(addr, size); // We need a mondo table
+
+     // Prepare to create an overflow condition
+     void* record= table->allocate(table->size - 512);
+     if( record == nullptr) {
+       error_count++;
+       debugf("%4d Large Record NOT allocated\n", __LINE__);
+     }
+
+     record= table->allocate(4096); // Allocate, arithmetic overflow
      if( record ) {
        error_count++;
-       debugf("%4d Zero length Record allocated\n", __LINE__);
+       debugf("%4d Arithmetic overflow not detected\n", __LINE__);
+       memset(record, 'R', 4096);
+       table->dump();
      }
-
-     record= (Record*)trace->allocate(size + 1);
-     if( record ) {
-       error_count++;
-       debugf("%4d Over-length Record allocated\n", __LINE__);
-     }
-
-     // Arithmetic overflow error requires an overly large table
-     size= Trace::TABLE_SIZE_MAX;
-     void* addr= malloc(size);
-     if( addr == nullptr )
-       debugf("%4d Unable to malloc(%d)\n", __LINE__, size);
-
-     if( addr ) {                   // Check arithmetic overflow?
-       Trace* table= Trace::make(addr, size); // We need a mondo table
-
-       // Prepare to create an overflow condition
-       void* record= table->allocate(table->size - 512);
-       if( record == nullptr) {
-         error_count++;
-         debugf("%4d Large Record NOT allocated\n", __LINE__);
-       }
-
-       record= table->allocate(4096); // Allocate, arithmetic overflow
-       if( record ) {
-         error_count++;
-         debugf("%4d Arithmetic overflow not detected\n", __LINE__);
-         memset(record, 'R', 4096);
-         table->dump();
-       }
-       free(addr);
-     }
-   )
+     free(addr);
+   }
 
    //-------------------------------------------------------------------------
    // Check all Trace::trace methods

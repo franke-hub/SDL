@@ -49,7 +49,7 @@ using namespace pub::debugging;     // For debugging
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
-,  VERBOSE= 0                       // Verbosity, larger is more verbose
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
 }; // Compilation controls
 
 //----------------------------------------------------------------------------

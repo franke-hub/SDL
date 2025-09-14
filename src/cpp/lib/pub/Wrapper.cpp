@@ -49,7 +49,7 @@ using std::string;
 //----------------------------------------------------------------------------
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
-,  VERBOSE= 0                       // Verbosity, greater is more verbose
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
 }; // enum
 
 //----------------------------------------------------------------------------

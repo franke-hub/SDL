@@ -29,11 +29,10 @@
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
-#endif
-
-#include <pub/ifmacro.h>
+enum                                // Generic enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSITY= 0                     // VERBOSITY, higher is more verbose
+}; // Generic enum
 
 namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------

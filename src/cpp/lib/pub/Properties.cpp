@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2022 Frank Eskesen.
+//       Copyright (c) 2020-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Properties implementation methods.
 //
 // Last change date-
-//       2022/09/02
+//       2025/09/14
 //
 //----------------------------------------------------------------------------
 #include <pub/Exception.h>
@@ -29,15 +29,10 @@ using _LIBPUB_NAMESPACE::utility::to_string;
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
-#endif
-
-#ifndef SCDM
-#undef  SCDM                        // If defined, Soft Core Debug Mode
-#endif
-
-#include <pub/ifmacro.h>
+enum                                // Generic enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSITY= 0                     // VERBOSITY, higher is more verbose
+}; // Generic enum
 
 namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------

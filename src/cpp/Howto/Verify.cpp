@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
 //       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 //       Verify some C++ features.
 //
 // Last change date-
-//       2020/07/15
+//       2025/09/14
 //
 // Tests-
 //       test_opts   Displays options: --throw={Exception,exception,...}
@@ -42,13 +42,12 @@ using namespace pub::debugging;     // Expose debugging subroutines
 //----------------------------------------------------------------------------
 // Contants for parameterization
 //----------------------------------------------------------------------------
+enum                                // Generic enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSITY= 0                     // VERBOSITY, higher is more verbose
+}; // Generic enum
+
 #define USE_ANON_CON_DESTRUCTOR true  // Test anonymous con/destructor?
-
-#ifndef HCDM
-#define HCDM false                  // Hard Core Debug Mode?
-#endif
-
-#include <pub/ifmacro.h>
 
 #include "Verify.h"                 // Define the Verify classes
 #include "Verify.i"                 // Define the Verify static constants

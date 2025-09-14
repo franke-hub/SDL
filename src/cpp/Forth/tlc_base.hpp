@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2020 Frank Eskesen.
+//       Copyright (c) 2019-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       TLC built-in functions
 //
 // Last change date-
-//       2020/10/04
+//       2025/09/14
 //
 //----------------------------------------------------------------------------
 
@@ -531,14 +531,14 @@ static Word TOVER[] = {(Word)COVER};
 //----------------------------------------------------------------------------
 static void CPEEKC(void) {
    Word addr= Word(data.pop());
-   IFCHECK(
+   if( CHECK ) {
      if( addr == nullptr )
      {
        debugf("ERROR: nullptr PEEK detected\n");
        operational= false;
        return;
      }
-   )
+   }
 
    Data item= *(unsigned char*)addr;
    data.push(item);
@@ -550,14 +550,14 @@ static Word TPEEKC[] = {(Word)CPEEKC};
 //----------------------------------------------------------------------------
 static void CPEEKW(void) {
    Word addr= Word(data.pop());
-   IFCHECK(
+   if( CHECK ) {
      if( addr == nullptr )
      {
        debugf("ERROR: nullptr PEEK detected\n");
        operational= false;
        return;
      }
-   )
+   }
 
    data.push(Data(*(Word*)addr));
 }
@@ -569,14 +569,14 @@ static Word TPEEKW[] = {(Word)CPEEKW};
 static void CPOKEC(void) {
    Word addr= Word(data.pop());
    Data item= data.pop();
-   IFCHECK(
+   if( CHECK ) {
      if( addr == nullptr )
      {
        debugf("ERROR: nullptr POKE detected\n");
        operational= false;
        return;
      }
-   )
+   }
 
    *(unsigned char*)addr= item;
 }
@@ -588,14 +588,14 @@ static Word TPOKEC[] = {(Word)CPOKEC};
 static void CPOKEW(void) {
    Word addr= Word(data.pop());
    Data item= data.pop();
-   IFCHECK(
+   if( CHECK ) {
      if( addr == nullptr )
      {
        debugf("ERROR: nullptr POKE detected\n");
        operational= false;
        return;
      }
-   )
+   }
 
    *(Data*)addr= item;
 }

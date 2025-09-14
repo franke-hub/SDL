@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2020 Frank Eskesen.
+//       Copyright (c) 2019-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Threaded Language Compiler, i.e. Forth
 //
 // Last change date-
-//       2020/10/04
+//       2025/09/14
 //
 //----------------------------------------------------------------------------
 #include "tlc.h"
@@ -321,13 +321,13 @@ static void CNEXT(void)
          throw Exception(to_string("MAX_I(%ld) exceeded", MAX_I));
      }
 
-     IFCHECK(
+     if( CHECK ) {
        if( i_addr == nullptr )
        {
          debugf("ERROR: i_addr == nullptr\n");
          break;
        }
-     )
+     }
 
      i_word= *(Word*)i_addr;
      if( i_word == nullptr )        // If empty program
@@ -345,7 +345,7 @@ static void CNEXT(void)
 
      if( USE_DEBUG ) debug_op("CNEXT");
 
-     IFCHECK(
+     if( CHECK ) {
        if( i_word == nullptr )      // Exit if nullpointer
        {
          if( !USE_DEBUG ) debug_op("CNEXT");
@@ -359,7 +359,7 @@ static void CNEXT(void)
          debugf("ERROR: ZERO detected\n");
          break;
        }
-     )
+     }
 
      (*(Code*)i_word)();
      next_word(i_addr);

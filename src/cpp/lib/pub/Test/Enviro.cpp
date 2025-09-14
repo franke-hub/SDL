@@ -76,15 +76,10 @@ using namespace std;
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
-#endif
-
-#ifndef SCDM
-#undef  SCDM                        // If defined, Soft Core Debug Mode
-#endif
-
-#include "pub/ifmacro.h"            // Verify multiple inclusion
+enum                                // Generic enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSITY= 0                     // VERBOSITY, higher is more verbose
+}; // Generic enum
 
 //----------------------------------------------------------------------------
 // Macros

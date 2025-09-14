@@ -55,7 +55,7 @@ using std::string;                  // (Shortcut)
 //----------------------------------------------------------------------------
 enum // Generic enum
 {  HCDM= false                      // Hard Core Debug Mode?
-,  VERBOSE= 0                       // Verbosity, larger is more verbose
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
 }; // Generic enum
 
 //----------------------------------------------------------------------------

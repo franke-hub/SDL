@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
 //       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 //       Define the Things used in testing
 //
 // Last change date-
-//       2020/07/15
+//       2025/09/15
 //
 // Implementation notes-
 //       Test source must include Verify.i
@@ -28,7 +28,6 @@
 #include <sstream>                  // Used by id_string
 
 #include <pub/Debug.h>
-#include <pub/ifmacro.h>
 #include <pub/utility.h>
 
 #define PUB _LIBPUB_NAMESPACE

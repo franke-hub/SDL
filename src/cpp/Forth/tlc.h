@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2019-2020 Frank Eskesen.
+//       Copyright (C) 2019-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Common include, defines macros and externals.
 //
 // Last change date-
-//       2020/08/23
+//       2025/09/14
 //
 //----------------------------------------------------------------------------
 #ifndef TLC_H_INCLUDED
@@ -42,15 +42,12 @@ using namespace pub::debugging;
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
-#endif
+enum                                // Generic enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // VERBOSITY, higher is more verbose
 
-#ifndef CHECK
-#define CHECK                       // If defined, checking active
-#endif
-
-#include <pub/ifmacro.h>
+,  CHECK= true                      // Use internal checking?
+}; // generic enum
 
 //----------------------------------------------------------------------------
 // Typedefs and enumerations

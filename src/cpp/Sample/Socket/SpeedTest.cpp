@@ -16,7 +16,7 @@
 //       Network speed test.
 //
 // Last change date-
-//       2025/05/06
+//       2025/09/14
 //
 // Implementation notes-
 //       Setting SO_SNDBUF and SO_RCVBUF significantly slows down Linux.
@@ -56,19 +56,12 @@ using namespace _PUB_NAMESPACE::debugging; // For debugging
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
-#endif
+enum                                // Generic enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSITY= 0                     // VERBOSITY, higher is more verbose
 
-#ifndef SCDM
-#undef  SCDM                        // If defined, Soft Core Debug Mode
-#endif
-
-#ifndef IODM
-#undef  IODM                        // If defined, Input/Output Debug Mode
-#endif
-
-#include <pub/ifmacro.h>
+,  IODM= false                      // Input/Output Debug Mode?
+}; // Generic enum
 
 //----------------------------------------------------------------------------
 //
@@ -204,8 +197,8 @@ char*                               // The next available buffer
    newV >>= 16;                     // Get used index (+1)
    if( newV == 0 )
      newV= DIM;
-   IFHCDM( logf("Pool(%p).free_get: oldV(0x%.8x) newV(0x%.8x)\n",
-                this, oldV, newV); )
+   if( HCDM )
+     logf("Pool(%p).free_get: oldV(0x%.8x) newV(0x%.8x)\n",this, oldV, newV);
    return pool[newV - 1];           // Return buffer
 }
 
@@ -224,8 +217,9 @@ void
    }
 
    freeSem.post();
-   IFHCDM( logf("Pool(%p).free_put: oldV(0x%.8x) newV(0x%.8x)\n",
-                this, oldV, oldV+1); )
+   if( HCDM )
+     logf("Pool(%p).free_put: oldV(0x%.8x) newV(0x%.8x)\n", this
+         , oldV, oldV+1);
 }
 
 char*                               // The next available buffer
@@ -250,8 +244,8 @@ char*                               // The next available buffer
    newV >>= 16;                     // Get used index (+1)
    if( newV == 0 )
      newV= DIM;
-   IFHCDM( logf("Pool(%p).init_get: oldV(0x%.8x) newV(0x%.8x)\n",
-                this, oldV, newV); )
+   if( HCDM )
+     logf("Pool(%p).init_get: oldV(0x%.8x) newV(0x%.8x)\n", this, oldV, newV);
    return pool[newV - 1];           // Return buffer
 }
 
@@ -266,13 +260,14 @@ void
    }
 
    initSem.post();
-   IFHCDM( logf("Pool(%p).init_put: oldV(0x%.8x) newV(0x%.8x)\n",
-                this, oldV, oldV+1); )
+   if( HCDM )
+     logf("Pool(%p).init_put: oldV(0x%.8x) newV(0x%.8x)\n", this
+         , oldV, oldV+1);
 }
 
 void
    post( void )                     // Post the semaphore(s)
-{  IFHCDM( traceh("Pool(%p).post\n", this); )
+{  if( HCDM ) traceh("Pool(%p).post\n", this);
    freeSem.post(); initSem.post(); }
 }; // class BufferPool
 
@@ -346,7 +341,7 @@ virtual void
 
 virtual void
    stop( void )
-{  IFHCDM( traceh("Producer(%p).stop\n", this); )
+{  if( HCDM ) traceh("Producer(%p).stop\n", this);
    pool.post();
 }
 }; // class Producer
@@ -406,7 +401,7 @@ virtual void
 
 virtual void
    stop( void )
-{  IFHCDM( traceh("Verifier(%p).stop\n", this); )
+{  if( HCDM ) traceh("Verifier(%p).stop\n", this);
    pool.post();
 }
 }; // class Verifier
@@ -548,8 +543,8 @@ static inline void
                       (const char*)&optval, sizeof(optval));
    }
 
-   IFIODM( logf("%d= ::setsockopt(%d, SOL_SOCKET, 0x%x, %d)\n",
-                rc, talk, so, value); )
+   if( IODM )
+     logf("%d= ::setsockopt(%d, SOL_SOCKET, 0x%x, %d)\n", rc, talk, so, value);
 
    if( rc != 0 )
      shouldNotOccur(__LINE__, "%d= ::setsockopt(%d, SOL_SOCKET, 0x%x, %d)\n",
@@ -663,7 +658,7 @@ void
    size_t size= BufferPool::get_SIZE(); // Get the buffer size
 // setOption(talk, SO_RCVBUF, size);
 
-   IFHCDM( logf("Connection(%d) opened\n", talk); )
+   if( HCDM ) logf("Connection(%d) opened\n", talk);
 
    // Drive the socket
    while( swOnline ) {
@@ -695,7 +690,7 @@ void
    }
 
    close(talk);
-   IFHCDM( logf("Connection(%d) closed\n", talk); )
+   if( HCDM ) logf("Connection(%d) closed\n", talk);
 // close(list);
 }
 
@@ -710,7 +705,7 @@ void
 //----------------------------------------------------------------------------
 void
    RecvThread::stop( void )
-{  IFHCDM( traceh("RecvThread(%p).stop\n", this); )
+{  if( HCDM ) traceh("RecvThread(%p).stop\n", this);
    verifier.pool.post(); }
 
 //----------------------------------------------------------------------------
@@ -756,7 +751,7 @@ debugf("h_addr: %d.%d.%d.%d\n", (Q>>24)&0x00ff, (Q>>16)&0x00ff, (Q>>8)&0x00ff, Q
    rc= connect(talk, (sockaddr*)&addr, sizeof(addr));
    if( rc != 0 )
      shouldNotOccur(__LINE__, "%d= connect()", rc);
-   IFHCDM( logf("Connection(%d) opened\n", talk); )
+   if( HCDM ) logf("Connection(%d) opened\n", talk);
 
    // Drive the socket
    size_t size= BufferPool::get_SIZE(); // Get the buffer size
@@ -785,7 +780,7 @@ debugf("h_addr: %d.%d.%d.%d\n", (Q>>24)&0x00ff, (Q>>16)&0x00ff, (Q>>8)&0x00ff, Q
    }
 
    close(talk);
-   IFHCDM( logf("Connection(%d) closed\n", talk); )
+   if( HCDM ) logf("Connection(%d) closed\n", talk);
 }
 
 //----------------------------------------------------------------------------
@@ -799,7 +794,7 @@ debugf("h_addr: %d.%d.%d.%d\n", (Q>>24)&0x00ff, (Q>>16)&0x00ff, (Q>>8)&0x00ff, Q
 //----------------------------------------------------------------------------
 void
    XmitThread::stop( void )
-{  IFHCDM( traceh("XmitThread(%p).stop\n", this); )
+{  if( HCDM ) traceh("XmitThread(%p).stop\n", this);
    producer.pool.post(); }
 
 //----------------------------------------------------------------------------
@@ -981,7 +976,7 @@ int                                 // Return code
    //-------------------------------------------------------------------------
    Debug debug;                     // Debugging object
    debug.set_head(Debug::Heading(Debug::HEAD_THREAD | Debug::HEAD_TIME));
-// IFHCDM( debug.set_mode(Debug::MODE_INTENSIVE); )
+// if( HCDM ) debug.set_mode(Debug::MODE_INTENSIVE);
    Debug::set(&debug);
 
    //-------------------------------------------------------------------------
@@ -1023,16 +1018,16 @@ int                                 // Return code
    verifier.stop();
    producer.stop();
 
-// IFHCDM( debugf("%4d HCDM\n", __LINE__); )
+// if( HCDM ) debugf("%4d HCDM\n", __LINE__);
    verifier.join();
-// IFHCDM( debugf("%4d HCDM\n", __LINE__); )
+// if( HCDM ) debugf("%4d HCDM\n", __LINE__);
    producer.join();
-// IFHCDM( debugf("%4d HCDM\n", __LINE__); )
+// if( HCDM ) debugf("%4d HCDM\n", __LINE__);
    xThread.join();
-// IFHCDM( debugf("%4d HCDM\n", __LINE__); )
+// if( HCDM ) debugf("%4d HCDM\n", __LINE__);
    if( command == nullptr ) {
      rThread.join();
-//   IFHCDM( debugf("%4d HCDM\n", __LINE__); )
+//   if( HCDM ) debugf("%4d HCDM\n", __LINE__);
    }
 
    //-------------------------------------------------------------------------

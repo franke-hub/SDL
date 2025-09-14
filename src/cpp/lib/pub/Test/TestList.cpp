@@ -46,7 +46,7 @@ using PUB::Wrapper;
 //----------------------------------------------------------------------------
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
-,  VERBOSE= 0                       // Verbosity, greater is more verbose
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 ,  DIM= 12, MID= DIM/2              // Array size. Use: 9 < DIM < 100
 };
