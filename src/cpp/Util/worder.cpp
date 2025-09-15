@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2022-2023 Frank Eskesen.
+//       Copyright (c) 2022-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Search for word match.
 //
 // Last change date-
-//       2023/05/07
+//       2025/09/15
 //
 // Implementation notes-
 //       worder table:+++-= abort:==--+ ... (ABATE)
@@ -35,13 +35,13 @@
 
 #include <sys/stat.h>               // For struct stat
 
+#include <pub/Data.h>               // For namespace pub::data
 #include <pub/Debug.h>              // For namespace pub::debugging
-#include <pub/Fileman.h>            // For namespace pub::fileman
 #include <pub/List.h>               // For pub::List
 #include <pub/utility.h>            // For pub::utility methods
 
 using namespace pub::debugging;     // For debugf, ...
-using namespace pub::fileman;       // For (typedef) Data, Line, ...
+using namespace pub::data;          // For (typedef) Data, Line, ...
 using std::string;                  // For (typedef) string
 
 //----------------------------------------------------------------------------

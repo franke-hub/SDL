@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2024 Frank Eskesen.
+//       Copyright (C) 2020-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,13 +17,13 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2024/08/30
+//       2025/09/15
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
 
+#include <pub/Data.h>               // For pub::data::Name::get_file_name()
 #include <pub/Debug.h>              // For namespace pub::debugging
-#include <pub/Fileman.h>            // For pub::fileman::Name::get_file_name()
 #include <pub/Tokenizer.h>          // For pub::Tokenizer
 #include <pub/Trace.h>              // For pub::Trace
 
@@ -716,7 +716,7 @@ static const char*                  // Error message, nullptr expected
 static const char*                  // Error message, nullptr expected
    command_sort(char* parm)         // Sort editor::file_list
 {
-   using pub::fileman::Name;        // File name extractor
+   using pub::data::Name;           // File name extractor
    pub::List<EdFile> sort_list;     // The sorted list of EdFiles
 
    bool opt_full= (parm && strcmp(parm, "-f") == 0);

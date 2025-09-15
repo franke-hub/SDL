@@ -17,7 +17,7 @@
 //       Editor: Implement EdInps.h: Keyboard and mouse handlers.
 //
 // Last change date-
-//       2025/05/04
+//       2025/09/15
 //
 //----------------------------------------------------------------------------
 #include <cstdio>                   // For sprintf
@@ -34,7 +34,6 @@
 #include <gui/Types.h>              // For gui::DEV_EVENT_MASK
 #include <gui/Window.h>             // For gui::Window
 #include <pub/Debug.h>              // For namespace pub::debugging
-#include <pub/Fileman.h>            // For pub::fileman::Name
 #include <pub/List.h>               // For pub::List
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/Utf.h>                // For pub::Utf classes

@@ -17,7 +17,7 @@
 //       Editor: Implement EdInps.h: Keyboard and mouse handlers.
 //
 // Last change date-
-//       2025/05/04
+//       2025/09/15
 //
 //----------------------------------------------------------------------------
 #define _XOPEN_SOURCE_EXTENDED 1
@@ -31,7 +31,6 @@
 #include <sys/types.h>              // For system types
 
 #include <pub/Debug.h>              // For namespace pub::debugging
-#include <pub/Fileman.h>            // For pub::fileman::Name
 #include <pub/List.h>               // For pub::List
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/Utf.h>                // For pub::Utf::UNI_REPLACEMENT

@@ -17,7 +17,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2025/01/22
+//       2025/09/15
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -31,8 +31,8 @@
 #include <unistd.h>                 // For close, ftruncate
 #include <sys/stat.h>               // For stat
 
+#include <pub/Data.h>               // For namespace pub::data
 #include <pub/Debug.h>              // For Debug, namespace pub::debugging
-#include <pub/Fileman.h>            // For namespace pub::fileman
 #include <pub/Thread.h>             // For pub::Thread::sleep
 #include <pub/Trace.h>              // For pub::Trace
 
@@ -938,7 +938,7 @@ void
      name_= "unnamed.txt";          // Use default name
 
    // Match existing file name(s)
-   using namespace pub::fileman;    // Using fileman objects
+   using namespace pub::data;       // Using pub::data objects
    Name name(name_);
    std::string error= name.resolve(); // Remove link qualifiers
    if( error != "" ) {

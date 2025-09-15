@@ -17,7 +17,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2025/01/20
+//       2025/09/15
 //
 //----------------------------------------------------------------------------
 #include <cctype>                   // For isspace
@@ -37,8 +37,8 @@
 #include <sys/stat.h>               // For stat
 
 #include "pub/config.h"             // For ATTRIB_PRINTF macro
+#include <pub/Data.h>               // For namespace pub::data
 #include <pub/Debug.h>              // For pub::Debug, namespace pub::debugging
-#include <pub/Fileman.h>            // For namespace pub::fileman
 #include <pub/Parser.h>             // For pub::Parser
 #include "pub/Signals.h"            // For pub::Signals interface
 #include <pub/Trace.h>              // For pub::Trace
@@ -702,8 +702,8 @@ static void
      AUTO= env;
 
    // Look for any *AUTOSAVE* file in AUTOSAVE subdirectory
-   pub::fileman::Path path(AUTO);
-   pub::fileman::File* file= path.list.get_head();
+   pub::data::Path  path(AUTO);
+   pub::data::File* file= path.list.get_head();
    while( file ) {
      if( file->name.find(AUTOFILE) == 0 )
        Config::failure("File exists: %s/%s", AUTO.c_str(), file->name.c_str());

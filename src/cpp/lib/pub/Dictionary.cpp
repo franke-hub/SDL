@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2024 Frank Eskesen.
+//       Copyright (c) 2024-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Dictionary method implementation.
 //
 // Last change date-
-//       2024/01/08
+//       2025/09/15
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -25,15 +25,15 @@
 
 #include <sys/stat.h>               // For struct stat
 
+#include <pub/Data.h>               // For namespace pub::data
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include "pub/Dictionary.h"         // For pub::Dictionary, implemented
-#include <pub/Fileman.h>            // For namespace pub::fileman
 #include <pub/List.h>               // For pub::List
 #include <pub/Tokenizer.h>          // For pub::Tokenizer
 
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB::debugging;     // For debugf, ...
-using namespace PUB::fileman;       // For (typedef) Data, Line, ...
+using namespace PUB::data;          // For (typedef) Data, Line, ...
 using std::string;                  // For (typedef) string
 
 namespace _LIBPUB_NAMESPACE {

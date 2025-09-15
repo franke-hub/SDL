@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2021 Frank Eskesen.
+//       Copyright (c) 2020-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Display directory and subdirectory.
 //
 // Last change date-
-//       2021/01/04
+//       2025/09/15
 //
 // Flags-
 //       -d (directory)
@@ -38,10 +38,6 @@
 //       --verbose (Vebose)
 //          Run noisily.
 //
-// Implementation notes-
-//       This *USES* Fileman.h classes to display directories and
-//       subdirectories. It *DOES NOT* implement Fileman.h
-//
 //----------------------------------------------------------------------------
 #include <cassert>                  // For debugging
 #include <climits>                  // For INT_MAX, INT_MIN
@@ -52,10 +48,10 @@
 #include <getopt.h>                 // For getopt_long()
 #include <unistd.h>                 // For readlink
 
-#include "pub/Fileman.h"            // For Fileman classes
+#include "pub/Data.h"               // For Data classes
 #include <pub/utility.h>            // For pub::utility::atoi
 
-using pub::fileman::Path;
+using pub::data::Path;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -282,9 +278,9 @@ static void
 //       File name information, adding print methods
 //
 //----------------------------------------------------------------------------
-class File : public pub::fileman::File { // File name information
+class File : public pub::data::File { // File name information
 public:
-using pub::fileman::File::File;     // Use ::pub::fileman::File constructor
+using pub::data::File::File;        // Use ::pub::data::File constructor
 
 //----------------------------------------------------------------------------
 // File::Methods

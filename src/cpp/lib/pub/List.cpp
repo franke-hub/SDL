@@ -17,7 +17,7 @@
 //       List object methods.
 //
 // Last change date-
-//       2025/05/12
+//       2025/09/15
 //
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::invalid_argument
@@ -29,7 +29,7 @@
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB::debugging;     // For debugging methods
 
-namespace _LIBPUB_NAMESPACE {       // The fileman namespace
+namespace _LIBPUB_NAMESPACE {       // The pub namespace
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------

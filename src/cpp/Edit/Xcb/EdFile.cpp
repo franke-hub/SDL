@@ -17,7 +17,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2025/08/16
+//       2025/09/15
 //
 //----------------------------------------------------------------------------
 #include <cstdio>                   // For printf, fopen, fclose, ...
@@ -27,8 +27,8 @@
 #include <unistd.h>                 // For unlink
 #include <sys/stat.h>               // For stat
 
+#include <pub/Data.h>               // For pub::data::Name
 #include <pub/Debug.h>              // For namespace pub::debugging
-#include <pub/Fileman.h>            // For pub::Name
 #include <pub/List.h>               // For pub::List
 #include "pub/Signals.h"            // For pub::Signals interface
 #include <pub/Trace.h>              // For pub::Trace
@@ -734,7 +734,7 @@ int                                 // Return code, 0 OK
    EdFile::write( void )            // Write (replace) the file
 {
    const char* const file_name= name.c_str();
-   using namespace pub::fileman;    // For pub::fileman::Name
+   using namespace pub::data;       // For pub::data::Name
    std::string S= Name::get_path_name(name);
    S += "/";                        // Add directory delimiter
    S += config::AUTOFILE;           // AUTOSAVE file name header

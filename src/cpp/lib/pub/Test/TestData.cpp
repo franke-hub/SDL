@@ -17,7 +17,7 @@
 //       Test Data.h
 //
 // Last change date-
-//       2025/01/25
+//       2025/09/15
 //
 //----------------------------------------------------------------------------
 #include <exception>
@@ -38,11 +38,11 @@ using PUB::Wrapper;
 //       test_name
 //
 // Purpose-
-//       Test PUB::fileman::Name
+//       Test PUB::data::Name
 //
 //----------------------------------------------------------------------------
 static int                          // Error count
-   test_name(                       // Test PUB::fileman::Name
+   test_name(                       // Test PUB::data::Name
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {

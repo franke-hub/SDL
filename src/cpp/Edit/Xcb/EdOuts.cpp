@@ -17,7 +17,7 @@
 //       Editor: Implement EdOuts.h: Terminal output services
 //
 // Last change date-
-//       2025/08/16
+//       2025/09/15
 //
 //----------------------------------------------------------------------------
 #include <cstdio>                   // For sprintf
@@ -31,8 +31,8 @@
 #include <gui/Font.h>               // For gui::Font
 #include <gui/Types.h>              // For gui::DEV_EVENT_MASK
 #include <gui/Window.h>             // For gui::Window
+#include <pub/Data.h>               // For pub::data::Name
 #include <pub/Debug.h>              // For namespace pub::debugging
-#include <pub/Fileman.h>            // For pub::fileman::Name
 #include <pub/List.h>               // For pub::List
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/Utf.h>                // For pub::Utf classes
@@ -641,7 +641,7 @@ void
    memcpy(buffer+13, number, 9);
    format8(file->rows,     number);
    memcpy(buffer+23, number, 9);
-   std::string S= pub::fileman::Name::get_file_name(file->name);
+   std::string S= pub::data::Name::get_file_name(file->name);
    size_t L= S.length();
    if( L > 192 )
      L= 192;
