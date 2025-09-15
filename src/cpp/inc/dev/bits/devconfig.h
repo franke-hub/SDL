@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2022-2023 Frank Eskesen.
+//       Copyright (c) 2022-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Configuration control macros.
 //
 // Last change date-
-//       2023/12/04
+//       2025/09/14 (Default deactivated)
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_BITS_DEVCONFIG_H_INCLUDED
@@ -25,8 +25,8 @@
 
 // When defined, USE_DEBUG_PTR activates shared_ptr debugging diagnostics.
 // (Swap the next two lines to select or remove its definition.)
-#undef  USE_DEBUG_PTR
-#define USE_DEBUG_PTR
+#define USE_DEBUG_PTR               // (Activate shared_ptr diagnostics)
+#undef  USE_DEBUG_PTR               // (Deactivate shared_ptr diagnostics)
 #include "pub/bits/diag-shared_ptr.i"
 
 #endif // _LIBPUB_HTTP_BITS_DEVCONFIG_H_INCLUDED
