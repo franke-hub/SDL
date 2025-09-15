@@ -17,7 +17,7 @@
 //       File management classes, conveniently packaged in one file.
 //
 // Last change date-
-//       2025/01/25
+//       2025/09/15
 //
 // Implementation note-
 //       Derived from Fileman.h
@@ -299,7 +299,7 @@ List<File>             list;        // The (sorted) list of Files
      const std::string&_name);      // Path name (Locally qualified)
 
    ~Path( void );                   // Destructor
-}; // class Struct
+}; // struct Path
 
 //----------------------------------------------------------------------------
 //
@@ -345,6 +345,6 @@ char*                               // Allocated storage (or nullptr)
    malloc(                          // Allocate storage
      size_t            _size);      // The required length
 }; // class Pool
-}  // namespace fileman
+}  // namespace data
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_DATA_H_INCLUDED

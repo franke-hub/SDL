@@ -16,7 +16,7 @@
 ##       C++ build control makefile
 ##
 ## Last change date-
-##       2025/08/25
+##       2025/09/15
 ##
 ## Implementation notes-
 ##       ~/obj/cpp/Makefile links to this file.
@@ -56,7 +56,7 @@ CPP_ +=  Brian
 CPP_ +=  Clean     Clone     Copy
 CPP_ +=  Darwin    Decoder   Diag
 CPP_ +=  Edit      Edit/Xcb  Edit/Term EiDB
-CPP_ +=  Fileman   Forth
+CPP_ +=  Forth
 CPP_ +=  Grid
 CPP_ +=  Hello     Howto
 CPP_ +=  HTTP/openssl        HTTP/socket
