@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2025/09/09
+//       2025/09/16
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -184,8 +184,6 @@ include dependencies are met.
   - Only the PUB library has any Doxygen markup, and that is minimal.
 Githup markup documentation in progress for the PUB library.
 
-----
-
 <!-- --------------------------------------------------------------------- -->
 ### 03/01/2024 maint
 Note: This is a test commit.
@@ -223,7 +221,6 @@ or ~/obj/cpp/lib/static/. It SHOULD NOT link to ~/obj/cpp/lib, which contains
 both the static and (incomplete) shared library objects.
 
 ### 03/05/2024 maint
-
 - Partially updated Debug.h documentation, correcting links and missing
 information.
 - Removed pub::Debug::clr_head and changed pub::Debug::set_head to set
@@ -238,9 +235,6 @@ was just wasted filler.
 - Corrected some static library build dependencies.
 
 ### 03/26/2024 maint
-
-This is a maintenance commit.
-
 Existing known anomalies:
 - Running make compile, ~/obj/cpp/Stock once attempted to link before the
 object files were compiled. (Not reproducible.)
@@ -260,20 +254,17 @@ Perhaps the ${module} variable can be used to make the Makefile.BSD more
 common.
 
 ### 03/27/2024 maint
-
 - The ~/obj/cpp/NN2 make process now writes an error message (but completes
 normally) if ImageMagick-7 is not installed. User modification of the makefile
 is not required.
 
 ### 04/02/2024 maint/trunk
-
 Library restructure stable and ready for trunk merge.
 
 Updated editxcb, restructuring and adding function.
 See: [.README](src/cpp/Edit/Xcb/.README)
 
 ### 05/11/2024 maint
-
 The ncurses and xcb editors are now nominally operational.
 
 Too much is working not to share this version, but too much is not working
@@ -327,7 +318,6 @@ The xcb editor appears to have regressed. Hiding no longer works.
 The ncurses editor doesn't have this function.
 
 ### 06/07/2024 maint
-
 Updated ~/src/cpp/lib/pub/Utf.cpp and ~/src/cpp/inc/pub/Utf.h.
 Added ~/src/cpp/lib/pub/Test/Test_utf.cpp and ~/src/cpp/inc/pub/bits/Utf.i.
 
@@ -340,7 +330,6 @@ newly implemented code.
 code. (The testing code was included but not activated in this commit.)
 
 ### 06/21/2024 maint
-
 Completely tested all portions of all the utf*_decoder and utf*_encoder
 implementations.
 
@@ -348,8 +337,7 @@ Fixed a minor library makefile glitch: Each library also had a build
 dependency on its Test subdirectory, causing unnessary make operations
 when that subdirectory changed.
 
-### 06/21/2024 NOT DONE
-
+#### NOT DONE
 ~/src/cpp/Edit/Xcb/* and ~/src/cpp/Edit/Term/* modules need to use the updated
 decoders and encoders.
 
@@ -365,7 +353,6 @@ Files containing non-ASCII Unicode characters were marked as damaged so they
 could not be overwritten by the editor.
 
 ### 07/25/2024 maint
-
 Revised utf*_decoder and utf*_encoder interfaces so that the current
 column always matches the column as set by set_column().
 This is a cleaner and more logical interface.
@@ -380,7 +367,6 @@ The editor modules have not been updated yet.
 They (still) do not use the updated decoders and encoders.
 
 ### 08/14/2024 maint
-
 Removed utf*_decoder set_offset and added set_cpoint method.
 This removes the need for OFFSET_COLUMN, and is a cleaner and more logical
 interface.
@@ -390,7 +376,6 @@ These modules are now in beta test mode.
 A complete function test is still required.
 
 ### 08/23/2024 maint
-
 The combined editor is now in production test, with no known new errors.
 Known error: include command after a line with a null terminator does not
 build the undo/redo object correctly.
@@ -408,7 +393,6 @@ Moved ~/src/cpp/inc/pub/bits/Utf_types.i to ~/src/cpp/inc/pub/Utf.i.
 application's namespace.
 
 ### 08/27/2024 maint
-
 The combined editor is now in production test, with no known new errors.
 
 We spent a lot of time trying to implement common REDO functions in
@@ -430,7 +414,6 @@ The Utf documentation has been in progress for a while. This and a full
 editor function test need to be completed before a trunk release.
 
 ### 09/11/2024 preview
-
 The combined editors (xcbedit and xtmedit) are now ready.
 
 The Utf.h documentation is ready for github markdown verification.
@@ -440,15 +423,12 @@ interrelated. The Symbol type was particularly helpful in simplifying the
 documentation while also clarifying the interface definitions.
 
 ### 09/12/2024 trunk
-
 Merged maint/preview into trunk.
 
 ### 09/18/2024 trunk
-
 Removed boost::core::demangle.hpp dependency.
 
 ### 10/05/2024 maint/trunk
-
 Added auto-recompile trigger for dev and pub libraries to account for a
 pub::Object::~Object linkage change.
 
@@ -462,7 +442,6 @@ adding an object module containing a static Command or Service object
 automatically adds that Command or Service to its map.
 
 ### 10/22/2024 maint
-
 ~/src/cpp/Brian updated.
 - Synchronized Brian/Console and ~/lib/cpp/pub/Console
    ~/lib/cpp/pub/Console decodes escape sequences, but doesn't do anything with
@@ -479,7 +458,6 @@ Brian.)
 were moved after the constructors and deleted assignment operators.
 
 ### 10/24/2024 maint
-
 Cygwin on Windows 11 can sometimes modify a symbolic link so that it links
 before the origin, e.g. "/../../var" becomes "/var" . This is actually what
 Cygwin and Linux do natively, so ~/src/cpp/lib/pub/Fileman.cpp filename
@@ -487,7 +465,6 @@ resolver needs to accept this rather than reject it. This commit corrects it
 along with the associated regression test.
 
 ### 11/25/2024 maint (With extensive diagnostics)
-
 Looking at a Brian termination problem. Sometimes it completes and sometimes
 it doesn't.
 When it doesn't complete pub::Console appears to be in some sort
@@ -495,20 +472,17 @@ of loop.
 (The loop is known, but exactly what's looping hasn't been determined yet.)
 
 ### 12/06/2024 maint (With extensive diagnostics, commented out)
-
 The Brian termination problem hasn't been debugged.
 
 Extensive diagnostics remain in the code, commented out so they don't affect
 regression test output. (This applies to both the dev and the pub libraries.)
 
 ### 12/11/2024 maint
-
 The 12/06/2024 maint comments still apply.
 
 Added common inline conversion routines to ~/src/cpp/inc/pub/utility.i.
 
 ### 12/20/2024 maint/trunk
-
 The Brian termination problem is Cygwin-only. It does not occur on Linux.
 The diagnostics associated with this have been removed from the code and,
 since it doesn't occur on Linux, we are leaving this as-is.
@@ -524,7 +498,6 @@ This commit prepares the trunk commit. If no problems are found, the maint
 branch will be merged and the trunk committed.
 
 ### 12/24/2024 maint/trunk
-
 Lots of physical changes but no logical changes.
 
 All "include <assert.h>" statements changed to "include <cassert>".
@@ -541,11 +514,8 @@ missing.
 
 (We should, but don't, have regression scripts in all the object files.)
 
-----
-
 <!-- --------------------------------------------------------------------- -->
 ### 01/21/2025 maint
-
 ~/src/cpp/inc/pub/Signals.h was restructured to aid in debugging.
 
 The test build machine fails to run ~/src/cpp/Brian, getting an exception
@@ -568,7 +538,6 @@ Interestingly, adding debugging statements seems to affect whether or not the
 shared_ptr's are left in limbo.
 
 ### 01/31/2025 maint
-
 This commit was contains a back port of fixes so that it uses a host address
 as specified in /etc/hosts, if one is present.
 
@@ -576,7 +545,6 @@ as specified in /etc/hosts, if one is present.
 time.)
 
 ### 02/21/2025 maint/trunk
-
 Fix: ~/bat/dnf.status updated for new interface.
 
 ~/src/cpp/Clone rdclient/rdserver testing was delayed due to travel plans, a
@@ -591,19 +559,16 @@ machines on the lan were unable to connect to it. Since programs in the
 the new VirtualBox adapter code needed to be back-ported.
 
 ### 03/01/2025 maint/trunk
-
 Brian regression operational. Tweaking ~/src/cpp/lib/pub/Console.cpp was
 required.
 
 ### 03/04/2025 maint/trunk
-
 ~/src/cpp/Edit/Term editor operational in all environments.
 
 The actual problem was in ~/src/cpp/inc/com/Makefile.BSD, which caused the
 ncurses library to be used instead of ncursesw.
 
 ### 04/02/2025 maint/trunk
-
 Modified:
 - ~/src/cpp/lib/pub/Clock.cpp and ~/src/cpp/inc/pub/Clock.h
   - (No significant changes. Added comments but no algorithmic changes.)
@@ -638,7 +603,6 @@ There is, however, some known work left to do in the SDL project:
 implementation.
 
 ### 2025/04/24 maint/trunk (edited)
-
 Added:
 - ~/bat/restore
 Similar to ~/bat/backup, but using rsync fetch rather than store.
@@ -663,10 +627,7 @@ encryption.)
 ***MAKE SURE*** that you specify an ID of a key that you can decrypt, i.e. the
 ID of a key that's on your secret key list.
 
-----
-
 ### 2025/04/25 trunk/maint
-
 Commits are now sorted in date order rather than reverse date order.
 
 Removed unnecessary error checking in the Select::~Select (destructor) method
@@ -674,10 +635,7 @@ implemented in ~/src/cpp/lib/pub/Select.cpp.
 Now that Sockets don't reference Select objects, it's not an issue whether or
 not Socket objects appear in a Select object's database.
 
-----
-
 ### 2025/05/03 trunk/maint
-
 This commit is "much ado about nothing."
 
 I'm having trouble getting a Windows share working. As part of my attempted
@@ -717,11 +675,7 @@ consistent with other copyright formats.
 - ~/src/cpp/lib/pub/Fileman was updated to make its error messages more
 consistent with other such messages in the library.
 
-----
-
 ### 2025/05/06 trunk/maint
-
-Change log:
 - ~/src/cpp/Edit/Xcb/EdInps.*, ~/src/cpp/Edit/Term/EdInps.*:
 Fixed an annoying Editor interaction between backspace and F10, F11, and F12.
 - ~/src/cpp/inc/pub/List.h: Moved internal documentation out of List module.
@@ -731,18 +685,13 @@ types.
 - Exposed some methods that were accidently hidden. These errors were
 detected by gcc version 15.1.1.
 
-----
-
 ### 2025/05/17 trunk/maint
-
 The appropriate SPDX-License-Identifier was added to each copyright header.
 
 ~/src/cpp/Fileman/Scanner.cpp automated this task.
 
 A simple check was added to pub::List::insert to detect inverted after and
 link parameters.
-
-----
 
 ### 2025/08/16 trunk/maint
 - ~/bat/make-temp, ~/bat/*gpg:
@@ -759,36 +708,32 @@ This is only a small structure change. No function was added or removed.
 A (737M) data source file was recovered from an old CD. Since it's so large,
 the change only documents that the file is available upon request.
 
-----
-
 ### 2025/08/26 trunk/maint
-
-Change log:
 - ~/src/cpp/Fileman/Scanner.cpp moved to ~/src/cpp/Scanner
 - ~/src/cpp/Scanner/Scanner.cpp verifies data presence
 And also does not rely on $HOME to find the ~/.headings subdirectory.
 - ~/src/cpp/Makefile.BSD
 Now includes ~/src/cpp/Scanner in the list of compile test subdirectories.
 
-----
-
 ### 2025/08/31 trunk/maint
-
-Change log:
 - Updated/Added copyright statements.
 - Removed files that shouldn't have been distributed.
 - ~/src/cpp/Scanner/Scanner.cpp
   - `Always counts files without copyright statements.
   - If --verbose > 1 displays files without copyright statements.
 
-----
-
-### <a id="last-change-date">2025/09/09 maint</a>
-
-Change log:
+### 2025/09/09 maint
 - Fixed ~/src/cpp/lib/pub/Tokenizer
   - Multiple delimiters weren't handled properly.
 - Updated ~/src/cpp/lib/pub/Test/TestMisc.cpp
   - Added additional Tokenizer tests.
 - Fixed ~/src/cpp/Edit/EdMark.cpp (method format)
   - Now treats quotes as normal characters
+
+ ### 2025/09/15 maint
+ ### <a id="last-change-date">2025/09/16 trunk</a>
+- Removed obsolete ifmacro.h (no replacement)
+  - Using "if( HCDM ) {...}" instead of "IFHCDM(...)"
+- Replaced obsolete ~/src/cpp/inc/pub/Fileman.h with Data.h
+  - Note: while ~/src/cpp/lib/pub/Fileman.cpp is removed,
+~/src/cpp/Fileman.cpp (now using pub/Data.h) remains for fileman command.
