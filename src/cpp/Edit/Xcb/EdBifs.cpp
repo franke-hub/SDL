@@ -17,7 +17,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2025/09/15
+//       2025/09/19
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -187,6 +187,7 @@ static const Command_desc  command_desc[]= // The Command descriptor list
 
 // Spelling errors/typos
 ,  {nullptr,         "",          nullptr} // Command aliases follow
+,  {command_bot,     "BPT",       nullptr} // (BOT)
 ,  {command_file,    "FO;E",      nullptr} // (FILE)
 ,  {command_insert,  "INCLUDE",   nullptr} // (INSERT)
 ,  {command_margins, "MARGIN",    nullptr} // (MARGINS)
