@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2007-2023 Frank Eskesen.
+//       Copyright (C) 2007-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       List tests.
 //
 // Last change date-
-//       2023/09/21
+//       2025/09/20
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std:: (In-place operator new)
@@ -886,6 +886,9 @@ struct SORT_block
 :  public Prefix, public List<SORT_block>::Link, public Suffix {
 typedef SORT_block     _Self;
 
+bool operator<(const _Self& that)
+{  return index < that.index; }
+
 int                    index;
 }; // class SORT_block
 
@@ -929,26 +932,12 @@ static int
      debugf("%8zd Sizeof(SORT_link)\n", sizeof(List<SORT_block>::Link));
    }
 
-   typedef const SORT_block         _Link;
-#if USE_BASE_SORT
-   typedef const List<void>::_Link  _Void;
-   static const struct {
-     bool operator()(_Void* lhs, _Void* rhs) const
-     { return ((_Link*)lhs)->index < ((_Link*)rhs)->index; }
-   } cmp;
-#else
-   static const struct {
-     bool operator()(_Link* lhs, _Link* rhs) const
-     { return lhs->index < rhs->index; }
-   } cmp;
-#endif
-
    //-------------------------------------------------------------------------
-   // SORT Lambda test
+   // SORT test
    //-------------------------------------------------------------------------
    if( opt_verbose ) {
      debugf("\n");
-     debugf("SORT lambda test:\n");
+     debugf("SORT test:\n");
    }
    for(int i=0; i<DIM; i++) {
      sort_data[i].index= i + 1;
@@ -956,46 +945,10 @@ static int
    }
    show_SORT(&sort_list);
 
-#if USE_BASE_SORT
-   sort_list.sort([](_Void* lhs, _Void* rhs)
-     { return ((_Link*)lhs)->index < ((_Link*)rhs)->index; }
-   );
-#else
-   sort_list.sort([](_Link* lhs, _Link* rhs)
-     { return lhs->index < rhs->index; }
-   );
-#endif
-
+   sort_list.sort();
    show_SORT(&sort_list);
 
-   int
-   index= 1;
-   for(auto it= sort_list.begin(); it != sort_list.end(); ++it) {
-     error_count += VERIFY( index == it->index );
-     index++;
-   }
-
-   for(int i=0; i<DIM; i++)
-     error_count += VERIFY( sort_list.is_on_list(&sort_data[i]) );
-   error_count += VERIFY( sort_list.is_coherent() );
-   sort_list.reset();
-
-   //-------------------------------------------------------------------------
-   // SORT Struct test
-   //-------------------------------------------------------------------------
-   if( opt_verbose ) {
-     debugf("\n");
-     debugf("SORT struct test:\n");
-   }
-   for(int i=0; i<DIM; i++)
-     sort_list.fifo(&sort_data[DIM - i - 1]);
-   show_SORT(&sort_list);
-
-   sort_list.sort(cmp);
-
-   show_SORT(&sort_list);
-
-   index= 1;
+   int index= 1;
    for(auto it= sort_list.begin(); it != sort_list.end(); ++it) {
      error_count += VERIFY( index == it->index );
      index++;

@@ -17,10 +17,10 @@
 //       Test Data.h
 //
 // Last change date-
-//       2025/09/15
+//       2025/09/20
 //
 //----------------------------------------------------------------------------
-#include <exception>
+#include <string>                   // For std::string
 
 #include <pub/Debug.h>              // For namespace debugging
 
@@ -30,7 +30,9 @@
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB::debugging;     // For debugging functions
 using namespace PUB::data;
+using PUB::List;
 using PUB::Wrapper;
+using std::string;
 
 //----------------------------------------------------------------------------
 //
@@ -49,7 +51,7 @@ static int                          // Error count
    int                 error_count= 0; // Number of errors encountered
 
    // Resolve each argument
-   for(int argx= 1; argx < argc; argx++) {
+   for(int argx= optind; argx < argc; argx++) {
      char* C= argv[argx];
      Name name(C);
      std::string error= name.resolve();
@@ -63,6 +65,39 @@ static int                          // Error count
 
      if( error != "" )
        error_count++;
+   }
+
+   return error_count;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       test_path
+//
+// Purpose-
+//       Test PUB::data::Path
+//
+//----------------------------------------------------------------------------
+static int                          // Error count
+   test_path(                       // Test PUB::data::Path
+     int               argc,        // Argument count
+     char*             argv[])      // Argument array
+{
+   typedef List<File>::iterator     Flit;
+
+   int                 error_count= 0; // Number of errors encountered
+
+   if( opt_verbose ) {
+     // Print each file name in path
+     for(int argx= optind; argx < argc; argx++) {
+       char* C= argv[argx];
+       debugf("\nPath(%s):\n", C);
+       Path path(C);
+       for(Flit it= path.list.begin(); it != path.list.end(); ++it) {
+         debugf(": %s\n", it->name.c_str());
+       }
+     }
    }
 
    return error_count;
@@ -91,10 +126,34 @@ extern int
    // Mainline code
    tc.on_main([tr](int argc, char* argv[])
    {
-     if( opt_verbose )
-       debugf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
+     int error_count= 0;            // Error counter
 
-     int error_count= test_name(argc, argv);
+     if( opt_verbose ) {
+       debugf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
+       if( false ) {
+         debugf("optind(%d)\n", optind);
+         for(int i= 0; i<argc; ++i)
+           debugf("[%2d] '%s'\n", i, argv[i]);
+       }
+     }
+
+     if( argc < (optind + 1) ) {
+       debugf("Test name missing: Use 'name' or 'path'\n");
+       ++error_count;
+     } else {
+       const string opt_test= argv[optind];
+       --argc;
+       ++argv;
+
+       if ( opt_test == "name" ) {
+         error_count += test_name(argc, argv);
+       } else if( opt_test == "path" ) {
+         error_count += test_path(argc, argv);
+       } else {
+         ++error_count;
+         errorf("Invalid test name '%s'\n", opt_test.c_str());
+       }
+     }
 
      if( opt_verbose ) {
        debugf("\n");

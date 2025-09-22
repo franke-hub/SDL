@@ -17,7 +17,7 @@
 //       List object methods.
 //
 // Last change date-
-//       2025/09/15
+//       2025/09/20
 //
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::invalid_argument
@@ -144,9 +144,9 @@ void
 //----------------------------------------------------------------------------
 void
    DHDL_list<void>::insert(         // Add to DHDL_list<void> at position,
-     _Link*             link,       // -> _Link to insert after
-     _Link*             head,       // -> First _Link to insert
-     _Link*             tail)       // -> Final _Link to insert
+     _Link*            link,        // -> _Link to insert after
+     _Link*            head,        // -> First _Link to insert
+     _Link*            tail)        // -> Final _Link to insert
 {
    if( link == nullptr )            // If insert at head
    {
@@ -242,7 +242,7 @@ bool                                // TRUE if object is coherent
 //----------------------------------------------------------------------------
 bool                                // TRUE if _Link is in list
    DHDL_list<void>::is_on_list(     // Is _Link contained?
-     _Link*             link) const // -> _Link
+     _Link*            link) const  // -> _Link
 {
    if( link != nullptr )            // If a _Link was specified
    {
@@ -270,7 +270,7 @@ bool                                // TRUE if _Link is in list
 //----------------------------------------------------------------------------
 void
    DHDL_list<void>::lifo(           // Insert _Link, LIFO order
-     _Link*             link)       // -> _Link to insert
+     _Link*            link)        // -> _Link to insert
 {
    link->_next= _head;              // Set next _Link pointer
    link->_prev= nullptr;            // Set prior _Link pointer
@@ -294,8 +294,8 @@ void
 //----------------------------------------------------------------------------
 void
    DHDL_list<void>::remove(         // Remove from list
-     _Link*             head,       // -> First _Link to remove
-     _Link*             tail)       // -> Final _Link to remove
+     _Link*            head,        // -> First _Link to remove
+     _Link*            tail)        // -> Final _Link to remove
 {
    _Link* prev= head->_prev;        // _Link prior to head
    _Link* next= tail->_next;        // _Link after tail
@@ -373,47 +373,135 @@ DHDL_list<void>::_Link*             // The set of removed _Links
 //----------------------------------------------------------------------------
 //
 // Method-
+//       DHDL_list<void>::size
+//
+// Purpose-
+//       Count the _Links
+//
+//----------------------------------------------------------------------------
+size_t                              // The number of links
+   DHDL_list<void>::size( void ) const // Get the _Link count
+{
+   size_t length= 0;
+   for(_Link* link= _head; link; link= link->_next)
+     ++length;
+
+   return length;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       DHDL_list<void>::sort
 //
 // Purpose-
-//       Sort the list.
-//
-// Implementation notes-
-//       TODO: Use a better algorithm than bubble sort.
+//       Sort the list (using Merge sort algorithm.)
 //
 //----------------------------------------------------------------------------
-#if USE_BASE_SORT
 void
-   DHDL_list<void>::sort(           // Sort the list
-     const _Comparator cmp)         // Using this Comparitor
+   DHDL_list<void>::sort( void )    // Sort the list
 {
-   _Link* head= reset();            // The original head of the list
+    size_t length= size();          // Get the List length
+    if( length < 2 )                // Empty and single element lists
+      return;                       // are already sorted
 
-   while( head )                    // Sort the list
-   {
-     _Link* low= head;
-     _Link* next= low->_next;
-     while( next != nullptr )
-     {
-       if( cmp(next, low) )
-         low= next;
+    // Merge sort
+    for(size_t width= 1; width < length; width <<= 1) {
+      _Link* cur= _head;
+      _Link* new_head= nullptr;
+      _Link* new_tail= nullptr;
 
-       next= next->_next;
-     }
+      while( cur ) {
+        _Link* L= sort_split(cur, width); // The left _Link set
+        _Link* R= sort_split(cur, width); // The right _Link set
+        auto [merged_head, merged_tail]= sort_merge(L, R); // Merge the sets
 
-     if( low == head )
-       head= head->_next;
-     else
-     {
-       if( low->_next != nullptr )
-         low->_next->_prev= low->_prev;
-       low->_prev->_next= low->_next;
-     }
+        if( !new_head )
+          new_head= merged_head;
+        else {
+          new_tail->_next= merged_head;
+          if( merged_head )
+            merged_head->_prev= new_tail;
+        }
+        new_tail= merged_tail;
+      }
 
-     fifo(low);
-   }
+      _head= new_head;
+      if( new_tail ) {
+        new_tail->_next= nullptr;
+        _tail= new_tail;
+      }
+    }
 }
-#endif
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       DHDL_list<void>::sort_split
+//       DHDL_list<void>::sort_merge
+//
+// Purpose-
+//       Split the list into parts.
+//       Merge the parts into one sorted _Link set.
+//
+//----------------------------------------------------------------------------
+DHDL_list<void>::_Link*             // The set of removed _Links (left)
+   DHDL_list<void>::sort_split(     // Split the _Link set
+     _Link*&           top,         // INP: The head element
+                                    // OUT: The remaining _Links (remainder)
+     size_t            N)           // The number of _Links to remove
+{
+    if( !top || N == 0 )            //
+      return nullptr;
+
+    _Link* run= top;
+    _Link* cur= top;
+
+    for (size_t i= 1; i < N; ++i) {
+      cur= cur->_next;
+      if( cur == nullptr ) {        // Fewer than N _Links remain
+        top= nullptr;
+        return run;
+      }
+    }
+
+    _Link* rest= cur->_next;        // Split after cur
+    if( rest ) {
+      rest->_prev= nullptr;
+      cur->_next= nullptr;
+    }
+
+    top= rest;                      // Remainder after the split
+    return run;                     // The run of length <= N
+}
+
+std::pair<DHDL_list<void>::_Link*,DHDL_list<void>::_Link*> // The combined set
+  DHDL_list<void>::sort_merge(      // Merge
+    _Link*             L,           // The Left (lower) _Link set
+    _Link*             R)           // The Right (remaining) _Link set
+{
+  _Link  dummy;
+  _Link* tail= &dummy;
+  while (L && R) {
+    _Link* &lower= L < R ? L : R;
+    lower->_prev= (tail == &dummy) ? nullptr : tail;
+    tail->_next= lower;
+    tail= lower;
+    lower= lower->_next;
+  }
+
+  _Link* rem= L ? L : R;
+  while( rem ) {
+    rem->_prev= (tail == &dummy) ? nullptr : tail;
+    tail->_next= rem;
+    tail= rem;
+    rem= rem->_next;
+  }
+  _Link* head= dummy._next;
+  if( head )
+    head->_prev= nullptr;
+  return {head, tail};
+}
 
 //----------------------------------------------------------------------------
 //
@@ -426,7 +514,7 @@ void
 //----------------------------------------------------------------------------
 void
    DHSL_list<void>::fifo(           // Insert _Link, FIFO order
-     _Link*             link)       // -> _Link to insert
+     _Link*            link)        // -> _Link to insert
 {
    link->_next= nullptr;            // Set _Link chain pointer
 
@@ -449,9 +537,9 @@ void
 //----------------------------------------------------------------------------
 void
    DHSL_list<void>::insert(         // Add to list at position,
-     _Link*             link,       // -> _Link to insert after
-     _Link*             head,       // -> First _Link to insert
-     _Link*             tail)       // -> Final _Link to insert
+     _Link*            link,        // -> _Link to insert after
+     _Link*            head,        // -> First _Link to insert
+     _Link*            tail)        // -> Final _Link to insert
 {
    if( link == nullptr )            // If insert at head
    {
@@ -518,7 +606,7 @@ bool                                // TRUE if object is coherent
 //----------------------------------------------------------------------------
 bool                                // TRUE if _Link is in list
    DHSL_list<void>::is_on_list(     // Is _Link contained?
-     _Link*             link) const // -> _Link
+     _Link*            link) const  // -> _Link
 {
    if( link != nullptr )            // If a _Link was specified
    {
@@ -546,7 +634,7 @@ bool                                // TRUE if _Link is in list
 //----------------------------------------------------------------------------
 void
    DHSL_list<void>::lifo(           // Insert _Link, LIFO order
-     _Link*             link)       // -> _Link to insert
+     _Link*            link)        // -> _Link to insert
 {
    link->_next= _head;              // Set _Link chain pointer
 
@@ -567,8 +655,8 @@ void
 //----------------------------------------------------------------------------
 void
    DHSL_list<void>::remove(         // Remove specific _Links
-     _Link*             head,       // -> First _Link to remove
-     _Link*             tail)       // -> Last _Link to remove
+     _Link*            head,        // -> First _Link to remove
+     _Link*            tail)        // -> Last _Link to remove
 {
    _Link* link= this->_head;        // Address oldest _Link
    if( link == nullptr )            // If the list is empty
@@ -651,7 +739,7 @@ DHSL_list<void>::_Link*             // The set of removed _Links
 //----------------------------------------------------------------------------
 void
    SHSL_list<void>::fifo(           // Insert _Link, FIFO order
-     _Link*             link)       // -> _Link to insert
+     _Link*            link)        // -> _Link to insert
 {
    link->_prev= nullptr;            // Set _Link chain pointer
 
@@ -679,9 +767,9 @@ void
 //----------------------------------------------------------------------------
 void
    SHSL_list<void>::insert(         // Add to list at position,
-     _Link*             link,       // -> _Link to insert after
-     _Link*             tail,       // -> First _Link to insert
-     _Link*             head)       // -> Final _Link to insert
+     _Link*            link,        // -> _Link to insert after
+     _Link*            tail,        // -> First _Link to insert
+     _Link*            head)        // -> Final _Link to insert
 {
    if( link ) {
      head->_prev= link->_prev;
@@ -729,7 +817,7 @@ bool                                // TRUE if the object is coherent
 //----------------------------------------------------------------------------
 bool                                // TRUE if _Link is in list
    SHSL_list<void>::is_on_list(     // Is _Link contained?
-     _Link*             link) const // -> _Link
+     _Link*            link) const  // -> _Link
 {
    if( link != nullptr )            // If a _Link was specified
    {
@@ -757,7 +845,7 @@ bool                                // TRUE if _Link is in list
 //----------------------------------------------------------------------------
 void
    SHSL_list<void>::lifo(           // Insert _Link, LIFO order
-     _Link*             link)       // -> _Link to insert
+     _Link*            link)        // -> _Link to insert
 {
    link->_prev= _tail;              // Set _Link chain pointer
    _tail= link;                     // Add _Link to list
@@ -774,8 +862,8 @@ void
 //----------------------------------------------------------------------------
 void
    SHSL_list<void>::remove(         // Remove a chain of elements
-     _Link*             head,       // -> First _Link to remove
-     _Link*             tail)       // -> Last _Link to remove
+     _Link*            head,        // -> First _Link to remove
+     _Link*            tail)        // -> Last _Link to remove
 {
    _Link* link= this->_tail;        // Address tail _Link
    if( link == nullptr )            // If the list is empty
@@ -832,7 +920,6 @@ SHSL_list<void>::_Link*             // The set of removed _Links
    SHSL_list<void>::reset( void )   // Reset (empty) the list
 {
    _Link* link= _tail;
-
    _tail= nullptr;
 
    return link;

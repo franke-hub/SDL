@@ -17,7 +17,7 @@
 ##       Data regression set
 ##
 ## Last change date-
-##       2025/01/25
+##       2025/09/20
 ##
 ##############################################################################
 DO=TestData
@@ -26,7 +26,7 @@ DO=TestData
 ## Function OK: Run test, success expected
 function OK
 {
-  $DO $parm $@
+  $DO name $parm $@
   rc=$?
   [ $rc == 0 ] && return
 
@@ -38,7 +38,7 @@ function OK
 ## Function NG: Run test, failure expected
 function NG
 {
-  $DO $parm $@
+  $DO name $parm $@
   rc=$?
   [ $rc != 0 ] && return
 
@@ -96,6 +96,16 @@ NG ./ .//. S/.//.                   ## Empty file names
 NG loop                             ## SYMLINK_MAX
 NG miss/ing S/miss/ing              ## Path miss missing
 ## set +x
+
+##############################################################################
+if [[ $verb > 0 ]] ; then
+  echo "Regression tests: verbose"
+  set -x
+  $DO  $parm path .
+  $DO  $parm path S
+  $DO  $parm path S/
+  set +x
+fi
 
 ##############################################################################
 ## Remove links

@@ -17,7 +17,7 @@
 //       Data.h object methods
 //
 // Last change date-
-//       2025/01/25
+//       2025/09/20
 //
 // Implementation note-
 //       Derived from Fileman.cpp
@@ -88,8 +88,8 @@ static void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Data::Data
-//       Data::~Data
+//       pub::data::Data::Data
+//       pub::data::Data::~Data
 //
 // Purpose-
 //       Constructor.
@@ -115,7 +115,7 @@ static void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Data::close
+//       pub::data::Data::close
 //
 // Purpose-
 //       Close (empty) the data.
@@ -149,7 +149,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Data::debug
+//       pub::data::Data::debug
 //
 // Purpose-
 //       Debugging display
@@ -174,7 +174,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Data::get_line
+//       pub::data::Data::get_line
 //
 // Purpose-
 //       Allocate a new Line*
@@ -209,7 +209,7 @@ Line*                               // The allocated Line*
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Data::open
+//       pub::data::Data::open
 //
 // Purpose-
 //       Load data.
@@ -298,7 +298,7 @@ int                                 // Return code, 0 OK
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Data::write
+//       pub::data::Data::write
 //
 // Purpose-
 //       Write data.
@@ -333,7 +333,7 @@ int                                 // Return code, 0 OK
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Name::Name
+//       pub::data::Name::Name
 //
 // Purpose-
 //       Constructor.
@@ -346,7 +346,7 @@ int                                 // Return code, 0 OK
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Name::get_file_name
+//       pub::data::Name::get_file_name
 //
 // Purpose-
 //       Get file name part of (relative) full_name
@@ -366,7 +366,7 @@ std::string                         // The file name of (relative) full_name
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Name::get_path_name
+//       pub::data::Name::get_path_name
 //
 // Purpose-
 //       Get path part of (relative) full_name
@@ -390,7 +390,7 @@ std::string                         // The path name of (relative) full_name
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Name::reset
+//       pub::data::Name::reset
 //
 // Purpose-
 //       Reset the file name
@@ -413,7 +413,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Name::resolve
+//       pub::data::Name::resolve
 //
 // Purpose-
 //       Resolve (remove) links in file_name, link_name, and name
@@ -565,8 +565,8 @@ std::string                         // The invalid path ("" if none)
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Path::Path
-//       Path::~Path
+//       pub::data::Path::Path
+//       pub::data::Path::~Path
 //
 // Purpose-
 //       Constructor.
@@ -617,16 +617,7 @@ std::string                         // The invalid path ("" if none)
    //-------------------------------------------------------------------------
    // Sort the list
    //-------------------------------------------------------------------------
-#if USE_BASE_SORT
-   typedef const List<void>::_Link  Link;
-   list.sort([](Link* lhs, Link* rhs)
-            { return ((File*)lhs)->name < ((File*)rhs)->name; }
-   );
-#else
-   list.sort([](File* lhs, File* rhs)
-            { return lhs->name < rhs->name; }
-   );
-#endif
+    list.sort();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -644,8 +635,8 @@ std::string                         // The invalid path ("" if none)
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Pool::Pool
-//       Pool::~Pool
+//       pub::data::Pool::Pool
+//       pub::data::Pool::~Pool
 //
 // Purpose-
 //       Constructor
@@ -664,7 +655,7 @@ std::string                         // The invalid path ("" if none)
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Pool::debug
+//       pub::data::Pool::debug
 //
 // Purpose-
 //       Debugging display
@@ -685,7 +676,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Pool::malloc
+//       pub::data::Pool::malloc
 //
 // Purpose-
 //       Allocate storage from Pool fragment

@@ -17,7 +17,7 @@
 //       Describe the List objects.
 //
 // Last change date-
-//       2025/05/05
+//       2025/09/20
 //
 // Implementation notes-
 //       "Link set" refers to the set of Links owned by a List.
@@ -251,12 +251,7 @@ template<class T>
        typedef T&                             reference;
        typedef _DHDL_const_iter<value_type>   const_iterator;
        typedef _DHDL_iter<value_type>         iterator;
-
        typedef DHDL_list<void>                _Base;
-#if ! USE_BASE_SORT                 // (Defined in bits/List.h)
-       typedef std::function<bool(pointer, pointer)>
-                                              _Comparator;
-#endif
 
        class Link : protected _Link
        {
@@ -267,6 +262,10 @@ template<class T>
 
            pointer get_prev( void ) const
            { return static_cast<pointer>(_prev); }
+
+           // Note: DHDL_list<void>::operator<() compares Link addresses, i.e.
+           // bool operator<(const Link& that) const
+           // { return this < &that; }
        }; // class DHDL_list<T>::Link
 
        //---------------------------------------------------------------------
@@ -362,47 +361,21 @@ template<class T>
          reset( void )              // Reset (empty) the List
        { return static_cast<pointer>(_Base::reset()); }
 
+       size_t                       // The _Link count
+         size( void ) const        // Get the _Link count
+       { return _Base::size(); }
+
        /** *******************************************************************
-         @brief Sort using comparitor.
+         @brief Sort the DHDL_list
 
-         Sample code:
-         @code
-           TODO: Copy from List.cpp or TestList.cpp when working
-         @endcode
+         Sorts the list using using "Link::operator<(const Link& that) const"
+         to compare Links.
+         Note: Method DHDL_list<void> Link::operator<() compares Link address.
+
+         Implementation note: Uses the Merge sort algorithm.
        ******************************************************************* **/
-#if USE_BASE_SORT
-       void sort(_Comparator cmp)   // Sort the List using Comparator
-       { _Base::sort(cmp); }
-#else
-       void sort(_Comparator cmp)   // Sort the List using Comparator
-       {
-         pointer head= reset();
-
-         while( head )
-         {
-           pointer low= head;
-           pointer next= low->get_next();
-           while( next != nullptr )
-           {
-             if( cmp(next, low) )
-               low= next;
-
-             next= next->get_next();
-           }
-
-           if( low == head )
-             head= head->get_next();
-           else
-           {
-             if( low->get_next() != nullptr )
-               low->get_next()->_prev= low->_prev;
-             low->_prev->_next= low->get_next();
-           }
-
-           fifo(low);
-         }
-       }
-#endif
+       void sort( void )            // Sort the Links
+       { _Base::sort(); }
        }; // class DHDL_list<T>
 
 //----------------------------------------------------------------------------
@@ -525,7 +498,7 @@ template<class T>
 //
 // Implementation notes-
 //       TODO: Consider implementing move constructor and assignment.
-//       TODO: Consider actually implementing begin..end
+//       TODO: Consider implementing begin..end
 //
 //----------------------------------------------------------------------------
 template<class T>

@@ -17,7 +17,7 @@
 //       File management classes, conveniently packaged in one file.
 //
 // Last change date-
-//       2025/09/15
+//       2025/09/20
 //
 // Implementation note-
 //       Derived from Fileman.h
@@ -44,7 +44,7 @@ class Pool;
 //----------------------------------------------------------------------------
 //
 // Class-
-//       Data
+//       pub::data::Data
 //
 // Purpose-
 //       File data container.
@@ -64,7 +64,7 @@ bool                   _changed;    // File is changed
 bool                   _damaged;    // File is damaged
 
 //----------------------------------------------------------------------------
-// Data::Constructors/destructor
+// pub::data::Data::Constructors/Destructor
 //----------------------------------------------------------------------------
 public:
    Data( void );                    // Default constructor
@@ -76,13 +76,13 @@ public:
    ~Data( void );                   // Destructor
 
 //----------------------------------------------------------------------------
-// Data::debug | Display debugging information
+// pub::data::Data::debug | Display debugging information
 //----------------------------------------------------------------------------
 void
    debug(const char*   info= "") const; // Display debugging information
 
 //----------------------------------------------------------------------------
-// Data::Accessors
+// pub::data::Data::Accessors
 //----------------------------------------------------------------------------
 void
    change(                          // Set changed state
@@ -114,7 +114,7 @@ std::string                         // The path name (without the file)
 {  return _path; }
 
 //----------------------------------------------------------------------------
-// Data::Methods
+// pub::data::Data::Methods
 //----------------------------------------------------------------------------
 void
    close( void );                   // Close (empty) the Data
@@ -141,7 +141,7 @@ int                                 // Return code, 0 OK
 //----------------------------------------------------------------------------
 //
 // Struct-
-//       File
+//       pub::data::File
 //
 // Purpose-
 //       File information
@@ -149,18 +149,18 @@ int                                 // Return code, 0 OK
 //----------------------------------------------------------------------------
 struct File : public List<File>::Link { // File information
 //----------------------------------------------------------------------------
-// File::Typedefs and enumerations
+// pub::data::File::Typedefs and enumerations
 //----------------------------------------------------------------------------
 typedef struct stat    stat_t;      // struct stat type
 
 //----------------------------------------------------------------------------
-// File::Attributes
+// pub::data::File::Attributes
 //----------------------------------------------------------------------------
 const std::string      name;        // The file name (Does not include Path)
 const stat_t           st;          // The lstat info
 
 //----------------------------------------------------------------------------
-// File::Constructor/Destructor
+// pub::data::File::Constructor/Destructor
 //----------------------------------------------------------------------------
    File(                            // Constructor
      const stat_t&     _st,         // Stat descriptor
@@ -168,12 +168,18 @@ const stat_t           st;          // The lstat info
 :  name(_name), st(_st) {}
 
    ~File( void ) = default;         // Destructor
+
+//----------------------------------------------------------------------------
+// pub::data::File::operator <
+//----------------------------------------------------------------------------
+bool operator<(const File& that) const
+{  return name < that.name; }
 }; // struct File
 
 //----------------------------------------------------------------------------
 //
 // Struct-
-//       Line
+//       pub::data::Line
 //
 // Purpose-
 //       An immutable file line.
@@ -185,12 +191,12 @@ const stat_t           st;          // The lstat info
 //----------------------------------------------------------------------------
 struct Line : public DHDL_list<Line>::Link { // File line
 //----------------------------------------------------------------------------
-// Line::Attributes
+// pub::data::Line::Attributes
 //----------------------------------------------------------------------------
 const char*            text;        // The associated text
 
 //----------------------------------------------------------------------------
-// Line::Constructors/destructor
+// pub::data::Line::Constructors/Destructor
 //----------------------------------------------------------------------------
    Line(                            // Constructor
      const char*       _text)       // The associated text
@@ -202,7 +208,7 @@ const char*            text;        // The associated text
 //----------------------------------------------------------------------------
 //
 // Struct-
-//       Name
+//       pub::data::Name
 //
 // Purpose-
 //       File name information
@@ -210,7 +216,7 @@ const char*            text;        // The associated text
 //----------------------------------------------------------------------------
 struct Name {                       // File name information
 //----------------------------------------------------------------------------
-// Name::Attributes
+// pub::data::Name::Attributes
 //----------------------------------------------------------------------------
 typedef struct stat    stat_t;      // struct stat type
 
@@ -220,7 +226,7 @@ std::string            file_name;   // The file name (without path_name)
 std::string            path_name;   // The path name (without file_name)
 
 //----------------------------------------------------------------------------
-// Name::Constructor/Destructor
+// pub::data::Name::Constructor/Destructor
 //----------------------------------------------------------------------------
    Name(                            // Constructor
      std::string       full_name);  // The file name
@@ -230,8 +236,8 @@ std::string            path_name;   // The path name (without file_name)
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Name::get_file_name
-//       Name::get_path_name
+//       pub::data::Name::get_file_name
+//       pub::data::Name::get_path_name
 //
 // Purpose-
 //       Get file name part of (locally qualified) file name.
@@ -249,7 +255,7 @@ static std::string                  // The path part of (relative) full_name
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Name::reset
+//       pub::data::Name::reset
 //
 // Purpose-
 //       Reset the file name
@@ -262,7 +268,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Name::resolve
+//       pub::data::Name::resolve
 //
 // Purpose-
 //       Resolve links, converting file_part, path_part, and name.
@@ -279,7 +285,7 @@ std::string                         // The invalid path ("" if succesful)
 //----------------------------------------------------------------------------
 //
 // Struct-
-//       Path
+//       pub::data::Path
 //
 // Purpose-
 //       Path name information
@@ -287,13 +293,13 @@ std::string                         // The invalid path ("" if succesful)
 //----------------------------------------------------------------------------
 struct Path {                       // Path name information
 //----------------------------------------------------------------------------
-// Path::Attributes
+// pub::data::Path::Attributes
 //----------------------------------------------------------------------------
 const std::string      name;        // The path name (Locally qualified)
 List<File>             list;        // The (sorted) list of Files
 
 //----------------------------------------------------------------------------
-// Path::Constructors
+// pub::data::Path::Constructors/Destructor
 //----------------------------------------------------------------------------
    Path(                            // Constructor
      const std::string&_name);      // Path name (Locally qualified)
@@ -304,7 +310,7 @@ List<File>             list;        // The (sorted) list of Files
 //----------------------------------------------------------------------------
 //
 // Class-
-//       Pool
+//       pub::data::Pool
 //
 // Purpose-
 //       A storage Pool fragment
@@ -316,7 +322,7 @@ List<File>             list;        // The (sorted) list of Files
 //----------------------------------------------------------------------------
 class Pool : public DHDL_list<Pool>::Link { // Storage Pool fragment
 //----------------------------------------------------------------------------
-// Pool::Attributes
+// pub::data::Pool::Attributes
 //----------------------------------------------------------------------------
 protected:
 size_t                 used;        // Number of bytes used
@@ -324,7 +330,7 @@ size_t                 size;        // The total Pool size
 char*                  data;        // The Pool data area
 
 //----------------------------------------------------------------------------
-// Pool::Constructor/destructor
+// pub::data::Pool::Constructor/Destructor
 //----------------------------------------------------------------------------
 public:
    Pool(                            // Constructor
@@ -333,13 +339,13 @@ public:
    ~Pool( void );                   // Destructor
 
 //----------------------------------------------------------------------------
-// Pool::debug | Display debugging information
+// pub::data::Pool::debug | Display debugging information
 //----------------------------------------------------------------------------
 void
    debug(const char*   info= "") const; // Display debugging information
 
 //----------------------------------------------------------------------------
-// Pool::malloc | Allocate text from Pool
+// pub::data::Pool::malloc | Allocate text from Pool
 //----------------------------------------------------------------------------
 char*                               // Allocated storage (or nullptr)
    malloc(                          // Allocate storage

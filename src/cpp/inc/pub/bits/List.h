@@ -17,7 +17,7 @@
 //       ../List.h template definitions and internal base classes.
 //
 // Last change date-
-//       2025/05/05
+//       2025/09/20
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_BITS_LIST_H_INCLUDED
@@ -27,8 +27,6 @@
 **  Do not attempt to use it directly.
 **/
 #include <stdexcept>                // For std::domain_error
-
-#define USE_BASE_SORT false         // Use List<void>::sort : List<T>::sort
 
 #include <pub/utility.h>            // For pub::utility::checkstop
 
@@ -69,8 +67,8 @@ namespace __detail
      _Self* _next= nullptr;
      _Self* _prev= nullptr;
 
-     static void
-     swap(_Self& lhs, _Self& rhs) noexcept;
+     bool operator<(const _Self& that) const // (Default: sort by address)
+     { return this < &that; }
    }; // _BIDL_link
 
    /// Common parts of a bidirectional singly linked link
@@ -79,9 +77,6 @@ namespace __detail
    {
      typedef _BISL_link                       _Self;
      _Self* _link= nullptr;
-
-     static void
-     swap(_Self& lhs, _Self& rhs) noexcept;
    }; // _BISL_link
 
    /// Common parts of a forward link
@@ -89,9 +84,6 @@ namespace __detail
    {
      typedef _NEXT_link                       _Self;
      _Self* _next= nullptr;
-
-     static void
-     swap(_Self& lhs, _Self& rhs) noexcept;
    };
 
    /// Common parts of a reverse link
@@ -99,9 +91,6 @@ namespace __detail
    {
      typedef _PREV_link                       _Self;
      _Self* _prev= nullptr;
-
-     static void
-     swap(_Self& lhs, _Self& rhs) noexcept;
    };
 
    /// __detail::end: An end of list pseudo-link, used internally.
@@ -551,11 +540,6 @@ template<> class DHDL_list<void>
 
        typedef __detail::_BIDL_link           _Link;
 
-#if USE_BASE_SORT
-       typedef std::function<bool(const _Link*, const _Link*)>
-                                              _Comparator;
-#endif
-
      protected:
        //---------------------------------------------------------------------
        // DHDL_list<void>::Attributes
@@ -709,15 +693,47 @@ template<> class DHDL_list<void>
        //---------------------------------------------------------------------
        //
        // Method-
+       //       DHDL_list<void>::size
+       //
+       // Purpose-
+       //       Count the _Links
+       //
+       //---------------------------------------------------------------------
+       size_t                       // The _Link count
+         size( void ) const;        // Get the _Link count
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
        //       DHDL_list<void>::sort
        //
        // Purpose-
        //       Sort the List.
        //
        //---------------------------------------------------------------------
-#if USE_BASE_SORT
-       void sort(_Comparator less); // Sort the List using Comparitor
-#endif
+       void sort( void );           // Sort the Links
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       DHDL_list<void>::sort_split
+       //       DHDL_list<void>::sort_merge
+       //
+       // Purpose-
+       //       Split the _Link segment.
+       //       Merge the _Link segments.
+       //
+       //---------------------------------------------------------------------
+       _Link*                       // The set of removed _Links (head)
+         sort_split(                // Split the _Link set
+           _Link*&            top,  // INP: The head element
+                                    // OUT: The remaining _Links (tail)
+           size_t             N);   // The number of _Links to remove
+
+       std::pair<_Link*,_Link*>     // The combined {L,R} _Link set
+         sort_merge(                // Merge
+           _Link*             L,    // The left _Link set
+           _Link*             R);   // The Right _Link set
    }; // class DHDL_list<void>
 
 //----------------------------------------------------------------------------
