@@ -17,7 +17,7 @@
 //       File management classes, conveniently packaged in one file.
 //
 // Last change date-
-//       2025/09/20
+//       2025/09/23
 //
 // Implementation note-
 //       Derived from Fileman.h
@@ -31,7 +31,7 @@
 #include <sys/stat.h>               // For struct stat
 
 #include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
-#include <pub/List.h>               // For pub::DHDL_list, ...
+#include "pub/List.h"               // For pub::DHDL_list, ...
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 namespace data {
@@ -147,7 +147,7 @@ int                                 // Return code, 0 OK
 //       File information
 //
 //----------------------------------------------------------------------------
-struct File : public List<File>::Link { // File information
+struct File : public Sort_list<File>::Link { // File information
 //----------------------------------------------------------------------------
 // pub::data::File::Typedefs and enumerations
 //----------------------------------------------------------------------------
@@ -172,8 +172,11 @@ const stat_t           st;          // The lstat info
 //----------------------------------------------------------------------------
 // pub::data::File::operator <
 //----------------------------------------------------------------------------
-bool operator<(const File& that) const
-{  return name < that.name; }
+protected:
+virtual bool operator<(const Base& _that) const override
+{  const File* that= static_cast<const File*>(&_that);
+   return name < that->name;
+}
 }; // struct File
 
 //----------------------------------------------------------------------------
@@ -296,7 +299,7 @@ struct Path {                       // Path name information
 // pub::data::Path::Attributes
 //----------------------------------------------------------------------------
 const std::string      name;        // The path name (Locally qualified)
-List<File>             list;        // The (sorted) list of Files
+SORT_list<File>        list;        // The (sorted) list of Files
 
 //----------------------------------------------------------------------------
 // pub::data::Path::Constructors/Destructor

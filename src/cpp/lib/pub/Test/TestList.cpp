@@ -17,18 +17,14 @@
 //       List tests.
 //
 // Last change date-
-//       2025/09/20
+//       2025/09/23
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std:: (In-place operator new)
 #include <cassert>                  // For assert
-#include <cstdio>
-#include <cstring>
-#include <cstdlib>
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include "pub/List.h"               // For pub::List, tested
-
 #include "pub/TEST.H"               // For VERIFY, ...
 #include "pub/Wrapper.h"            // For class Wrapper
 
@@ -38,6 +34,7 @@ using PUB::AI_list;
 using PUB::DHDL_list;
 using PUB::DHSL_list;
 using PUB::SHSL_list;
+using PUB::SORT_list;
 using PUB::List;
 using PUB::Wrapper;
 
@@ -883,18 +880,21 @@ static int
 //
 //----------------------------------------------------------------------------
 struct SORT_block
-:  public Prefix, public List<SORT_block>::Link, public Suffix {
+:  public Prefix, public SORT_list<SORT_block>::Link, public Suffix {
 typedef SORT_block     _Self;
+unsigned               index;
 
-bool operator<(const _Self& that)
-{  return index < that.index; }
-
-int                    index;
-}; // class SORT_block
+protected:
+virtual bool operator<(const Base& _that) const override
+{
+   const _Self* that= static_cast<const _Self*>(&_that);
+   return index < that->index;
+}
+}; // struct SORT_block
 
 static void
    show_SORT(                       // Display a list
-     List<SORT_block>* anchor)      // The list anchor
+     SORT_list<SORT_block>* anchor) // The list anchor
 {
    if( opt_verbose ) {
      debugf("List:");
@@ -922,14 +922,21 @@ static int
 {
    int error_count= 0;
 
-   SORT_block          sort_data[DIM];
-   List<SORT_block>    sort_list;
+   SORT_block                       sort_data[DIM];
+   SORT_list<SORT_block>            sort_list;
 
    if( opt_verbose ) {
+     struct SORT_LINK : public SORT_list<SORT_LINK>::Link {
+       virtual bool operator<(const Base& that) const override
+       { return this < &that; }
+     };
+     SORT_list<SORT_LINK> sort_list;
+     SORT_LINK sort_link;
+
      debugf("\n");
      debugf("SORT Storage:\n");
-     debugf("%8zd Sizeof(SORT_list)\n", sizeof(List<SORT_block>));
-     debugf("%8zd Sizeof(SORT_link)\n", sizeof(List<SORT_block>::Link));
+     debugf("%8zd Sizeof(SORT_list)\n", sizeof(sort_list));
+     debugf("%8zd Sizeof(SORT_link)\n", sizeof(sort_link));
    }
 
    //-------------------------------------------------------------------------
@@ -939,22 +946,22 @@ static int
      debugf("\n");
      debugf("SORT test:\n");
    }
-   for(int i=0; i<DIM; i++) {
-     sort_data[i].index= i + 1;
-     sort_list.fifo(&sort_data[DIM - i - 1]);
+   for(unsigned i=0; i<DIM; i++) {
+     sort_data[i].index= DIM - i;
+     sort_list.fifo(&sort_data[i]);
    }
    show_SORT(&sort_list);
 
    sort_list.sort();
    show_SORT(&sort_list);
 
-   int index= 1;
+   unsigned index= 1;
    for(auto it= sort_list.begin(); it != sort_list.end(); ++it) {
      error_count += VERIFY( index == it->index );
      index++;
    }
 
-   for(int i=0; i<DIM; i++)
+   for(unsigned i=0; i<DIM; i++)
      error_count += VERIFY( sort_list.is_on_list(&sort_data[i]) );
    error_count += VERIFY( sort_list.is_coherent() );
    sort_list.reset();

@@ -17,7 +17,7 @@
 //       Describe the List objects.
 //
 // Last change date-
-//       2025/09/20
+//       2025/09/23
 //
 // Implementation notes-
 //       "Link set" refers to the set of Links owned by a List.
@@ -292,6 +292,10 @@ template<class T>
        const_iterator end()   const noexcept { return const_iterator(); }
 
        void
+         debug(const char* info= "") const // Debugging display
+       { _Base::debug(info); }
+
+       void
          fifo(                      // Insert (FIFO order)
            pointer           link)  // -> Link to insert
        { _Base::fifo(link); }
@@ -362,20 +366,8 @@ template<class T>
        { return static_cast<pointer>(_Base::reset()); }
 
        size_t                       // The _Link count
-         size( void ) const        // Get the _Link count
+         size( void ) const         // Get the _Link count
        { return _Base::size(); }
-
-       /** *******************************************************************
-         @brief Sort the DHDL_list
-
-         Sorts the list using using "Link::operator<(const Link& that) const"
-         to compare Links.
-         Note: Method DHDL_list<void> Link::operator<() compares Link address.
-
-         Implementation note: Uses the Merge sort algorithm.
-       ******************************************************************* **/
-       void sort( void )            // Sort the Links
-       { _Base::sort(); }
        }; // class DHDL_list<T>
 
 //----------------------------------------------------------------------------
@@ -598,12 +590,173 @@ template<class T>
 //----------------------------------------------------------------------------
 //
 // Class-
-//       List<T>
+//       SORT_list<T>
+//
+// Purpose-
+//       Typed SORT_list object, where T is of class SORT_list<T>::Link.
+//
+// Implementation notes-
+//       TODO: Consider implementing move constructor and assignment.
+//
+//----------------------------------------------------------------------------
+template<class T>
+   class SORT_list : public SORT_list<void>
+   {
+     public:
+       typedef T                              value_type;
+       typedef T*                             pointer;
+       typedef T&                             reference;
+       typedef _SORT_const_iter<value_type>   const_iterator;
+       typedef _SORT_iter<value_type>         iterator;
+       typedef SORT_list<void>                _Base;
+
+       class Link : protected _Link
+       {
+         friend class SORT_list;
+         public:
+           typedef SORT_list<void>::_Link      Base;
+
+           pointer get_next( void ) const
+           { return static_cast<pointer>(_next); }
+
+           pointer get_prev( void ) const
+           { return static_cast<pointer>(_prev); }
+
+           // OVERRIDE this method
+           virtual bool operator<(const Base& that) const override = 0;
+       }; // class SORT_list<T>::Link
+
+       //---------------------------------------------------------------------
+       // SORT_list<T>::Constructors/Destructor
+       //---------------------------------------------------------------------
+       SORT_list( void ) = default;
+       SORT_list(const SORT_list<T>&) = delete; // *NO* copy constructor
+       SORT_list(SORT_list<T>&&) = delete; // *NO* move constructor
+
+       ~SORT_list( void ) = default;
+
+       //---------------------------------------------------------------------
+       // SORT_list<T>::Operators
+       //---------------------------------------------------------------------
+       SORT_list& operator=(const SORT_list<T>&) = delete; // *NO* copy
+       SORT_list& operator=(SORT_list<T>&&) = delete; // *NO* move assignment
+
+       //---------------------------------------------------------------------
+       // SORT_list<T>::Methods
+       //---------------------------------------------------------------------
+             iterator begin()       noexcept { return iterator(this); }
+       const_iterator begin() const noexcept { return const_iterator(this); }
+             iterator end()         noexcept { return iterator(); }
+       const_iterator end()   const noexcept { return const_iterator(); }
+
+       void
+         debug(const char* info= "") const // Debugging display
+       { _Base::debug(info); }
+
+       void
+         fifo(                      // Insert (FIFO order)
+           pointer           link)  // -> Link to insert
+       { _Base::fifo(link); }
+
+       pointer                      // -> Head pointer on List
+         get_head( void ) const     // Get head link
+       {  return static_cast<pointer>(_head); }
+
+       pointer                      // -> Tail pointer on List
+         get_tail( void ) const     // Get tail link
+       {  return static_cast<pointer>(_tail); }
+
+       /** *******************************************************************
+         @brief Insert link at position.
+
+         @param link The Link *before* the insert position, nullptr for head.
+         @param head The first Link to insert.
+         @param tail The last Link to insert.
+
+         Preconditions: The head to tail chain must be well-formed.
+         Postcondition: link->_next == head, head->_prev == link,
+                        tail->_next == link->next, tail->_next->_prev == tail
+       ******************************************************************* **/
+       void
+         insert(                    // Insert at position,
+           pointer                after, // -> Link to insert after
+           pointer                head, // -> First Link to insert
+           pointer                tail) // -> Final Link to insert
+       { _Base::insert(after, head, tail); }
+
+       void
+         insert(                    // Insert at position,
+           pointer                after, // -> Link to insert after
+           pointer                link) // -> The Link to insert
+       { _Base::insert(after, link, link); }
+
+       bool                         // TRUE if the object is coherent
+         is_coherent( void ) const  // Coherency check
+       { return _Base::is_coherent(); }
+
+       bool                         // TRUE if link is contained
+         is_on_list(                // Is Link contained?
+           pointer                link) const  // -> Link
+       { return _Base::is_on_list(link); }
+
+       void
+         lifo(                      // Insert (LIFO order)
+           pointer                link) // -> Link to insert
+       { _Base::lifo(link); }
+
+       void
+         remove(                    // Remove from list
+           pointer                head, // -> First Link to remove
+           pointer                tail) // -> Final Link to remove
+       { _Base::remove(head, tail); }
+
+       void
+         remove(                    // Remove from list
+           pointer                link) // -> The Link to remove
+       { _Base::remove(link, link); }
+
+       pointer                      // Removed pointer
+         remq( void )               // Remove head link
+       { return static_cast<pointer>(_Base::remq()); }
+
+       pointer                      // -> The set of removed Links
+         reset( void )              // Reset (empty) the List
+       { return static_cast<pointer>(_Base::reset()); }
+
+       size_t                       // The _Link count
+         size( void ) const         // Get the _Link count
+       { return _Base::size(); }
+
+       /** *******************************************************************
+         @brief Sort the SORT_list
+
+         Sorts the list using the Merge sort algorithm and using
+         "Link::operator<(const Link& that) const" to compare Links.
+       ******************************************************************* **/
+       void sort( void )            // Sort the Links
+       { _Base::sort(); }
+       }; // class SORT_list<T>
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       List<T> (Alias of DHDL_list)
 //
 // Purpose-
 //       Typed List object, where T is of class List<T>::Link.
 //
 //----------------------------------------------------------------------------
 template<class T> class List : public DHDL_list<T> {};
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       Sort_list<T> (Alias of SORT_list)
+//
+// Purpose-
+//       Typed Sort_list object, where T is of class Sort_list<T>::Link.
+//
+//----------------------------------------------------------------------------
+template<class T> class Sort_list : public SORT_list<T> {};
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_LIST_H_INCLUDED

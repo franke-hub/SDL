@@ -17,7 +17,7 @@
 //       Data.h object methods
 //
 // Last change date-
-//       2025/09/20
+//       2025/09/23
 //
 // Implementation note-
 //       Derived from Fileman.cpp
@@ -617,7 +617,7 @@ std::string                         // The invalid path ("" if none)
    //-------------------------------------------------------------------------
    // Sort the list
    //-------------------------------------------------------------------------
-    list.sort();
+   list.sort();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
