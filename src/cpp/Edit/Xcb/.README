@@ -16,7 +16,7 @@
 ##       EDITOR README information file. (XCB version)
 ##
 ## Last change date-
-##       2025/08/16
+##       2025/10/01
 ##
 ## Implementation notes-
 ##       See ".USAGE.md" for usage and implementation information.
@@ -26,14 +26,19 @@
 
 ##############################################################################
 ## STATUS:
-2025/08/16 Fully operational, but with 1 open problem.
+2025/10/01 Fully operational, but with 1 open problem.
          In production. Ongoing documentation update.
 
 ##############################################################################
 ## OPEN:
 2025/04/16 xcbedit/xtmedit Don't handle some UTF characters correctly.
-           We rely on XCB or NCURSES to handle the characters but they don't
-           handle some of them.
+         We rely on XCB or NCURSES to handle the characters but some of them
+         aren't handled properly.
+
+##############################################################################
+## TODO:
+2025/09/23 EdOuts.cpp (Xcb/Term)
+         When file is editable, use EDIT in title. When protected, use VIEW.
 
 ##############################################################################
 ## CHANGE LOG:
