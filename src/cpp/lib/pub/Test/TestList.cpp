@@ -17,7 +17,7 @@
 //       List tests.
 //
 // Last change date-
-//       2025/09/23
+//       2025/09/29
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std:: (In-place operator new)
@@ -47,8 +47,9 @@ enum
 
 ,  DIM= 12, MID= DIM/2              // Array size. Use: 9 < DIM < 100
 };
+#define SHOW_BEGIN_END true         // Show begin/end list iteration?
+#define SHOW_LINK_ITER false        // Show list iteration via link?
 #define USE_ERROR_CHECK false       // Run type checking? (Cause compile errors)
-#define USE_BEGIN_END   true        // Use begin()/end() logic?
 
 //----------------------------------------------------------------------------
 //
@@ -174,14 +175,13 @@ static void
                        anchor)      // The list anchor
 {
    if( opt_verbose ) {
+// #if SHOW_LINK_ITER               // Show list iteration via link?
      debugf("List:");
-     AI_block* link= anchor->get_tail();
-     while( link != nullptr ) {
-       debugf(" %2d", link->index);
-       link= link->get_prev();
+     for(auto it= anchor->get_tail(); it; it= it->get_prev()) {
+       debugf(" %2d", it->index);
      }
-
      debugf("\n");
+// #endif
    }
 }
 
@@ -227,7 +227,7 @@ static int
    ai_list.reset(nullptr);
 
    //-------------------------------------------------------------------------
-   // AI iterator test
+   // AI_iter test
    //-------------------------------------------------------------------------
    if( opt_verbose ) {
      debugf("\n");
@@ -281,13 +281,13 @@ static int
 //       Test List.h, DHDL_list (a.k.a. List)
 //
 //----------------------------------------------------------------------------
-#if true // Working version 1, complex, and Link is not first base class
+#if true // Working version 1. First base class has virtual methods.
 struct DHDL_block :  public Vclass
 ,  public Prefix, public DHDL_list<DHDL_block>::Link, public Suffix {
 int                    index;
 }; // class DHDL_block
 
-#elif true // Working version 2, simple, but Link is not first base class
+#elif true // Working version 2. Link is not first base class.
 struct DHDL_block
 :  public Prefix, public DHDL_list<DHDL_block>::Link, public Suffix {
 int                    index;
@@ -300,20 +300,21 @@ static void
                        anchor)      // The list anchor
 {
    if( opt_verbose ) {
+#if SHOW_BEGIN_END                  // Show begin/end list iteration?
      debugf("List:");
-#if USE_BEGIN_END
      for(auto it= anchor->begin(); it != anchor->end(); ++it) {
        debugf(" %2d", it->index);
      }
-#else
-     DHDL_block* link= anchor->get_head(); // Get head element
-     while( link != nullptr ) {
-       debugf(" %2d", link->index);
-       link= link->get_next();
-     }
+     debugf("\n");
 #endif
 
+#if SHOW_LINK_ITER                  // Show list iteration via link?
+     debugf("List:");
+     for(auto it= anchor->get_head(); it; it= it->get_next()) {
+       debugf(" %2d", it->index);
+     }
      debugf("\n");
+#endif
    }
 }
 
@@ -324,21 +325,21 @@ static void
      DHDL_block*       removed)     // The removed link
 {
    if( opt_verbose ) {
+#if SHOW_BEGIN_END                  // Show begin/end list iteration?
      debugf("List:");
-#if USE_BEGIN_END
      for(auto it= anchor->begin(); it != anchor->end(); ++it) {
        debugf(" %2d", it->index);
      }
-#else
-     DHDL_block* link= anchor->get_head(); // Get head element
-     while( link != nullptr ) {
-       debugf(" %2d", link->index);
-       link= link->get_next();
-     }
+     debugf(" --(%2d)\n", removed->index);
 #endif
 
-     debugf(" --(%2d)", removed->index);
-     debugf("\n");
+#if SHOW_LINK_ITER                  // Show list iteration via link?
+     debugf("List:");
+     for(auto it= anchor->get_head(); it; it= it->get_next()) {
+       debugf(" %2d", it->index);
+     }
+     debugf(" --(%2d)\n", removed->index);
+#endif
    }
 }
 
@@ -584,14 +585,21 @@ static void
                        anchor)      // The list anchor
 {
    if( opt_verbose ) {
+#if SHOW_BEGIN_END                  // Show begin/end list iteration?
      debugf("List:");
-     DHSL_block* link= anchor->get_head(); // Get head element
-     while( link != nullptr ) {
-       debugf(" %2d", link->index);
-       link= link->get_next();
+     for(auto it= anchor->begin(); it != anchor->end(); ++it) {
+       debugf(" %2d", it->index);
      }
-
      debugf("\n");
+#endif
+
+#if SHOW_LINK_ITER                  // Show list iteration via link?
+     debugf("List:");
+     for(auto it= anchor->get_head(); it; it= it->get_next()) {
+       debugf(" %2d", it->index);
+     }
+     debugf("\n");
+#endif
    }
 }
 
@@ -602,15 +610,23 @@ static void
      DHSL_block*       removed)     // The removed link
 {
    if( opt_verbose ) {
+#if SHOW_BEGIN_END                  // Show begin/end list iteration?
      debugf("List:");
-     DHSL_block* link= anchor->get_head(); // Get head element
-     while( link != nullptr ) {
-       debugf(" %2d", link->index);
-       link= link->get_next();
+     for(auto it= anchor->begin(); it != anchor->end(); ++it) {
+       debugf(" %2d", it->index);
      }
-
      debugf(" --(%2d)", removed->index);
      debugf("\n");
+#endif
+
+#if SHOW_LINK_ITER                  // Show list iteration via link?
+     debugf("List:");
+     for(auto it= anchor->get_head(); it; it= it->get_next()) {
+       debugf(" %2d", it->index);
+     }
+     debugf(" --(%2d)", removed->index);
+     debugf("\n");
+#endif
    }
 }
 
@@ -689,7 +705,7 @@ static int
    error_count += VERIFY( dhsl_list.is_coherent() );
 
    //-------------------------------------------------------------------------
-   // DHSL iterator test
+   // DHSL_iter test
    //-------------------------------------------------------------------------
    if( opt_verbose ) {
      debugf("\n");
@@ -714,7 +730,6 @@ static int
    }
    if( opt_verbose )
      debugf("\n");
-
    for(int i=0; i<DIM; i++)
      error_count += VERIFY( dhsl_list.is_on_list(&dhsl_data[i]) );
    error_count += VERIFY( dhsl_list.is_coherent() );
@@ -744,20 +759,21 @@ static void
                        anchor)      // The list anchor
 {
    if( opt_verbose ) {
+#if SHOW_BEGIN_END                  // Show begin/end list iteration?
      debugf("List:");
-#if USE_BEGIN_END
      for(auto it= anchor->begin(); it != anchor->end(); ++it) {
        debugf(" %2d", it->index);
      }
-#else
-     SHSL_block* link= anchor->get_tail(); // Get tail element
-     while( link != nullptr ) {
-       debugf(" %2d", link->index);
-       link= link->get_prev();
-     }
+     debugf("\n");
 #endif
 
+#if SHOW_LINK_ITER                  // Show list iteration via link?
+     debugf("List:");
+     for(auto it= anchor->get_tail(); it; it= it->get_prev()) {
+       debugf(" %2d", it->index);
+     }
      debugf("\n");
+#endif
    }
 }
 
@@ -768,21 +784,23 @@ static void
      SHSL_block*       removed)     // The removed link
 {
    if( opt_verbose ) {
+#if SHOW_BEGIN_END                  // Show begin/end list iteration?
      debugf("List:");
-#if USE_BEGIN_END
      for(auto it= anchor->begin(); it != anchor->end(); ++it) {
        debugf(" %2d", it->index);
      }
-#else
-     SHSL_block* link= anchor->get_tail(); // Get tail element
-     while( link != nullptr ) {
-       debugf(" %2d", link->index);
-       link= link->get_prev();
-     }
-#endif
-
      debugf(" --(%2d)", removed->index);
      debugf("\n");
+#endif
+
+#if SHOW_LINK_ITER                  // Show list iteration via link?
+     debugf("List:");
+     for(auto it= anchor->get_tail(); it; it= it->get_prev()) {
+       debugf(" %2d", it->index);
+     }
+     debugf(" --(%2d)", removed->index);
+     debugf("\n");
+#endif
    }
 }
 
@@ -836,7 +854,7 @@ static int
    error_count += VERIFY( shsl_list.is_coherent() );
 
    //-------------------------------------------------------------------------
-   // SHSL ITER test
+   // SHSL_iter test
    //-------------------------------------------------------------------------
    if( opt_verbose ) {
      debugf("\n");
@@ -876,7 +894,16 @@ static int
 //       test_SORT
 //
 // Purpose-
-//       Test List.h, List::sort
+//       Test List.h, SORT_list
+//
+// Implementation notes-
+//       The SORT_list's Link requires a virtual operator<() method. This adds
+//       a virtual function table pointer to each Link. Rather than increasing
+//       the size of DHDL_list links, we duplicate the DHDL_list methods in
+//       SORT_list. Many DHDL_lists do not need to be sorted.
+//
+//       For regression testing completeness, we also duplicate the associated
+//       DHDL_list method tests here.
 //
 //----------------------------------------------------------------------------
 struct SORT_block
@@ -894,23 +921,50 @@ virtual bool operator<(const Base& _that) const override
 
 static void
    show_SORT(                       // Display a list
-     SORT_list<SORT_block>* anchor) // The list anchor
+     SORT_list<SORT_block>*
+                       anchor)      // The list anchor
 {
    if( opt_verbose ) {
+#if SHOW_BEGIN_END                  // Show begin/end list iteration?
      debugf("List:");
-#if USE_BEGIN_END
      for(auto it= anchor->begin(); it != anchor->end(); ++it) {
        debugf(" %2d", it->index);
      }
-#else
-     SORT_block* link= anchor->get_head(); // Get head element
-     while( link != nullptr ) {
-       debugf(" %2d", link->index);
-       link= link->get_next();
-     }
+     debugf("\n");
 #endif
 
+#if SHOW_LINK_ITER                  // Show list iteration via link?
+     debugf("List:");
+     for(auto it= anchor->get_head(); it; it= it->get_next()) {
+       debugf(" %2d", it->index);
+     }
      debugf("\n");
+#endif
+   }
+}
+
+static void
+   show_SORT(                       // Display a list
+     SORT_list<SORT_block>*
+                       anchor,      // The list anchor
+     SORT_block*       removed)     // The removed link
+{
+   if( opt_verbose ) {
+#if SHOW_BEGIN_END                  // Show begin/end list iteration?
+     debugf("List:");
+     for(auto it= anchor->begin(); it != anchor->end(); ++it) {
+       debugf(" %2d", it->index);
+     }
+     debugf(" --(%2d)\n", removed->index);
+#endif
+
+#if SHOW_LINK_ITER                  // Show list iteration via link?
+     debugf("List:");
+     for(auto it= anchor->get_head(); it; it= it->get_next()) {
+       debugf(" %2d", it->index);
+     }
+     debugf(" --(%2d)\n", removed->index);
+#endif
    }
 }
 
@@ -924,27 +978,221 @@ static int
 
    SORT_block                       sort_data[DIM];
    SORT_list<SORT_block>            sort_list;
+   SORT_block*                      sort_link;
 
-   if( opt_verbose ) {
-     struct SORT_LINK : public SORT_list<SORT_LINK>::Link {
-       virtual bool operator<(const Base& that) const override
-       { return this < &that; }
-     };
-     SORT_list<SORT_LINK> sort_list;
-     SORT_LINK sort_link;
-
+   if( opt_verbose > 1 ) {
      debugf("\n");
      debugf("SORT Storage:\n");
-     debugf("%8zd Sizeof(SORT_list)\n", sizeof(sort_list));
-     debugf("%8zd Sizeof(SORT_link)\n", sizeof(sort_link));
+     debugf("%8zd Sizeof(SORT_list)\n", sizeof(SORT_list<SORT_block>));
+     debugf("%8zd Sizeof(SORT_link)\n", sizeof(SORT_list<SORT_block>::Link));
+
+     debugf("\n");
+     debugf("Empty SORT_list:\n");
+     show_SORT(&sort_list);
    }
 
    //-------------------------------------------------------------------------
-   // SORT test
+   // SORT LIFO test
    //-------------------------------------------------------------------------
    if( opt_verbose ) {
      debugf("\n");
-     debugf("SORT test:\n");
+     debugf("SORT_LIFO test (1..%d):\n", DIM);
+   }
+   for(int i=0; i<DIM; i++) {
+     sort_data[i].index= i + 1;
+     sort_list.lifo(&sort_data[i]);
+     show_SORT(&sort_list);
+   }
+   for(int i=0; i<DIM; i++)
+     error_count += VERIFY( sort_list.is_on_list(&sort_data[i]) );
+   error_count += VERIFY( sort_list.is_coherent() );
+
+   for(;;) {
+     sort_link= sort_list.remq();
+     if( sort_link == nullptr )
+       break;
+     show_SORT(&sort_list, sort_link);
+   }
+   for(int i=0; i<DIM; i++)
+     error_count += VERIFY( !sort_list.is_on_list(&sort_data[i]) );
+   error_count += VERIFY( sort_list.is_coherent() );
+
+   //-------------------------------------------------------------------------
+   // SORT FIFO test
+   //-------------------------------------------------------------------------
+   if( opt_verbose ) {
+     debugf("\n");
+     debugf("SORT_FIFO test:\n");
+   }
+   for(int i=0; i<DIM; i++) {
+     sort_list.fifo(&sort_data[i]);
+     show_SORT(&sort_list);
+   }
+   for(int i=0; i<DIM; i++)
+     error_count += VERIFY( sort_list.is_on_list(&sort_data[i]) );
+   error_count += VERIFY( sort_list.is_coherent() );
+
+   for(;;) {
+     sort_link= sort_list.remq();
+     if( sort_link == nullptr )
+       break;
+     show_SORT(&sort_list, sort_link);
+   }
+   for(int i=0; i<DIM; i++)
+     error_count += VERIFY( !sort_list.is_on_list(&sort_data[i]) );
+   error_count += VERIFY( sort_list.is_coherent());
+
+   //-------------------------------------------------------------------------
+   // SORT_iter test
+   //-------------------------------------------------------------------------
+   if( opt_verbose ) {
+     debugf("\n");
+     debugf("SORT_iter test:\nIter:");
+   }
+   for(int i=0; i<DIM; i++) {
+     sort_list.fifo(&sort_data[i]);
+   }
+   unsigned ix= 1;
+   for(auto it= sort_list.begin(); it != sort_list.end(); ++it) {
+     if( opt_verbose )
+       debugf(" %2d", it->index);
+
+     sort_link= it.get();
+     error_count += VERIFY( it->index == ix );
+     error_count += VERIFY( sort_link->index == ix );
+     ++ix;
+   }
+   if( opt_verbose )
+     debugf("\n");
+
+   for(int i=0; i<DIM; i++)
+     error_count += VERIFY( sort_list.is_on_list(&sort_data[i]) );
+   error_count += VERIFY( sort_list.is_coherent());
+   sort_list.reset();
+
+   //-------------------------------------------------------------------------
+   // SORT remove/insert specific
+   //-------------------------------------------------------------------------
+   if( opt_verbose ) {
+     debugf("\n");
+     debugf("SORT_REMOVE(position) test:\n");
+   }
+   for(int i=0; i<DIM; i++)
+     sort_list.fifo(&sort_data[i]);
+   show_SORT(&sort_list);
+
+   if( opt_verbose ) {
+     debugf("\n");
+     debugf("SORT_REMOVE(1) test:\n");
+   }
+   sort_link= &sort_data[1-1];
+   sort_list.remove(sort_link, sort_link);
+   show_SORT(&sort_list, sort_link);
+   error_count += VERIFY( !sort_list.is_on_list(&sort_data[1-1]) );
+   error_count += VERIFY( sort_list.is_coherent() );
+
+   if( opt_verbose ) {
+     debugf("\n");
+     debugf("SORT_REMOVE(5) test:\n");
+   }
+   sort_link= &sort_data[5-1];
+   sort_list.remove(sort_link, sort_link);
+   show_SORT(&sort_list, sort_link);
+   error_count += VERIFY( !sort_list.is_on_list(&sort_data[5-1]) );
+   error_count += VERIFY( sort_list.is_coherent() );
+
+   if( opt_verbose ) {
+     debugf("\n");
+     debugf("SORT_REMOVE(%d) test:\n", DIM);
+   }
+   sort_link= &sort_data[DIM-1];
+   sort_list.remove(sort_link, sort_link);
+   show_SORT(&sort_list, sort_link);
+   error_count += VERIFY( !sort_list.is_on_list(&sort_data[DIM-1]) );
+   error_count += VERIFY( sort_list.is_coherent() );
+
+   if( opt_verbose ) {
+     debugf("\n");
+     debugf("SORT_INSERT(1) at head:\n");
+   }
+   sort_list.insert(nullptr, &sort_data[1-1], &sort_data[1-1]);
+   show_SORT(&sort_list);
+   error_count += VERIFY( sort_list.is_on_list(&sort_data[1-1]) );
+   error_count += VERIFY( sort_list.is_coherent() );
+
+   if( opt_verbose ) {
+     debugf("\n");
+     debugf("SORT_INSERT(%d) at tail:\n", DIM);
+   }
+   sort_list.insert(sort_list.get_tail(), &sort_data[DIM-1], &sort_data[DIM-1]);
+   show_SORT(&sort_list);
+   error_count += VERIFY( sort_list.is_on_list(&sort_data[DIM-1]) );
+   error_count += VERIFY( sort_list.is_coherent() );
+
+   if( opt_verbose ) {
+     debugf("\n");
+     debugf("SORT_INSERT(5) after(4):\n");
+   }
+   sort_list.insert(&sort_data[4-1], &sort_data[5-1], &sort_data[5-1]);
+   show_SORT(&sort_list);
+   error_count += VERIFY( sort_list.is_on_list(&sort_data[5-1]) );
+   error_count += VERIFY( sort_list.is_coherent() );
+
+   if( opt_verbose ) {
+     debugf("\n");
+     debugf("SORT_REMOVE(5..8):\n");
+   }
+   sort_list.remove(&sort_data[5-1], &sort_data[8-1]);
+   show_SORT(&sort_list);
+   error_count += VERIFY(  sort_list.is_on_list(&sort_data[4-1]) );
+   error_count += VERIFY( !sort_list.is_on_list(&sort_data[5-1]) );
+   error_count += VERIFY( !sort_list.is_on_list(&sort_data[6-1]) );
+   error_count += VERIFY( !sort_list.is_on_list(&sort_data[7-1]) );
+   error_count += VERIFY( !sort_list.is_on_list(&sort_data[8-1]) );
+   error_count += VERIFY(  sort_list.is_on_list(&sort_data[9-1]) );
+   error_count += VERIFY(  sort_list.is_coherent() );
+
+   if( opt_verbose ) {
+     debugf("\n");
+     debugf("SORT_INSERT(5..8):\n");
+   }
+   sort_list.insert(&sort_data[4-1], &sort_data[5-1], &sort_data[8-1]);
+   show_SORT(&sort_list);
+   error_count += VERIFY( sort_list.is_on_list(&sort_data[4-1]) );
+   error_count += VERIFY( sort_list.is_on_list(&sort_data[5-1]) );
+   error_count += VERIFY( sort_list.is_on_list(&sort_data[6-1]) );
+   error_count += VERIFY( sort_list.is_on_list(&sort_data[7-1]) );
+   error_count += VERIFY( sort_list.is_on_list(&sort_data[8-1]) );
+   error_count += VERIFY( sort_list.is_on_list(&sort_data[9-1]) );
+   error_count += VERIFY( sort_list.is_coherent() );
+
+   if( opt_verbose ) {
+     debugf("\n");
+     debugf("SORT_REMOVE(1..%d):\n", DIM);
+   }
+   sort_list.remove(&sort_data[1-1], &sort_data[DIM-1]);
+   show_SORT(&sort_list);
+   for(int i=0; i<DIM; i++)
+     error_count += VERIFY( !sort_list.is_on_list(&sort_data[i]) );
+   error_count += VERIFY( sort_list.is_coherent() );
+
+   if( opt_verbose ) {
+     debugf("\n");
+     debugf("SORT_INSERT(1..%d):\n", DIM);
+   }
+   sort_list.insert(nullptr, &sort_data[1-1], &sort_data[DIM-1]);
+   show_SORT(&sort_list);
+   for(int i=0; i<DIM; i++)
+     error_count += VERIFY( sort_list.is_on_list(&sort_data[i]) );
+   error_count += VERIFY( sort_list.is_coherent() );
+   sort_list.reset();
+
+   //-------------------------------------------------------------------------
+   // SORT sort method test
+   //-------------------------------------------------------------------------
+   if( opt_verbose ) {
+     debugf("\n");
+     debugf("SORT sort method test:\n");
    }
    for(unsigned i=0; i<DIM; i++) {
      sort_data[i].index= DIM - i;
@@ -1031,7 +1279,6 @@ int
    {
      if( opt_verbose ) {
        debugf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
-       debugf("USE_BEGIN_END(%s)\n", USE_BEGIN_END ? "true" : "false");
      }
 
      int error_count= 0;
