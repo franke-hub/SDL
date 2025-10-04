@@ -17,7 +17,7 @@
 //       List tests.
 //
 // Last change date-
-//       2025/09/29
+//       2025/10/04
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std:: (In-place operator new)
@@ -32,9 +32,9 @@
 using namespace PUB::debugging;     // For debugf, ...
 using PUB::AI_list;
 using PUB::DHDL_list;
+using PUB::DHDL_sort;
 using PUB::DHSL_list;
 using PUB::SHSL_list;
-using PUB::SORT_list;
 using PUB::List;
 using PUB::Wrapper;
 
@@ -894,20 +894,20 @@ static int
 //       test_SORT
 //
 // Purpose-
-//       Test List.h, SORT_list
+//       Test List.h, DHDL_sort
 //
 // Implementation notes-
-//       The SORT_list's Link requires a virtual operator<() method. This adds
+//       The DHDL_sort's Link requires a virtual operator<() method. This adds
 //       a virtual function table pointer to each Link. Rather than increasing
 //       the size of DHDL_list links, we duplicate the DHDL_list methods in
-//       SORT_list. Many DHDL_lists do not need to be sorted.
+//       DHDL_sort. Many DHDL_lists do not need to be sorted.
 //
 //       For regression testing completeness, we also duplicate the associated
 //       DHDL_list method tests here.
 //
 //----------------------------------------------------------------------------
 struct SORT_block
-:  public Prefix, public SORT_list<SORT_block>::Link, public Suffix {
+:  public Prefix, public DHDL_sort<SORT_block>::Link, public Suffix {
 typedef SORT_block     _Self;
 unsigned               index;
 
@@ -921,7 +921,7 @@ virtual bool operator<(const Base& _that) const override
 
 static void
    show_SORT(                       // Display a list
-     SORT_list<SORT_block>*
+     DHDL_sort<SORT_block>*
                        anchor)      // The list anchor
 {
    if( opt_verbose ) {
@@ -945,7 +945,7 @@ static void
 
 static void
    show_SORT(                       // Display a list
-     SORT_list<SORT_block>*
+     DHDL_sort<SORT_block>*
                        anchor,      // The list anchor
      SORT_block*       removed)     // The removed link
 {
@@ -977,17 +977,17 @@ static int
    int error_count= 0;
 
    SORT_block                       sort_data[DIM];
-   SORT_list<SORT_block>            sort_list;
+   DHDL_sort<SORT_block>            sort_list;
    SORT_block*                      sort_link;
 
    if( opt_verbose > 1 ) {
      debugf("\n");
      debugf("SORT Storage:\n");
-     debugf("%8zd Sizeof(SORT_list)\n", sizeof(SORT_list<SORT_block>));
-     debugf("%8zd Sizeof(SORT_link)\n", sizeof(SORT_list<SORT_block>::Link));
+     debugf("%8zd Sizeof(DHDL_sort)\n", sizeof(DHDL_sort<SORT_block>));
+     debugf("%8zd Sizeof(SORT_link)\n", sizeof(DHDL_sort<SORT_block>::Link));
 
      debugf("\n");
-     debugf("Empty SORT_list:\n");
+     debugf("Empty DHDL_sort:\n");
      show_SORT(&sort_list);
    }
 
@@ -1285,9 +1285,9 @@ int
 
      error_count += test_AI();        // AI_list
      error_count += test_DHDL();      // DHDL_list, aka List
+     error_count += test_SORT();      // DHDL_sort, aka Sort
      error_count += test_DHSL();      // DHSL_list
      error_count += test_SHSL();      // SHSL_list
-     error_count += test_SORT();      // SORT_list
      error_count += test_ERRS();      // Test strong List typing
 
      if( opt_verbose ) {

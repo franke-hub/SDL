@@ -17,7 +17,7 @@
 //       ../List.h template definitions and internal base classes.
 //
 // Last change date-
-//       2025/09/23
+//       2025/10/04
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_BITS_LIST_H_INCLUDED
@@ -34,9 +34,9 @@
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 template<class T> class AI_list;    // Atomic Insert list
 template<class T> class DHDL_list;  // Doubly Headed Doubly Linked list
+template<class T> class DHDL_sort;  // Doubly Headed Doubly Linked sortable list
 template<class T> class DHSL_list;  // Doubly Headed Singly Linked list
 template<class T> class SHSL_list;  // Singly Headed Singly Linked list
-template<class T> class SORT_list;  // Doubly Headed Doubly Linked sortable list
 template<class T> class List;       // List (Is a DHDL_list)
 
 namespace __detail
@@ -709,6 +709,442 @@ template<> class DHDL_list<void>
        size_t                       // The _Link count
          size( void ) const;        // Get the _Link count
    }; // class DHDL_list<void>
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       DHDL_sort<>
+//
+// Purpose-
+//       A sortable Doubly Headed Doubly linked list.
+//
+//----------------------------------------------------------------------------
+/**
+   @brief A DHDL_sort::iterator.
+**/
+template<typename T>
+   struct _SORT_iter
+   {
+     typedef ptrdiff_t                        difference_type;
+     typedef std::bidirectional_iterator_tag  iterator_category;
+     typedef T                                value_type;
+     typedef T*                               pointer;
+     typedef T&                               reference;
+
+     typedef T                                _Link;
+     typedef DHDL_sort<T>                     _List;
+     typedef _SORT_iter<T>                    _Self;
+
+     pointer _link;
+
+     _SORT_iter() noexcept
+     : _link(nullptr) {}
+
+     explicit
+     _SORT_iter(_List* list) noexcept
+     : _link(list->get_head()) {}
+
+     _Self
+     _const_cast() const noexcept
+     { return *this; }
+
+     pointer
+     get() const noexcept
+     { return _link; }
+
+     operator bool() const noexcept
+     { return bool(_link); }
+
+     reference
+     operator*() const
+     { if( _link )
+         return *((pointer)_link);
+       throw __detail::end_dereferenced();
+     }
+
+     pointer
+     operator->() const
+     { if( _link )
+         return (pointer)_link;
+       throw __detail::end_dereferenced();
+     }
+
+     _Self&
+     operator++() noexcept
+     {
+       if( _link )
+         _link = _link->get_next();
+       return *this;
+     }
+
+     _Self
+     operator++(int) noexcept
+     {
+       _Self __tmp = *this;
+       if( _link )
+         _link = _link->get_next();
+       return __tmp;
+     }
+
+     _Self&
+     operator--() noexcept
+     {
+       if( _link )
+         _link = _link->_prev;
+       return *this;
+     }
+
+     _Self
+     operator--(int) noexcept
+     {
+       _Self __tmp = *this;
+       if( _link )
+         _link = _link->_prev;
+       return __tmp;
+     }
+
+     friend bool
+     operator==(const _Self& lhs, const _Self& rhs) noexcept
+     { return lhs._link == rhs._link; }
+
+     friend bool
+     operator!=(const _Self& lhs, const _Self& rhs) noexcept
+     { return lhs._link != rhs._link; }
+   }; // _SORT_iter
+
+/**
+   @brief A DHDL_sort::const_iterator.
+*/
+template<typename T>
+   struct _SORT_const_iter
+   {
+     typedef ptrdiff_t                        difference_type;
+     typedef std::bidirectional_iterator_tag  iterator_category;
+     typedef T                                value_type;
+     typedef const T*                         pointer;
+     typedef const T&                         reference;
+
+     typedef T                                _Link;
+     typedef DHDL_sort<T>                     _List;
+     typedef _SORT_const_iter<T>              _Self;
+
+     pointer _link;
+
+     _SORT_const_iter() noexcept
+     : _link(nullptr) {}
+
+     explicit
+     _SORT_const_iter(const _List* list) noexcept
+     : _link(list->get_head()) {}
+
+     _SORT_const_iter(const _SORT_iter<T>& _it) noexcept
+     : _link(_it._link) {}
+
+     _SORT_const_iter(const _SORT_const_iter& _it) noexcept
+     : _link(_it._link) {}
+
+     pointer
+     get() const noexcept
+     { return _link; }
+
+     operator bool() const noexcept
+     { return bool(_link); }
+
+     reference
+     operator*() const
+     { if( _link )
+         return *static_cast<pointer>(_link);
+       throw __detail::end_dereferenced();
+     }
+
+     pointer
+     operator->() const
+     { if( _link )
+         return static_cast<pointer>(_link);
+       throw __detail::end_dereferenced();
+     }
+
+     _Self&
+     operator++() noexcept
+     {
+       if( _link )
+         _link = _link->_next;
+       return *this;
+     }
+
+     _Self
+     operator++(int) noexcept
+     {
+       _Self __tmp = *this;
+       if( _link )
+         _link = _link->_next;
+       return __tmp;
+     }
+
+     _Self&
+     operator--() noexcept
+     {
+       if( _link )
+         _link = _link->_prev;
+       return *this;
+     }
+
+     _Self
+     operator--(int) noexcept
+     {
+       _Self __tmp = *this;
+       if( _link )
+         _link = _link->_prev;
+       return __tmp;
+     }
+
+     friend bool
+     operator==(const _Self& lhs, const _Self& rhs) noexcept
+     { return lhs._link == rhs._link; }
+
+     friend bool
+     operator!=(const _Self& lhs, const _Self& rhs) noexcept
+     { return lhs._link != rhs._link; }
+   }; // _SORT_const_iter
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       DHDL_sort<void>
+//
+// Purpose-
+//       Implement the sortable Doubly Headed Doubly Linked List base class.
+//
+// Implementation notes-
+//       The DHDL_sort is not thread safe. Method usage must be serialized.
+//       The FIFO, LIFO, INSERT, and REMOVE methods run in constant time.
+//
+//----------------------------------------------------------------------------
+template<> class DHDL_sort<void>
+   {
+     public:
+       struct _Link                 // (Default: sort by address)
+       {
+         _Link* _next= nullptr;
+         _Link* _prev= nullptr;
+
+         virtual ~_Link( void ) = default;
+
+         // OVERRIDE this method
+         virtual bool operator<(const _Link& that) const
+         { printf("DHDL_sort<void> operator<\n");
+           return (char*)this < (char*)&that; }
+       }; // _Link
+
+       typedef _Link*                         pointer;
+       typedef _Link&                         reference;
+
+     protected:
+       //---------------------------------------------------------------------
+       // DHDL_sort<void>::Attributes
+       //---------------------------------------------------------------------
+       _Link* _head= nullptr;
+       _Link* _tail= nullptr;
+
+       //---------------------------------------------------------------------
+       // DHDL_sort<void>::Constructors/Destructor
+       //---------------------------------------------------------------------
+       DHDL_sort( void ) = default;
+       DHDL_sort(const DHDL_sort&) = delete; // *NO* copy constructor
+       DHDL_sort(DHDL_sort&&) = delete; // *NO* move constructor
+
+       ~DHDL_sort( void ) = default;
+
+       //---------------------------------------------------------------------
+       // DHDL_sort<void>::Operators
+       //---------------------------------------------------------------------
+       DHDL_sort& operator=(const DHDL_sort&) = delete; // *NO* copy assignment
+       DHDL_sort& operator=(DHDL_sort&&) = delete; // *NO* move assignment
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       DHDL_sort<void>::begin
+       //       DHDL_sort<void>::end
+       //
+       // Purpose-
+       //       Create an DHDL_sort FIFO iterator.
+       //       Create an DHDL_sort FIFO end() iterator.
+       //
+       //---------------------------------------------------------------------
+       // Implemented in DHDL_sort<T>
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       DHDL_sort<void>::debug
+       //
+       // Purpose-
+       //       Debugging display
+       //
+       //---------------------------------------------------------------------
+       void debug(const char* info="") const;
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       DHDL_sort<void>::fifo
+       //
+       // Purpose-
+       //       Insert a _Link onto the list with FIFO ordering.
+       //
+       //---------------------------------------------------------------------
+       void fifo(_Link* link);
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       DHDL_sort<void>::get_head
+       //       DHDL_sort<void>::get_tail
+       //
+       // Purpose-
+       //       Get the head _Link. (Implemented in DHDL_sort<T>, not here,)
+       //       Get the tail _Link. (Implemented in DHDL_sort<T>, not here.)
+       //
+       //---------------------------------------------------------------------
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       DHDL_sort<void>::insert
+       //
+       // Purpose-
+       //       Insert a chain of elements onto the list at the specified
+       //       position.
+       //
+       //---------------------------------------------------------------------
+       void
+         insert(                    // Insert at position,
+           _Link*             link, // -> _Link to insert after
+           _Link*             head, // -> First _Link to insert
+           _Link*             tail); // -> Final _Link to insert
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       DHDL_sort<void>::is_coherent
+       //
+       // Purpose-
+       //       List coherency check.
+       //
+       //---------------------------------------------------------------------
+       bool                         // TRUE if the object is coherent
+         is_coherent( void ) const; // Coherency check
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       DHDL_sort<void>::is_on_list
+       //
+       // Purpose-
+       //       Test whether _Link is present in this List.
+       //
+       //---------------------------------------------------------------------
+       bool                         // TRUE if _Link is contained
+         is_on_list(                // Is _Link contained?
+           _Link*             link) const; // -> _Link
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       DHDL_sort<void>::lifo
+       //
+       // Purpose-
+       //       Insert a _Link onto the list with LIFO ordering.
+       //
+       //---------------------------------------------------------------------
+       void
+         lifo(                      // Insert (LIFO order)
+           _Link*             link); // -> _Link to insert
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       DHDL_sort<void>::remove
+       //
+       // Purpose-
+       //       Remove a chain of elements from the list.
+       //
+       //---------------------------------------------------------------------
+       void
+         remove(                    // Remove from list
+           _Link*             head, // -> First _Link to remove
+           _Link*             tail); // -> Final _Link to remove
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       DHDL_sort<void>::remq
+       //
+       // Purpose-
+       //       Remove the head _Link from the List.
+       //
+       //---------------------------------------------------------------------
+       _Link*                       // -> Removed _Link
+         remq( void );              // Remove head _Link
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       DHDL_sort<void>::reset
+       //
+       // Purpose-
+       //       Remove ALL _Links from the List.
+       //
+       //---------------------------------------------------------------------
+       _Link*                       // The set of removed _Links
+         reset( void );             // Reset (empty) the list
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       DHDL_sort<void>::size
+       //
+       // Purpose-
+       //       Count the _Links
+       //
+       //---------------------------------------------------------------------
+       size_t                       // The _Link count
+         size( void ) const;        // Get the _Link count
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       DHDL_sort<void>::sort
+       //
+       // Purpose-
+       //       Sort the _Links
+       //
+       //---------------------------------------------------------------------
+       void sort( void );           // Sort the Links
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       DHDL_sort<void>::sort_split
+       //       DHDL_sort<void>::sort_merge
+       //
+       // Purpose-
+       //       Split the list into parts.
+       //       Merge the parts into one sorted _Link set.
+       //
+       //---------------------------------------------------------------------
+       _Link*                       // The set of removed _Links (left)
+         sort_split(                // Split the _Link set
+           _Link*&           top,   // INP: The head element
+                                    // OUT: The remaining _Links (remainder)
+           size_t            N);    // The number of _Links to remove
+
+       std::pair<_Link*,_Link*>     // The combined set
+         sort_merge(                // Merge
+           _Link*            L,     // The Left (lower) _Link set
+           _Link*            R);    // The Right (remaining) _Link set
+   }; // class DHDL_sort<void>
 
 //----------------------------------------------------------------------------
 //
@@ -1420,441 +1856,5 @@ template<> class SHSL_list<void>
        _Link*                       // The set of removed _Links
          reset( void );             // Reset (empty) the List
    }; // class SHSL_list<void>
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       SORT_list<>
-//
-// Purpose-
-//       A sortable Doubly Headed Doubly linked list.
-//
-//----------------------------------------------------------------------------
-/**
-   @brief A SORT_list::iterator.
-**/
-template<typename T>
-   struct _SORT_iter
-   {
-     typedef ptrdiff_t                        difference_type;
-     typedef std::bidirectional_iterator_tag  iterator_category;
-     typedef T                                value_type;
-     typedef T*                               pointer;
-     typedef T&                               reference;
-
-     typedef T                                _Link;
-     typedef SORT_list<T>                     _List;
-     typedef _SORT_iter<T>                    _Self;
-
-     pointer _link;
-
-     _SORT_iter() noexcept
-     : _link(nullptr) {}
-
-     explicit
-     _SORT_iter(_List* list) noexcept
-     : _link(list->get_head()) {}
-
-     _Self
-     _const_cast() const noexcept
-     { return *this; }
-
-     pointer
-     get() const noexcept
-     { return _link; }
-
-     operator bool() const noexcept
-     { return bool(_link); }
-
-     reference
-     operator*() const
-     { if( _link )
-         return *((pointer)_link);
-       throw __detail::end_dereferenced();
-     }
-
-     pointer
-     operator->() const
-     { if( _link )
-         return (pointer)_link;
-       throw __detail::end_dereferenced();
-     }
-
-     _Self&
-     operator++() noexcept
-     {
-       if( _link )
-         _link = _link->get_next();
-       return *this;
-     }
-
-     _Self
-     operator++(int) noexcept
-     {
-       _Self __tmp = *this;
-       if( _link )
-         _link = _link->get_next();
-       return __tmp;
-     }
-
-     _Self&
-     operator--() noexcept
-     {
-       if( _link )
-         _link = _link->_prev;
-       return *this;
-     }
-
-     _Self
-     operator--(int) noexcept
-     {
-       _Self __tmp = *this;
-       if( _link )
-         _link = _link->_prev;
-       return __tmp;
-     }
-
-     friend bool
-     operator==(const _Self& lhs, const _Self& rhs) noexcept
-     { return lhs._link == rhs._link; }
-
-     friend bool
-     operator!=(const _Self& lhs, const _Self& rhs) noexcept
-     { return lhs._link != rhs._link; }
-   }; // _SORT_iter
-
-/**
-   @brief A SORT_list::const_iterator.
-*/
-template<typename T>
-   struct _SORT_const_iter
-   {
-     typedef ptrdiff_t                        difference_type;
-     typedef std::bidirectional_iterator_tag  iterator_category;
-     typedef T                                value_type;
-     typedef const T*                         pointer;
-     typedef const T&                         reference;
-
-     typedef T                                _Link;
-     typedef SORT_list<T>                     _List;
-     typedef _SORT_const_iter<T>              _Self;
-
-     pointer _link;
-
-     _SORT_const_iter() noexcept
-     : _link(nullptr) {}
-
-     explicit
-     _SORT_const_iter(const _List* list) noexcept
-     : _link(list->get_head()) {}
-
-     _SORT_const_iter(const _SORT_iter<T>& _it) noexcept
-     : _link(_it._link) {}
-
-     _SORT_const_iter(const _SORT_const_iter& _it) noexcept
-     : _link(_it._link) {}
-
-     pointer
-     get() const noexcept
-     { return _link; }
-
-     operator bool() const noexcept
-     { return bool(_link); }
-
-     reference
-     operator*() const
-     { if( _link )
-         return *static_cast<pointer>(_link);
-       throw __detail::end_dereferenced();
-     }
-
-     pointer
-     operator->() const
-     { if( _link )
-         return static_cast<pointer>(_link);
-       throw __detail::end_dereferenced();
-     }
-
-     _Self&
-     operator++() noexcept
-     {
-       if( _link )
-         _link = _link->_next;
-       return *this;
-     }
-
-     _Self
-     operator++(int) noexcept
-     {
-       _Self __tmp = *this;
-       if( _link )
-         _link = _link->_next;
-       return __tmp;
-     }
-
-     _Self&
-     operator--() noexcept
-     {
-       if( _link )
-         _link = _link->_prev;
-       return *this;
-     }
-
-     _Self
-     operator--(int) noexcept
-     {
-       _Self __tmp = *this;
-       if( _link )
-         _link = _link->_prev;
-       return __tmp;
-     }
-
-     friend bool
-     operator==(const _Self& lhs, const _Self& rhs) noexcept
-     { return lhs._link == rhs._link; }
-
-     friend bool
-     operator!=(const _Self& lhs, const _Self& rhs) noexcept
-     { return lhs._link != rhs._link; }
-   }; // _SORT_const_iter
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       SORT_list<void>
-//
-// Purpose-
-//       Implement the sortable Doubly Headed Doubly Linked List base class.
-//
-// Implementation notes-
-//       The SORT_list is not thread safe. Method usage must be serialized.
-//       The FIFO, LIFO, INSERT, and REMOVE methods run in constant time.
-//
-//----------------------------------------------------------------------------
-template<> class SORT_list<void>
-   {
-     public:
-       struct _Link                 // (Default: sort by address)
-       {
-         _Link* _next= nullptr;
-         _Link* _prev= nullptr;
-
-         virtual ~_Link( void ) = default;
-
-         // OVERRIDE this method
-         virtual bool operator<(const _Link& that) const
-         { printf("SORT_list<void> operator<\n");
-           return (char*)this < (char*)&that; }
-       }; // _Link
-
-       typedef _Link*                         pointer;
-       typedef _Link&                         reference;
-
-     protected:
-       //---------------------------------------------------------------------
-       // SORT_list<void>::Attributes
-       //---------------------------------------------------------------------
-       _Link* _head= nullptr;
-       _Link* _tail= nullptr;
-
-       //---------------------------------------------------------------------
-       // SORT_list<void>::Constructors/Destructor
-       //---------------------------------------------------------------------
-       SORT_list( void ) = default;
-       SORT_list(const SORT_list&) = delete; // *NO* copy constructor
-       SORT_list(SORT_list&&) = delete; // *NO* move constructor
-
-       ~SORT_list( void ) = default;
-
-       //---------------------------------------------------------------------
-       // SORT_list<void>::Operators
-       //---------------------------------------------------------------------
-       SORT_list& operator=(const SORT_list&) = delete; // *NO* copy assignment
-       SORT_list& operator=(SORT_list&&) = delete; // *NO* move assignment
-
-       //---------------------------------------------------------------------
-       //
-       // Method-
-       //       SORT_list<void>::begin
-       //       SORT_list<void>::end
-       //
-       // Purpose-
-       //       Create an SORT_list FIFO iterator.
-       //       Create an SORT_list FIFO end() iterator.
-       //
-       //---------------------------------------------------------------------
-       // Implemented in SORT_list<T>
-
-       //---------------------------------------------------------------------
-       //
-       // Method-
-       //       SORT_list<void>::debug
-       //
-       // Purpose-
-       //       Debugging display
-       //
-       //---------------------------------------------------------------------
-       void debug(const char* info="") const;
-
-       //---------------------------------------------------------------------
-       //
-       // Method-
-       //       SORT_list<void>::fifo
-       //
-       // Purpose-
-       //       Insert a _Link onto the list with FIFO ordering.
-       //
-       //---------------------------------------------------------------------
-       void fifo(_Link* link);
-
-       //---------------------------------------------------------------------
-       //
-       // Method-
-       //       SORT_list<void>::get_head
-       //       SORT_list<void>::get_tail
-       //
-       // Purpose-
-       //       Get the head _Link. (Implemented in SORT_list<T>, not here,)
-       //       Get the tail _Link. (Implemented in SORT_list<T>, not here.)
-       //
-       //---------------------------------------------------------------------
-
-       //---------------------------------------------------------------------
-       //
-       // Method-
-       //       SORT_list<void>::insert
-       //
-       // Purpose-
-       //       Insert a chain of elements onto the list at the specified
-       //       position.
-       //
-       //---------------------------------------------------------------------
-       void
-         insert(                    // Insert at position,
-           _Link*             link, // -> _Link to insert after
-           _Link*             head, // -> First _Link to insert
-           _Link*             tail); // -> Final _Link to insert
-
-       //---------------------------------------------------------------------
-       //
-       // Method-
-       //       SORT_list<void>::is_coherent
-       //
-       // Purpose-
-       //       List coherency check.
-       //
-       //---------------------------------------------------------------------
-       bool                         // TRUE if the object is coherent
-         is_coherent( void ) const; // Coherency check
-
-       //---------------------------------------------------------------------
-       //
-       // Method-
-       //       SORT_list<void>::is_on_list
-       //
-       // Purpose-
-       //       Test whether _Link is present in this List.
-       //
-       //---------------------------------------------------------------------
-       bool                         // TRUE if _Link is contained
-         is_on_list(                // Is _Link contained?
-           _Link*             link) const; // -> _Link
-
-       //---------------------------------------------------------------------
-       //
-       // Method-
-       //       SORT_list<void>::lifo
-       //
-       // Purpose-
-       //       Insert a _Link onto the list with LIFO ordering.
-       //
-       //---------------------------------------------------------------------
-       void
-         lifo(                      // Insert (LIFO order)
-           _Link*             link); // -> _Link to insert
-
-       //---------------------------------------------------------------------
-       //
-       // Method-
-       //       SORT_list<void>::remove
-       //
-       // Purpose-
-       //       Remove a chain of elements from the list.
-       //
-       //---------------------------------------------------------------------
-       void
-         remove(                    // Remove from list
-           _Link*             head, // -> First _Link to remove
-           _Link*             tail); // -> Final _Link to remove
-
-       //---------------------------------------------------------------------
-       //
-       // Method-
-       //       SORT_list<void>::remq
-       //
-       // Purpose-
-       //       Remove the head _Link from the List.
-       //
-       //---------------------------------------------------------------------
-       _Link*                       // -> Removed _Link
-         remq( void );              // Remove head _Link
-
-       //---------------------------------------------------------------------
-       //
-       // Method-
-       //       SORT_list<void>::reset
-       //
-       // Purpose-
-       //       Remove ALL _Links from the List.
-       //
-       //---------------------------------------------------------------------
-       _Link*                       // The set of removed _Links
-         reset( void );             // Reset (empty) the list
-
-       //---------------------------------------------------------------------
-       //
-       // Method-
-       //       SORT_list<void>::size
-       //
-       // Purpose-
-       //       Count the _Links
-       //
-       //---------------------------------------------------------------------
-       size_t                       // The _Link count
-         size( void ) const;        // Get the _Link count
-
-       //---------------------------------------------------------------------
-       //
-       // Method-
-       //       SORT_list<void>::sort
-       //
-       // Purpose-
-       //       Sort the _Links
-       //
-       //---------------------------------------------------------------------
-       void sort( void );           // Sort the Links
-
-       //---------------------------------------------------------------------
-       //
-       // Method-
-       //       SORT_list<void>::sort_split
-       //       SORT_list<void>::sort_merge
-       //
-       // Purpose-
-       //       Split the list into parts.
-       //       Merge the parts into one sorted _Link set.
-       //
-       //---------------------------------------------------------------------
-       _Link*                       // The set of removed _Links (left)
-         sort_split(                // Split the _Link set
-           _Link*&           top,   // INP: The head element
-                                    // OUT: The remaining _Links (remainder)
-           size_t            N);    // The number of _Links to remove
-
-       std::pair<_Link*,_Link*>     // The combined set
-         sort_merge(                // Merge
-           _Link*            L,     // The Left (lower) _Link set
-           _Link*            R);    // The Right (remaining) _Link set
-   }; // class SORT_list<void>
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_BITS_LIST_H_INCLUDED

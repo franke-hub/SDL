@@ -17,7 +17,7 @@
 //       File management classes, conveniently packaged in one file.
 //
 // Last change date-
-//       2025/09/23
+//       2025/10/04
 //
 // Implementation note-
 //       Derived from Fileman.h
@@ -147,7 +147,7 @@ int                                 // Return code, 0 OK
 //       File information
 //
 //----------------------------------------------------------------------------
-struct File : public Sort_list<File>::Link { // File information
+struct File : public DHDL_sort<File>::Link { // File information
 //----------------------------------------------------------------------------
 // pub::data::File::Typedefs and enumerations
 //----------------------------------------------------------------------------
@@ -299,7 +299,7 @@ struct Path {                       // Path name information
 // pub::data::Path::Attributes
 //----------------------------------------------------------------------------
 const std::string      name;        // The path name (Locally qualified)
-SORT_list<File>        list;        // The (sorted) list of Files
+DHDL_sort<File>        list;        // The (sorted) list of Files
 
 //----------------------------------------------------------------------------
 // pub::data::Path::Constructors/Destructor

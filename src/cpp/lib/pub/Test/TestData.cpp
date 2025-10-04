@@ -17,7 +17,7 @@
 //       Test Data.h
 //
 // Last change date-
-//       2025/09/23
+//       2025/10/04
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -30,7 +30,7 @@
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB::debugging;     // For debugging functions
 using namespace PUB::data;
-using PUB::Sort_list;
+using PUB::DHDL_sort;
 using PUB::Wrapper;
 using std::string;
 
@@ -84,7 +84,7 @@ static int                          // Error count
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
-   typedef Sort_list<File>::iterator          Flit;
+   typedef DHDL_sort<File>::iterator          Flit;
 
    int                 error_count= 0; // Number of errors encountered
 
