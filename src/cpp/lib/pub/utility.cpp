@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2024 Frank Eskesen.
+//       Copyright (C) 2020-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2024/11/20
+//       2025/10/06
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -852,6 +852,7 @@ void
      const char*       file,        // Source file name
      const char*       mess)        // Error messsage
 {
+   debugf("\n");
    debugh("%4d %s CHECKSTOP: %s\n", line, file, mess);
    Trace::stop();
    throw std::runtime_error(mess);

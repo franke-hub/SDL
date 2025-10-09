@@ -17,7 +17,7 @@
 //       List object methods.
 //
 // Last change date-
-//       2025/10/04
+//       2025/10/09
 //
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::invalid_argument
@@ -56,58 +56,229 @@ const void*            __detail::__end= nullptr;
 //============================================================================
 //
 // Method-
-//       AI_list<void>::iterator_begin_error
+//       _AI_iter<void>::_AI_iter
 //
 // Purpose-
-//       Checkstop: begin but pseudo-link present
+//       Constructor
 //
 //----------------------------------------------------------------------------
-[[noreturn]]
-void
-   AI_list<void>::iterator_begin_error( void ) // Duplicate begin
+   _AI_iter<void>::_AI_iter(        // Begin contructor
+     _List*            list) noexcept
+   : _list(list)
 {
-   utility::checkstop(__LINE__, __FILE__, "begin invoked but already active");
+   _Link* tail= _list->reset(&__detail::__end);
+   while( tail )
+   {
+     if( (void*)tail == &__detail::__end ) // (Should not occur)
+       utility::checkstop(__LINE__, __FILE__
+                         , "begin invoked but already active");
+     _Link* prev= tail->get_prev();
+     tail->_link= _head;
+     _head= tail;
+     tail= prev;
+   }
+   _link= _head;
+   if( _head )
+     _head= _head->get_prev();
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       AI_list<void>::iterator_increment_error
+//       _AI_iter<void>::operator++
 //
 // Purpose-
-//       Checkstop: operator++ but pseudo-link missing
+//       (Prefix) increment operator (++operator)
 //
 //----------------------------------------------------------------------------
-[[noreturn]]
-void
-   AI_list<void>::iterator_increment_error( void ) // Pseudo-link missing
+_AI_iter<void>&                     // Resultant (*this)
+   _AI_iter<void>::operator++() noexcept
+   {
+     if( _head ) {
+       _link= _head;
+       _head= _head->get_next();
+     } else {
+       _link= nullptr;
+       pointer tail= _list->reset(&__detail::__end);
+       if( tail )
+       {
+         do
+         {
+           pointer prev= tail->get_prev();
+           // If this condition does occur, the removed list doesn't contain
+           // the pseudo-end link.
+           if( prev == nullptr )    // (Should not occur)
+             utility::checkstop(__LINE__, __FILE__
+                               , "_AI_iter++ but pseudo-link missing");
+
+           tail->_link= _head;
+           _head= tail;
+           tail= prev;
+         } while( (void*)tail != &__detail::__end );
+         _link= _head;
+         _head= _head->get_next();
+       } // if( tail )
+     } // else
+
+     return *this;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       _AI_iter<void>::operator++
+//
+// Purpose-
+//       (Postfix) increment operator
+//
+//----------------------------------------------------------------------------
+_AI_iter<void>                      // Resultant
+   _AI_iter<void>::operator++(int) noexcept
 {
-   utility::checkstop(__LINE__, __FILE__, "AI_iter++ but pseudo-link missing");
+   _Self __tmp= *this;
+   operator++();
+   return __tmp;
 }
 
 //============================================================================
 //
 // Method-
-//       AI_list<void>::verify_nullptr
+//       AI_list<void>::~AI_list<void>
 //
 // Purpose-
-//       Invoked by destructor to verify that the list is empty.
+//       Destructor
 //
-// Implementation notes-
-//       If the AI_list isn't empty when its destructor is invoked, an AI_iter
-//       for the list exists. That iterator is still running under control of
-//       some other thread, and it's going to access this list. This situation
-//       must be prevented.
+//----------------------------------------------------------------------------
+   AI_list<void>::~AI_list( void )  // Destructor
+{
+   if(_tail.load() )
+     utility::checkstop(__LINE__, __FILE__, "~AI_list with _tail!=nullptr");
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       AI_list<void>::debug
+//
+// Purpose-
+//       Write debugging message
 //
 //----------------------------------------------------------------------------
 void
-   AI_list<void>::verify_nullptr(   // Insure that no link exists
-     void*             link)        // The current _tail
+   AI_list<void>::debug(            // Write debugging message
+     const char*       info) const  // Caller information
 {
-   if( link == nullptr )
-     return;
+   debugf("\nAI_list<void>::debug(%s) _tail(%p)\n", info, _tail.load());
 
-   utility::checkstop(__LINE__, __FILE__, "~AI_list invoked while active");
+   size_t index= 0;
+   for(_Link* link= _tail.load(); link; link= link->_link) {
+     debugf("[%2zd] this(%p) -> _link(%p)\n", index++
+           , link, link->_link);
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       AI_list<void>::fifo
+//
+// Purpose-
+//       Insert Link on list, FIFO ordering in begin .. end iterator
+//
+//----------------------------------------------------------------------------
+AI_list<void>::_Link*               // -> Prior tail
+  AI_list<void>::fifo(              // Insert (fifo order)
+    pointer     link)               // -> Link to insert
+{
+   pointer prev= _tail.load();
+   link->_link= prev;
+   while( !_tail.compare_exchange_weak(prev, link) )
+     link->_link= prev;
+
+   return prev;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       AI_list<void>::is_coherent
+//
+// Purpose-
+//       Determine whether the AI_list has any (detectable) errors
+//
+//----------------------------------------------------------------------------
+bool                                // TRUE if the Link set is coherent
+   AI_list<void>::is_coherent( void ) const // Coherency check
+{
+   pointer link= _tail.load(); // The newest Link
+   for(int count= 0; count < __detail::MAX_COHERENT; count++)
+   {
+     if( link == nullptr )
+       return true;
+
+     link= link->_link;
+   }
+
+   return false;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       AI_list<void>::is_on_list
+//
+// Purpose-
+//       Determine whether a Link is on the AI_list
+//
+//----------------------------------------------------------------------------
+bool                                // TRUE if link is contained
+   AI_list<void>::is_on_list(       // Is link contained?
+     pointer     link) const        // -> Link
+{
+   if( link )
+   {
+     pointer prev= _tail.load();
+     while( prev != nullptr && (void*)prev != &__detail::__end )
+     {
+       if( prev == link )
+         return true;
+
+       prev= prev->_link;
+     }
+   }
+
+   return false;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       AI_list<void>::reset
+//
+// Purpose-
+//       Atomically replace the List
+//
+//----------------------------------------------------------------------------
+AI_list<void>::_Link*               // The set of removed Links
+   AI_list<void>::reset(            // Reset (replace) the List set with
+     const void* tail) noexcept     // This replacement pseudo-Link
+{
+   pointer link= _tail.load();      // Get the current tail
+   if( link == nullptr )            // If the List is currently empty
+     return nullptr;                // Do not replace it
+
+   // If the Link set hasn't changed since it was replaced, we're done
+   while( (void*)link == tail )
+   {
+     if( _tail.compare_exchange_weak(link, nullptr) )
+       return nullptr;
+   }
+
+   // The Link set changed. Replace it with the pseudo-link
+   while( !_tail.compare_exchange_weak(link, (pointer)tail) )
+     ;
+
+   return link;                     // Return the newest existing Link
 }
 
 //============================================================================
@@ -220,17 +391,16 @@ void
 bool                                // TRUE if object is coherent
    DHDL_list<void>::is_coherent( void ) const // Coherency check
 {
-   if( _head == nullptr )           // If the list is empty
-   {
-     if( _tail != nullptr )         // If _tail is not nullptr
-       return false;
-
-     return true;                   // _head == _tail == nullptr
-   }
+   if( _head == nullptr )
+     return (_tail == nullptr);     // _head==nullptr && _tail==nullptr
+   else if( _tail == nullptr )
+     return false;                  // _head!=nullptr && _tail==nullptr
+   else if( _tail->_next != nullptr ) // _head!=nullptr && _tail!=nullptr &&
+     return false;                  // _tail->next==nullptr
 
    _Link* link= _head;              // Pointer to current _Link
    _Link* prev= nullptr;            // Pointer to prior   _Link
-   for(int count= 0;;count++)
+   for(;;)
    {
      if( link->_prev != prev )
        return false;
@@ -238,20 +408,16 @@ bool                                // TRUE if object is coherent
      if( link->_next == nullptr )
        break;
 
-     if( link == _tail )
-       return false;
+     // We already verified that _tail->_next==nullptr, so now we only need to
+     // verify that the first link with _next==nullptr is the _tail link.
+     // if( link == _tail )         // (This test isn't needed for every link)
+     //   return false;
 
      prev= link;
      link= link->_next;
-
-     if( count > MAX_COHERENT )
-       return false;
    }
 
-   if( _tail != link )
-     return false;
-
-   return true;
+   return (_tail == link);
 }
 
 //----------------------------------------------------------------------------
@@ -522,17 +688,16 @@ void
 bool                                // TRUE if object is coherent
    DHDL_sort<void>::is_coherent( void ) const // Coherency check
 {
-   if( _head == nullptr )           // If the list is empty
-   {
-     if( _tail != nullptr )         // If _tail is not nullptr
-       return false;
-
-     return true;                   // _head == _tail == nullptr
-   }
+   if( _head == nullptr )
+     return (_tail == nullptr);     // _head==nullptr && _tail==nullptr
+   else if( _tail == nullptr )
+     return false;                  // _head!=nullptr && _tail==nullptr
+   else if( _tail->_next != nullptr ) // _head!=nullptr && _tail!=nullptr &&
+     return false;                  // _tail->next==nullptr
 
    _Link* link= _head;              // Pointer to current _Link
    _Link* prev= nullptr;            // Pointer to prior   _Link
-   for(int count= 0;;count++)
+   for(;;)
    {
      if( link->_prev != prev )
        return false;
@@ -540,20 +705,16 @@ bool                                // TRUE if object is coherent
      if( link->_next == nullptr )
        break;
 
-     if( link == _tail )
-       return false;
+     // We already verified that _tail->_next==nullptr, so now we only need to
+     // verify that the first link with _next==nullptr is the _tail link.
+     // if( link == _tail )         // (This test isn't needed for every link)
+     //   return false;
 
      prev= link;
      link= link->_next;
-
-     if( count > MAX_COHERENT )
-       return false;
    }
 
-   if( _tail != link )
-     return false;
-
-   return true;
+   return (_tail == link);
 }
 
 //----------------------------------------------------------------------------
@@ -882,6 +1043,28 @@ std::pair<DHDL_sort<void>::_Link*,DHDL_sort<void>::_Link*> // The combined set
 //============================================================================
 //
 // Method-
+//       DHSL_list<void>::debug
+//
+// Purpose-
+//       Debugging display
+//
+//----------------------------------------------------------------------------
+void
+   DHSL_list<void>::debug(          // Debugging display
+     const char*       info) const  // Caller information
+{
+   debugf("DHSL_list<void>::debug(%s)\n", info);
+
+   size_t index= 0;
+   for(_Link* link= _head; link; link= link->_next) {
+     debugf("[%2zd] this(%p) -> next(%p)\n", index++
+           , link, link->_next);
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       DHSL_list<void>::fifo
 //
 // Purpose-
@@ -953,6 +1136,11 @@ void
 bool                                // TRUE if object is coherent
    DHSL_list<void>::is_coherent( void ) const // Coherency check
 {
+   if( _head == nullptr )
+     return (_tail == nullptr);
+   if( _tail == nullptr )
+     return false;
+
    _Link* prev= _head;
    if( prev != nullptr )
    {
@@ -961,7 +1149,7 @@ bool                                // TRUE if object is coherent
        _Link* link= prev->_next;
        if( link == nullptr )
          break;
-       if( prev == _tail || count > MAX_COHERENT )
+       if( count > MAX_COHERENT )
          return false;
 
        prev= link;
@@ -1105,6 +1293,28 @@ DHSL_list<void>::_Link*             // The set of removed _Links
 }
 
 //============================================================================
+//
+// Method-
+//       SHSL_list<void>::debug
+//
+// Purpose-
+//       Debugging display
+//
+//----------------------------------------------------------------------------
+void
+   SHSL_list<void>::debug(          // Debugging display
+     const char*       info) const  // Caller information
+{
+   debugf("SHSL_list<void>::debug(%s)\n", info);
+
+   size_t index= 0;
+   for(_Link* link= _tail; link; link= link->_prev) {
+     debugf("[%2zd] prev(%p) <- this(%p)\n", index++
+           , link->_prev, link);
+   }
+}
+
+//----------------------------------------------------------------------------
 //
 // Method-
 //       SHSL_list<void>::fifo

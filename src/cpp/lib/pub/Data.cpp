@@ -36,7 +36,7 @@
 
 #include <pub/Debug.h>              // For pub::debugging
 #include "pub/Data.h"               // For namespace pub::data, implemented
-#include <pub/List.h>               // For pub::List
+#include "pub/List.h"               // For pub::List
 #include <pub/utility.h>            // For pub::utility::dump
 
 #define PUB _LIBPUB_NAMESPACE

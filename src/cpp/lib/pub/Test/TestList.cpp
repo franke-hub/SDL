@@ -17,7 +17,7 @@
 //       List tests.
 //
 // Last change date-
-//       2025/10/04
+//       2025/10/06
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std:: (In-place operator new)
@@ -42,7 +42,7 @@ using PUB::Wrapper;
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum
-{  HCDM= false                      // Hard Core Debug Mode?
+{  HCDM= true                       // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 ,  DIM= 12, MID= DIM/2              // Array size. Use: 9 < DIM < 100
@@ -66,6 +66,8 @@ enum                                // Generic enumerations
 {  VALIDATOR=            0x02469773 // Validation constant
 }; // enum
 
+uint64_t               word;        // Validiation word
+
 public:
    ~Prefix( void )                  // Destructor
 {  assert(isValid()); }
@@ -77,9 +79,6 @@ public:
 int                                 // TRUE if valid
    isValid( void )
 {  return (word == VALIDATOR); }
-
-private:
-   long                word;        // Validiation word
 }; // class Prefix
 
 //----------------------------------------------------------------------------
@@ -97,6 +96,8 @@ enum                                // Generic enumerations
 {  VALIDATOR=            0x37796420 // Validation constant
 }; // enum
 
+uint64_t               word;        // Validiation word
+
 public:
    ~Suffix( void )                  // Destructor
 {  assert(isValid()); }
@@ -108,9 +109,6 @@ public:
 int                                 // TRUE if valid
    isValid( void )
 {  return (word == VALIDATOR); }
-
-private:
-   long                word;        // Validiation word
 }; // class Suffix
 
 //----------------------------------------------------------------------------
@@ -202,6 +200,11 @@ static int
      debugf("AI Storage:\n");
      debugf("%8zd Sizeof(AI_list)\n", sizeof(AI_list<AI_block>));
      debugf("%8zd Sizeof(AI_link)\n", sizeof(AI_list<AI_block>::Link));
+     if( opt_verbose > 2 ) {
+       for(int i= 0; i<DIM; ++i) {
+         debugf("%p ai_data[%2d]\n", &ai_data[i], i);
+       }
+     }
 
      debugf("\n");
      debugf("Empty AI_list:\n");
@@ -220,6 +223,9 @@ static int
      ai_list.fifo(&ai_data[i]);
      show_AI(&ai_list);
    }
+   if( opt_verbose > 1 )
+     ai_list.debug("TestList debug");
+
    for(int i=0; i<DIM; i++)
      error_count += VERIFY( ai_list.is_on_list(&ai_data[i]) );
    error_count += VERIFY( ai_list.is_coherent() );
@@ -439,6 +445,8 @@ static int
    }
    if( opt_verbose )
      debugf("\n");
+   if( opt_verbose > 1 )
+     dhdl_list.debug("TestList debug");
 
    for(int i=0; i<DIM; i++)
      error_count += VERIFY( dhdl_list.is_on_list(&dhdl_data[i]) );
@@ -730,6 +738,9 @@ static int
    }
    if( opt_verbose )
      debugf("\n");
+   if( opt_verbose > 1 )
+     dhsl_list.debug("TestList debug");
+
    for(int i=0; i<DIM; i++)
      error_count += VERIFY( dhsl_list.is_on_list(&dhsl_data[i]) );
    error_count += VERIFY( dhsl_list.is_coherent() );
@@ -880,6 +891,9 @@ static int
    }
    if( opt_verbose )
      debugf("\n");
+   if( opt_verbose > 1 )
+     shsl_list.debug("TestList debug");
+
    for(int i=0; i<DIM; i++)
      error_count += VERIFY( shsl_list.is_on_list(&shsl_data[i]) );
    error_count += VERIFY( shsl_list.is_coherent() );
@@ -1064,6 +1078,8 @@ static int
    }
    if( opt_verbose )
      debugf("\n");
+   if( opt_verbose > 1 )
+     sort_list.debug("TestList debug");
 
    for(int i=0; i<DIM; i++)
      error_count += VERIFY( sort_list.is_on_list(&sort_data[i]) );
@@ -1235,16 +1251,19 @@ static int
    #if( USE_ERROR_CHECK )           // Test strong list typing
      // These statements are OK
      DHDL_list<DHDL_block> dhdl_list;
-     List<SORT_block>      sort_list;
+     DHDL_sort<SORT_block> sort_list;
      DHDL_block*           dhdl_link= dhdl_list.remq();
      SORT_block*           sort_link= sort_list.remq();
+
      struct Diff : public List<Diff>::Link { int N= 732; }; // A different type
      List<Diff>            diff_list;
      Diff*                 diff_link= diff_list.remq();
 
      // These statements are error tests, each testing type mismatches
-     diff_link= dhdl_list.remq();   // ERROR: Remove dhdl_link from dhdl_list
-     dhdl_list.fifo(diff_link);     // ERROR: Insert dhdl_link onto dhdl_list
+     diff_link= dhdl_list.remq();   // ERROR: Remove diff_link from DHDL_list
+     dhdl_list.fifo(diff_link);     // ERROR: Insert diff_link onto DHDL_list
+     dhdl_list.fifo(sort_link);     // ERROR: Insert sort_link onto DHDL_list
+     sort_list.fifo(dhdl_link);     // ERROR: Insert dhdl_link onto DHDL_sort
 
      // ERROR: Insert after diff_link onto sort_list
      sort_list.insert(diff_link, sort_link, sort_link);
@@ -1277,6 +1296,9 @@ int
 
    tc.on_main([tr](int, char*[])
    {
+     if( HCDM )
+       debug_set_mode(pub::Debug::MODE_INTENSIVE);
+
      if( opt_verbose ) {
        debugf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
      }

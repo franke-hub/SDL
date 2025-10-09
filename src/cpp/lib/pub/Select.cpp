@@ -49,7 +49,7 @@
 #include <pub/Debug.h>              // For debugging
 #include <pub/Dispatch.h>           // For pub::dispatch objects
 #include <pub/Event.h>              // For pub::Event
-#include <pub/List.h>               // For pub::AI_list<>
+#include "pub/List.h"               // For pub::AI_list<>
 #include "pub/Select.h"             // For pub::Select, implemented
 #include "pub/Socket.h"             // For pub::Socket
 #include <pub/Thread.h>             // For pub::Thread

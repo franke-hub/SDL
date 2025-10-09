@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (c) 2023-2025 Frank Eskesen.
+//       Copyright (c) 2025 Frank Eskesen.
 //
 //       This file is free content, distributed under cc by-sa version 4.0
 //       with attribution required.
@@ -11,47 +11,49 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/doc/cpp/pub_list-AI_iter.md
+//       ~/doc/cpp/pub_list-SHSL_iter.md
 //
 // Purpose-
-//       List.h reference manual: AI_list iterator
+//       List.h reference manual: SHSL_list iterator
 //
 // Last change date-
 //       2025/10/05
 //
 -------------------------------------------------------------------------- -->
-###### Defined by header <pub/List.h> (
-## `pub::AI_list<T>::iterator`
+###### Defined by header <pub/List.h>
+## `pub::SHSL_list<T>::iterator`
 
-While an AI_list::iterator references the AI_list, the AI_list *does not*
-reference the iterator.
+The SHSL_list<T>::iterator *does not* reference the SHSL_list,
+and the SHSL_list *does not* reference the iterator.
+The iterator only contains a pointer to the current SHSL_list<T>::Link.
 
 Fields:
-- pointer _left: The remaining Links
 - pointer _link: The current Link
-- AI_list* _list: The associated AI_list<T>*
+
+Where:<br/>
+For a SHSL_list<T> const iterator:<br/>
+- typedef const T* pointer;
+
+For a SHSL_list<T> iterator:<br/>
+- typedef T* pointer;
+
+Since Iterators only access the current Link, the List must remain
+coherent while an Iterator is actively used.
+In particular, removing the Iterator link makes the Iterator unusable
+whether or not the remove operation is done via the Iterator.
 
 ---
-#### AI_list::iterator::iterator(void) noexcept;
+#### SHSL_list::iterator::iterator(void) noexcept;
 Construct an end() iterator.
 (All end() iterators compare equal.)
 
 ---
-#### AI_list::iterator::iterator(AI_list*) noexcept;
+#### SHSL_list::iterator::iterator(SHSL_list*) noexcept;
 Construct a begin() iterator.
-The begin() iterator *removes* all elements from the AI_list, replacing the
-List with a dummy Link.
-
-Implementation notes:
-The set of AI_list Links on the List are actually added in LIFO order.
-The begin() iterator reverses that order so that the iterator returns Links
-in FIFO order.
-Additionally, if Links are added to the list while the iterator is active,
-when the set of iterator Links has been completely processed the newly added
-Links begin a new set of iterator Links using the *same* iterator.
+The begin() iterator sets the iterator to the current head element.
 
 ---
-#### AI_list::iterator::iterator(AI_list::iterator&) noexcept;
+#### SHSL_list::iterator::iterator(SHSL_list::iterator&) noexcept;
 (The copy constructor). There is no move constructor.
 
 ---
@@ -75,12 +77,9 @@ Updates the current Link to point to the next (FIFO ordered) Link.
 Note: end()++ == end().
 No exception occurs unless end().operator->() is used.
 
-Implementation note: This is where Links added to the List while the iterator
-is active are processed.
-
 ---
 #### iterator& operator++(int) noexcept;
-Updates the current Link to point to the next (FIFO ordered) Link,
+Updates the iterator to point to the next (FIFO ordered) Link,
 returning the iterator state before the update.
 
 ---
@@ -88,4 +87,4 @@ returning the iterator state before the update.
 #### friend bool operator!=(const iterator&, const iterator) noexcept;
 Compares iterator's current Link* for (in)equality
 without regard to the associated List*.
-Note: All end() iterators List* and Link* are nullptr.
+Note: All end() iterator's _link fields are nullptr.

@@ -17,7 +17,7 @@
 //       Test Data.h
 //
 // Last change date-
-//       2025/10/04
+//       2025/10/09
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -84,8 +84,6 @@ static int                          // Error count
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
-   typedef DHDL_sort<File>::iterator          Flit;
-
    int                 error_count= 0; // Number of errors encountered
 
    if( opt_verbose ) {
@@ -94,7 +92,7 @@ static int                          // Error count
        char* C= argv[argx];
        debugf("\nPath(%s):\n", C);
        Path path(C);
-       for(Flit it= path.list.begin(); it != path.list.end(); ++it) {
+       for(auto it= path.list.begin(); it != path.list.end(); ++it) {
          debugf(": %s\n", it->name.c_str());
        }
      }

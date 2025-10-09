@@ -17,19 +17,14 @@
 //       ../List.h template definitions and internal base classes.
 //
 // Last change date-
-//       2025/10/04
+//       2025/10/09
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_BITS_LIST_H_INCLUDED
 #define _LIBPUB_BITS_LIST_H_INCLUDED
-/** @file pub/bits/List.h
-**  This is an internal header file, included by other library headers.
-**  Do not attempt to use it directly.
-**/
+
 #include <stdexcept>                // For std::domain_error
 #include <string>                   // For std::string TODO: REMOVE
-
-#include <pub/utility.h>            // For pub::utility::checkstop
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 template<class T> class AI_list;    // Atomic Insert list
@@ -38,6 +33,7 @@ template<class T> class DHDL_sort;  // Doubly Headed Doubly Linked sortable list
 template<class T> class DHSL_list;  // Doubly Headed Singly Linked list
 template<class T> class SHSL_list;  // Singly Headed Singly Linked list
 template<class T> class List;       // List (Is a DHDL_list)
+template<class T> class Sort;       // List (Is a DHDL_sort)
 
 namespace __detail
 {
@@ -48,12 +44,6 @@ namespace __detail
    }; // generic enum
 
    /// Exceptions
-   /**
-     @brief Exception __detail::end_dereferenced
-
-     In lieu of undefined behavior, this std::domain_error exception is thrown
-     when an end() iterator is dereferenced.
-   **/
    class end_dereferenced : public std::domain_error
    {
      public:
@@ -70,11 +60,14 @@ namespace __detail
    }; // _BIDL_link
 
    /// Common parts of a bidirectional singly linked link
-   ///   AI_list Links use LIFO ordering; AI_iter Links use FIFO ordering
+   ///   AI_list Links use LIFO ordering; _AI_iter Links use FIFO ordering
    struct _BISL_link
    {
      typedef _BISL_link                       _Self;
      _Self* _link= nullptr;
+
+     _Self* get_next() { return _link; }
+     _Self* get_prev() { return _link; }
    }; // _BISL_link
 
    /// Common parts of a forward link
@@ -95,142 +88,48 @@ namespace __detail
    extern const void* __end;
 } // namespace __detail
 
-//----------------------------------------------------------------------------
+//============================================================================
 //
-// Class-
-//       AI_list<void>
+// Struct-
+//       _AI_iter<void>
 //
 // Purpose-
-//       AI_list static methods
+//       Define the AI_list<void> iterator
 //
 //----------------------------------------------------------------------------
-template<> class AI_list<void>
-   {
-     public:
-       /** *******************************************************************
-         @brief Iterator error: begin but pseudo-link present
+template<class T> class _AI_iter;
 
-         This is a fatal error.
-       ******************************************************************* **/
-       [[noreturn]]
-       static void
-       iterator_begin_error( void ); // Begin but pseudo-link present
-
-       /** *******************************************************************
-         @brief Iterator error: operator++ but pseudo-link missing
-
-         This is a fatal error.
-       ******************************************************************* **/
-       [[noreturn]]
-       static void
-       iterator_increment_error( void ); // AI_iter++ but pseudo-link missing
-
-       /** *******************************************************************
-         @brief [constant time] Verify that the AI_list is empty
-
-         @param tail The current tail pointer
-       ******************************************************************* **/
-       static void
-       verify_nullptr(void* tail);  // Verify: Link must be nullptr
-   }; // AI_list<void>
-
-/** **************************************************************************
-   @brief An AI_list<T> iterator
-
-   @tparam T The (template) type of the element, which *must* be a subclass of
-     AI_list<T>::Link.
-
-   @details
-   There isn't any AI_const_iter.
-
-   This iterator presents Links to the application in FIFO order, i.e. in the
-   order they were enqueued. The implementation uses get_next() to refer to
-   Links on its FIFO list.
-
-   While this iterates in a forward direction, it cannot be a forward_iterator
-   because it is not a multi-pass iterator. Incrementing the iterator removes
-   the Link from the iterator.
-************************************************************************** **/
-template<typename T>
-   struct AI_iter
+template<>
+   struct _AI_iter<void>
    {
      typedef ptrdiff_t                        difference_type;
      typedef std::input_iterator_tag          iterator_category;
-     typedef T                                value_type;
-     typedef T*                               pointer;
-     typedef T&                               reference;
 
-     typedef T                                _Link;
-     typedef AI_list<T>                       _List;
-     typedef AI_iter<T>                       _Self;
+     typedef __detail::_BISL_link             _Link;
+     typedef _Link*                           pointer;
+     typedef _Link&                           reference;
+     typedef AI_list<void>                    _List;
+     typedef _AI_iter<void>                   _Self;
 
      pointer      _head= nullptr;   // The remaining _Links (in FIFO order)
-     pointer      _link= nullptr;   // The current T*
-     _List* const _list= nullptr;   // The associated List<T>*
+     pointer      _link= nullptr;   // The current _Link*
+     _List* const _list= nullptr;   // The associated _List*
 
-     /** *********************************************************************
-       @brief [constant time] The default [end()] constructor
-     ********************************************************************* **/
-     AI_iter() noexcept = default;  // Default, end() constructor
+     _AI_iter() noexcept = default; // Default, end() constructor
 
-     /** *********************************************************************
-       @brief [constant time] The copy constructor
-     ********************************************************************* **/
-     AI_iter(const AI_iter& that) noexcept
+     _AI_iter(const _AI_iter& that) noexcept // The copy constructor
      : _head(that._head), _link(that._link), _list(that._list) {}
 
-     /** *********************************************************************
-       @brief [linear time] The begin() constructor
-
-       @details
-       This constructor *REMOVES* all elements from the list replacing the
-       list with a single pseudo-link, the constant &__detail::__end.
-
-       The set of removed links are owned by this iterator. When they were
-       on the AI_list, the links had LIFO ordering. This constructor inverts
-       the list, converting it into FIFO ordering.
-     ********************************************************************* **/
      explicit
-     AI_iter(_List* list) noexcept
-     :  _list(list)
-     {
-       T* tail= _list->reset(&__detail::__end);
-       while( tail )
-       {
-         if( (void*)tail == &__detail::__end ) // (Should not occur)
-           AI_list<void>::iterator_begin_error();
-         T* prev= tail->get_prev();
-         tail->_link= _head;
-         _head= tail;
-         tail= prev;
-       }
-       _link= _head;
-       if( _head )
-         _head= _head->get_prev();
-     }
+     _AI_iter(_List* list) noexcept; // The begin constructor
 
-     /** *********************************************************************
-       @brief [constant time] Get the current iteration Link
-
-       @details
-       A nullptr is returned when used on an end() iterator.
-     ********************************************************************* **/
      pointer
      get() const noexcept
      { return _link; }
 
-     /** *********************************************************************
-       @brief [constant time] Returns true iff the current iteration Link != end()
-     ********************************************************************* **/
      operator bool()
      { return bool(_link); }
 
-     /** *********************************************************************
-       @brief [constant time] Dereference the current iteration Link
-
-       @details
-       An "end_dereferenced" error is thrown when used on an end() iterator.
-     ********************************************************************* **/
      reference
      operator*() const
      { if( _link )
@@ -238,12 +137,6 @@ template<typename T>
        throw __detail::end_dereferenced();
      }
 
-     /** *********************************************************************
-       @brief [constant time] Address the current iteration Link
-
-       @details
-       An "end_dereferenced" error is thrown when used on an end() iterator.
-     ********************************************************************* **/
      pointer
      operator->() const
      { if( _link )
@@ -251,86 +144,143 @@ template<typename T>
        throw __detail::end_dereferenced();
      }
 
-     /** *********************************************************************
-       @brief [variable time] Increment the iterator (prefix notation)
+     _Self&
+     operator++() noexcept;
 
-       @details
-       An "end_dereferenced" error is thrown when used on an end() iterator.
+     _Self
+     operator++(int) noexcept;
+   }; // struct _AI_iter<void>
 
-       This is usually a constant time operation.
-       However, if: 1) We've emptied the AI_iter's Link set and 2) New Links
-       were added to the AI_list's Link set while emptying the AI_iter's set.
-       (We refill the AI_iter's Link set using the newly added Links, taking
-       linear time.)
-     ********************************************************************* **/
+//----------------------------------------------------------------------------
+//
+// Struct-
+//       _AI_iter<T>
+//
+// Purpose-
+//       Define the AI_list<T> iterator
+//
+// Implementation notes-
+//       There is no AI_const_iter<T>
+//
+//----------------------------------------------------------------------------
+template<typename T>
+   struct _AI_iter : public _AI_iter<void>
+   {
+     typedef T                                value_type;
+     typedef T*                               pointer;
+     typedef T&                               reference;
+
+     typedef _AI_iter<void>                   _Base;
+     typedef T                                _Link;
+     typedef AI_list<T>                       _List;
+     typedef _AI_iter<T>                      _Self;
+
+     _AI_iter() noexcept = default; // Default, end() constructor
+
+     _AI_iter(const _AI_iter& that) noexcept // The copy constructor
+     : _Base(that) {}
+
+     explicit
+     _AI_iter(_List* list) noexcept // The begin() constructor
+     : _Base(list) {}
+
+     pointer
+     get() const noexcept
+     { return static_cast<pointer>(_Base::get()); }
+
+     operator bool()
+     { return bool(_link); }
+
+     reference
+     operator*() const
+     { return static_cast<reference>(_Base::operator*()); }
+
+     pointer
+     operator->() const
+     { return static_cast<pointer>(_Base::operator->()); }
+
      _Self&
      operator++() noexcept
-     {
-       if( _head ) {
-         _link= _head;
-         _head= _head->get_next();
-       } else {
-         _link= nullptr;
-         pointer tail= _list->reset(&__detail::__end);
-         if( tail )
-         {
-           do
-           {
-             pointer prev= tail->get_prev();
-             if( prev == nullptr )  // (Should not occur)
-               AI_list<void>::iterator_increment_error();
-             tail->_link= _head;
-             _head= tail;
-             tail= prev;
-           } while( (void*)tail != &__detail::__end );
-           _link= _head;
-           _head= _head->get_next();
-         }
-       }
-       return *this;
-     }
+     { return static_cast<_Self&>(_Base::operator++()); }
 
-     /** *********************************************************************
-       @brief [variable time] Increment the iterator (postfix notation)
-
-       @details
-       An "end_dereferenced" error is thrown when used on an end() iterator.
-     ********************************************************************* **/
      _Self
      operator++(int) noexcept
      {
-       _Self __tmp = *this;
+       _Self __tmp= *this;
        operator++();
        return __tmp;
      }
 
-     /** *********************************************************************
-       @brief [constant time] Iterator equality comparison
-     ********************************************************************* **/
      friend bool
      operator==(const _Self& lhs, const _Self& rhs) noexcept
      { return lhs._link == rhs._link; }
 
-     /** *********************************************************************
-       @brief [constant time] Iterator inequality comparison
-     ********************************************************************* **/
      friend bool
      operator!=(const _Self& lhs, const _Self& rhs) noexcept
      { return lhs._link != rhs._link; }
-   }; // struct AI_iter<T>
+   }; // struct _AI_iter<T>
 
 //----------------------------------------------------------------------------
 //
 // Class-
-//       DHDL_list<>, aka List<>
+//       AI_list<void>
 //
 // Purpose-
-//       A Doubly Headed Doubly linked list.
+//       Define the AI_list<T> base class
 //
 //----------------------------------------------------------------------------
-/**
-   @brief A DHDL_list::iterator.
-**/
+template<>
+   class AI_list<void>
+   {
+     public:
+       typedef __detail::_BISL_link           _Link;
+       typedef _Link*                         pointer;
+       typedef _Link&                         reference;
+
+       //---------------------------------------------------------------------
+       // AI_list<void>::Attributes
+       //---------------------------------------------------------------------
+     protected:
+       std::atomic<pointer> _tail= nullptr; // The newest List element
+
+       //---------------------------------------------------------------------
+       // AI_list<void>::Constructors/destructor
+       //---------------------------------------------------------------------
+     public:
+       AI_list( void ) = default;
+       ~AI_list( void );
+
+       //---------------------------------------------------------------------
+       // AI_list<void>::Methods
+       //---------------------------------------------------------------------
+       void
+         debug(const char* info= "") const; // Write a debugging message
+
+       pointer                      // -> Prior tail
+         fifo(                      // Insert (fifo order)
+           pointer     link);       // -> Link to insert
+
+       bool                         // TRUE if the Link set is coherent
+         is_coherent( void ) const; // Coherency check
+
+       bool                         // TRUE if link is contained
+         is_on_list(                // Is link contained?
+           pointer     link) const; // -> Link
+
+       pointer                      // The set of removed Links
+         reset(                     // Reset (replace) the List set with
+           const void* tail) noexcept; // This replacement pseudo-Link
+   }; // struct AI_list<void>
+
+//============================================================================
+//
+// Struct-
+//       _DHDL_iter<T>
+//
+// Purpose-
+//       Define the DHDL_list<T> iterator
+//
+//----------------------------------------------------------------------------
 template<typename T>
    struct _DHDL_iter
    {
@@ -353,9 +303,9 @@ template<typename T>
      _DHDL_iter(_List* list) noexcept
      : _link(list->get_head()) {}
 
-     _Self
-     _const_cast() const noexcept
-     { return *this; }
+     // _Self
+     // _const_cast() const noexcept
+     // { return *this; }
 
      pointer
      get() const noexcept
@@ -421,9 +371,15 @@ template<typename T>
      { return lhs._link != rhs._link; }
    }; // _DHDL_iter
 
-/**
-   @brief A DHDL_list::const_iterator.
-*/
+//----------------------------------------------------------------------------
+//
+// Struct-
+//       _DHDL_const_iter<T>
+//
+// Purpose-
+//       Define the DHDL_list<T> const iterator
+//
+//----------------------------------------------------------------------------
 template<typename T>
    struct _DHDL_const_iter
    {
@@ -522,14 +478,14 @@ template<typename T>
 //       DHDL_list<void>
 //
 // Purpose-
-//       Implement the Doubly Headed Doubly Linked List base class.
+//       Define the DHDL_list<T> base class
 //
 // Implementation notes-
 //       The DHDL_list is not thread safe. Method usage must be serialized.
-//       The FIFO, LIFO, INSERT, and REMOVE methods run in constant time.
 //
 //----------------------------------------------------------------------------
-template<> class DHDL_list<void>
+template<>
+   class DHDL_list<void>
    {
      public:
        typedef __detail::_BIDL_link           _Link;
@@ -710,18 +666,15 @@ template<> class DHDL_list<void>
          size( void ) const;        // Get the _Link count
    }; // class DHDL_list<void>
 
-//----------------------------------------------------------------------------
+//============================================================================
 //
-// Class-
-//       DHDL_sort<>
+// Struct-
+//       _SORT_iter<T>
 //
 // Purpose-
-//       A sortable Doubly Headed Doubly linked list.
+//       Define the DHDL_sort<T> iterator
 //
 //----------------------------------------------------------------------------
-/**
-   @brief A DHDL_sort::iterator.
-**/
 template<typename T>
    struct _SORT_iter
    {
@@ -744,9 +697,9 @@ template<typename T>
      _SORT_iter(_List* list) noexcept
      : _link(list->get_head()) {}
 
-     _Self
-     _const_cast() const noexcept
-     { return *this; }
+     // _Self
+     // _const_cast() const noexcept
+     // { return *this; }
 
      pointer
      get() const noexcept
@@ -812,9 +765,15 @@ template<typename T>
      { return lhs._link != rhs._link; }
    }; // _SORT_iter
 
-/**
-   @brief A DHDL_sort::const_iterator.
-*/
+//----------------------------------------------------------------------------
+//
+// Struct-
+//       _SORT_const_iter<T>
+//
+// Purpose-
+//       Define the DHDL_sort<T> const iterator
+//
+//----------------------------------------------------------------------------
 template<typename T>
    struct _SORT_const_iter
    {
@@ -913,14 +872,11 @@ template<typename T>
 //       DHDL_sort<void>
 //
 // Purpose-
-//       Implement the sortable Doubly Headed Doubly Linked List base class.
-//
-// Implementation notes-
-//       The DHDL_sort is not thread safe. Method usage must be serialized.
-//       The FIFO, LIFO, INSERT, and REMOVE methods run in constant time.
+//       Implement the DHDL_sort<T> base class.
 //
 //----------------------------------------------------------------------------
-template<> class DHDL_sort<void>
+template<>
+   class DHDL_sort<void>
    {
      public:
        struct _Link                 // (Default: sort by address)
@@ -1146,18 +1102,15 @@ template<> class DHDL_sort<void>
            _Link*            R);    // The Right (remaining) _Link set
    }; // class DHDL_sort<void>
 
-//----------------------------------------------------------------------------
+//============================================================================
 //
-// Class-
-//       DHSL_list<>
+// Struct-
+//       _DHSL_iter<T>
 //
 // Purpose-
-//       A Doubly Headed Singly linked list.
+//       Define the DHSL_list<T> iterator
 //
 //----------------------------------------------------------------------------
-/**
-   @brief A DHSL_list::iterator.
-**/
 template<typename T>
    struct _DHSL_iter
    {
@@ -1180,9 +1133,9 @@ template<typename T>
      _DHSL_iter(_List* list) noexcept
      : _link(list->get_head()) {}
 
-     _Self
-     _const_cast() const noexcept
-     { return *this; }
+     // _Self
+     // _const_cast() const noexcept
+     // { return *this; }
 
      pointer
      get() const noexcept
@@ -1231,9 +1184,15 @@ template<typename T>
      { return lhs._link != rhs._link; }
    }; // _DHSL_iter
 
-/**
-   @brief A DHSL_list::const_iterator.
-*/
+//----------------------------------------------------------------------------
+//
+// Struct-
+//       _DHSL_const_iter<T>
+//
+// Purpose-
+//       Define the DHSL_list<T> const iterator
+//
+//----------------------------------------------------------------------------
 template<typename T>
    struct _DHSL_const_iter
    {
@@ -1315,16 +1274,11 @@ template<typename T>
 //       DHSL_list<void>
 //
 // Purpose-
-//       The Doubly Headed, Singly Linked List.
-//
-// Implementation notes-
-//       The DHSL_list is not thread safe. Method usage must be serialized.
-//
-//       The FIFO, LIFO, REMQ, and RESET methods run in constant time.
-//       The INSERT and REMOVE methods run in linear time.
+//       Define the DHSL_list<T> base class
 //
 //----------------------------------------------------------------------------
-template<> class DHSL_list<void>
+template<>
+   class DHSL_list<void>
    {
      public:
        typedef __detail::_NEXT_link           value_type;
@@ -1367,6 +1321,17 @@ template<> class DHSL_list<void>
        //
        //---------------------------------------------------------------------
        // Implemented in DHSL_list<T>
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       DHSL_list<void>::debug
+       //
+       // Purpose-
+       //       Debugging display
+       //
+       //---------------------------------------------------------------------
+       void debug(const char* info="") const;
 
        //---------------------------------------------------------------------
        //
@@ -1485,21 +1450,15 @@ template<> class DHSL_list<void>
          reset( void );             // Reset (empty) the List
    }; // class DHSL_list<void>
 
-//----------------------------------------------------------------------------
+//============================================================================
 //
-// Class-
-//       SHSL_list<>
+// Struct-
+//       _SHSL_iter<T>
 //
 // Purpose-
-//       A Singly Headed Singly linked list.
+//       Define the SHDL_list<T> iterator
 //
 //----------------------------------------------------------------------------
-/**
-   @brief An SHSL_list::iterator.
-
-   This is a reverse iterator, iterating from the oldest element on the list
-   to the newest.
-**/
 template<typename T>
    struct _SHSL_iter
    {
@@ -1524,9 +1483,9 @@ template<typename T>
      _SHSL_iter(const _SHSL_iter<T>& that) noexcept
      :  _link(that._link) {}
 
-     _Self
-     _const_cast() const noexcept
-     { return *this; }
+     // _Self
+     // _const_cast() const noexcept
+     // { return *this; }
 
      pointer
      get() const noexcept
@@ -1575,12 +1534,15 @@ template<typename T>
      { return lhs._link != rhs._link; }
    }; // _SHSL_iter
 
-/**
-   @brief An SHSL_list::const_iterator.
-
-   This is a reverse iterator, iterating from the oldest element on the list
-   to the newest.
-**/
+//----------------------------------------------------------------------------
+//
+// Struct-
+//       _SHSL_const_iter<T>
+//
+// Purpose-
+//       Define the SHDL_list<T> const iterator
+//
+//----------------------------------------------------------------------------
 template<typename T>
    struct _SHSL_const_iter
    {
@@ -1658,30 +1620,14 @@ template<typename T>
 //----------------------------------------------------------------------------
 //
 // Class-
-//       SHSL_list<void>
+//       _SHSL_list<void>
 //
 // Purpose-
-//       The Singly Headed, Singly Linked List.
-//
-// Implemenation notes-
-//       The SHDL_list is not thread safe. Method usage must be serialized.
-//       The SHSL_list is optimized for LIFO operation. If you think of
-//       this List as a Stack, LIFO == PUSH and REMQ == PULL.
-//
-//       The INSERT, LIFO and REMQ methods run in constant time.
-//       The REMOVE method run in linear time. The FIFO method is deprecated.
-//
-// List structure-
-//       SHSL_list::_tail -> newest -> older -> ... -> oldest
-//       REMQ() removes the newest element.
-//
-//       begin() removes all elements from the list, reordering the list from
-//       oldest to older to newest, and creating a FIFO input_iterator.
-//       This reordering takes linear time, requiring a single pass through the
-//       list.
+//       Define the SHSL_list<T> base class
 //
 //----------------------------------------------------------------------------
-template<> class SHSL_list<void>
+template<>
+   class SHSL_list<void>
    {
      public:
        typedef __detail::_PREV_link           value_type;
@@ -1723,6 +1669,17 @@ template<> class SHSL_list<void>
        //
        //---------------------------------------------------------------------
        // Implemented in SHSL_list<T>
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       SHSL_list<void>::debug
+       //
+       // Purpose-
+       //       Debugging display
+       //
+       //---------------------------------------------------------------------
+       void debug(const char* info="") const;
 
        //---------------------------------------------------------------------
        //

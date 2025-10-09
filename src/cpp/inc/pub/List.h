@@ -17,10 +17,10 @@
 //       Describe the List objects.
 //
 // Last change date-
-//       2025/10/04
+//       2025/10/09
 //
 // Implementation notes-
-//       "Link set" refers to the set of Links owned by a List.
+//       TODO: Use doxygen headers everywhere.
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_LIST_H_INCLUDED
@@ -45,19 +45,20 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 
 ************************************************************************** **/
 template<class T>
-   class AI_list
+   class AI_list : public AI_list<void>
    {
      public:
        typedef T                              value_type;
        typedef value_type*                    pointer;
        typedef value_type&                    reference;
 
+       typedef AI_list<void>                  _Base;
        typedef AI_list<T>                     _Self;
-       typedef AI_iter<T>                     iterator;
+       typedef _AI_iter<T>                    iterator;
 
-       struct Link : protected __detail::_BISL_link
+       struct Link : protected _Link
        {
-         friend struct AI_iter<T>;
+         friend struct _AI_iter<T>;
          friend class AI_list;
          public:
            pointer get_next( void ) const
@@ -66,10 +67,6 @@ template<class T>
            { return static_cast<pointer>(_link); }
        }; // struct Link
 
-     protected:
-       std::atomic<pointer> _tail= nullptr; // The newest List element
-
-     public:
        //---------------------------------------------------------------------
        // AI_list<T>::Constructors/Destructor
        //---------------------------------------------------------------------
@@ -77,7 +74,8 @@ template<class T>
        AI_list(const AI_list<T>&) = delete; // *NO* copy constructor
        AI_list(AI_list<T>&&) = delete; // *NO* move constructor
 
-       ~AI_list( void ) { AI_list<void>::verify_nullptr(_tail.load()); }
+       ~AI_list( void )
+       { _Base::~AI_list(); }
 
        //---------------------------------------------------------------------
        // AI_list<T>::Operators
@@ -101,6 +99,12 @@ template<class T>
        ******************************************************************* **/
        iterator end()   noexcept { return iterator(); }
 
+       /** *******************************************************************
+         @brief Display a debugging message
+       ******************************************************************* **/
+       void debug(const char* info= "") const // Debugging display
+       { _Base::debug(info); }
+
        /**
          @brief [constant time] Thread-safe FIFO ordered atomic Link insertion
          @param link The Link to insert.
@@ -116,12 +120,7 @@ template<class T>
          fifo(                      // Insert (fifo order)
            pointer     link)        // -> Link to insert
        {
-          pointer prev= _tail.load();
-          link->_link= prev;
-          while( !_tail.compare_exchange_weak(prev, link) )
-            link->_link= prev;
-
-          return prev;
+         return static_cast<pointer>(_Base::fifo(link));
        }
 
        /** *******************************************************************
@@ -134,7 +133,7 @@ template<class T>
        pointer                      // -> Tail Link
          get_tail( void ) const     // Get tail link
        {
-         return _tail.load();
+         return static_cast<pointer>(_tail.load());
        }
 
        /** *******************************************************************
@@ -146,16 +145,7 @@ template<class T>
        bool                         // TRUE if the Link set is coherent
          is_coherent( void ) const  // Coherency check
        {
-          pointer link= _tail.load(); // The newest Link
-          for(int count= 0; count < __detail::MAX_COHERENT; count++)
-          {
-            if( link == nullptr )
-              return true;
-
-            link= link->get_prev();
-          }
-
-          return false;
+         return _Base::is_coherent();
        }
 
        /** *******************************************************************
@@ -179,19 +169,7 @@ template<class T>
          is_on_list(                // Is link contained?
            pointer     link) const  // -> Link
        {
-          if( link )
-          {
-            pointer prev= _tail.load();
-            while( prev != nullptr && (void*)prev != &__detail::__end )
-            {
-              if( prev == link )
-                return true;
-
-              prev= prev->get_prev();
-            }
-          }
-
-          return false;
+         return _Base::is_on_list(link);
        }
 
        /**
@@ -211,22 +189,7 @@ template<class T>
          reset(                     // Reset (replace) the List set with
            const void* tail) noexcept // This replacement pseudo-Link
        {
-          pointer link= _tail.load(); // Get the current tail
-          if( link == nullptr )     // If the List is currently empty
-            return nullptr;         // Do not replace it
-
-          // If the Link set hasn't changed since it was replaced, we're done
-          while( (void*)link == tail )
-          {
-            if( _tail.compare_exchange_weak(link, nullptr) )
-              return nullptr;
-          }
-
-          // The Link set changed. Replace it with the pseudo-link
-          while( !_tail.compare_exchange_weak(link, (pointer)tail) )
-            ;
-
-          return link;              // Return the newest existing Link
+         return static_cast<pointer>(_Base::reset(tail));
        }
    }; // class AI_list<T>
 
@@ -599,6 +562,10 @@ template<class T>
        const_iterator end()   const noexcept { return const_iterator(); }
 
        void
+         debug(const char* info= "") const // Debugging display
+       { _Base::debug(info); }
+
+       void
          fifo(                      // Insert (FIFO order)
            pointer           link)  // -> Link to insert
        { _Base::fifo(link); }
@@ -613,10 +580,16 @@ template<class T>
 
        void
          insert(                    // Insert at position,
-           pointer           link,  // -> Link to insert after
+           pointer           after, // -> Link to insert after
            pointer           head,  // -> First Link to insert
            pointer           tail)  // -> Final Link to insert
-       { _Base::insert(link, head, tail); }
+       { _Base::insert(after, head, tail); }
+
+       void
+         insert(                    // Insert at position,
+           pointer           after, // -> Link to insert after
+           pointer           link)  // -> Link to insert
+       { _Base::insert(after, link, link); }
 
        bool                         // TRUE if the object is coherent
           is_coherent( void ) const // Coherency check
@@ -705,10 +678,14 @@ template<class T>
        //---------------------------------------------------------------------
        // SHSL_list<T>::Methods
        //---------------------------------------------------------------------
-               iterator begin()       noexcept { return iterator(this); }
-         const_iterator begin() const noexcept { return const_iterator(this); }
-               iterator end()         noexcept { return iterator(); }
-         const_iterator end()   const noexcept { return const_iterator(); }
+             iterator begin()       noexcept { return iterator(this); }
+       const_iterator begin() const noexcept { return const_iterator(this); }
+             iterator end()         noexcept { return iterator(); }
+       const_iterator end()   const noexcept { return const_iterator(); }
+
+       void
+         debug(const char* info= "") const // Debugging display
+       { _Base::debug(info); }
 
 /***** [[deprecated("Use lifo to insert and begin/end to iterate")]] *********
        void
@@ -723,10 +700,16 @@ template<class T>
 
        void
          insert(                    // Insert at position,
-           pointer           link,  // -> Link to insert after
+           pointer           after,  // -> Link to insert after
            pointer           head,  // -> First Link to insert
            pointer           tail)  // -> Final Link to insert
-       { _Base::insert(link, head, tail); }
+       { _Base::insert(after, head, tail); }
+
+       void
+         insert(                    // Insert at position,
+           pointer           after,  // -> Link to insert after
+           pointer           link)  // -> Link to insert
+       { _Base::insert(after, link, link); }
 
        bool                         // TRUE if the object is coherent
          is_coherent( void ) const  // Coherency check

@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2025/09/16
+//       2025/10/09
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -730,10 +730,48 @@ Now includes ~/src/cpp/Scanner in the list of compile test subdirectories.
 - Fixed ~/src/cpp/Edit/EdMark.cpp (method format)
   - Now treats quotes as normal characters
 
- ### 2025/09/15 maint
- ### <a id="last-change-date">2025/09/16 trunk</a>
+### 2025/09/15 maint
+### 2025/09/16 trunk
 - Removed obsolete ifmacro.h (no replacement)
   - Using "if( HCDM ) {...}" instead of "IFHCDM(...)"
 - Replaced obsolete ~/src/cpp/inc/pub/Fileman.h with Data.h
   - Note: while ~/src/cpp/lib/pub/Fileman.cpp is removed,
 ~/src/cpp/Fileman.cpp (now using pub/Data.h) remains for fileman command.
+
+### 2025/10/09
+### <a id="last-change-date">2025/10/09 maint</a>
+This commit contains work in progress.
+
+- The work on ~/src/cpp/inc/List.h and its documentation is incomplete.
+- List's bubble sorting has been changed to the merge algorithm.
+The algorithm features avoidance of link removal/insertion operations when the
+next merge item to be inserted is from the same split chain.
+  - A new list type, DHDL_sort, implements the sort method. DHDL_list::sort.
+(Implementation went through multiple iterations.)
+  - The DHDL_sort link uses a virtual operator<() to define how to sort.
+(We'd like to move that function to the DHDL_sort list to reduce storage use.
+One VTAB for the List is less storage than one in each Link. This has been
+more difficult to implement than imagined.)
+  - We removed ~/src/cpp/inc/pub/bits/Link.h include <pub/utility.h>. Some
+source files accidentally depended on this.
+
+Added files:
+- ~/doc/cpp/pub_list-DHDL.md, ~/doc/cpp/pub_list-DHDL_iter.md: Preliminary
+DHDL_list documentation.
+- ~/doc/cpp/pub_list-DHSL.md, ~/doc/cpp/pub_list-DHSL_iter.md: Preliminary
+DHSL_list documentation.
+- ~/doc/cpp/pub_list-SHSL.md, ~/doc/cpp/pub_list-SHSL_iter.md: Preliminary
+SHSL_list documentation.
+- ~/doc/cpp/pub_list-SORT.md, ~/doc/cpp/pub_list-SORT_iter.md: Preliminary
+DHDL_sort documentation.
+
+Changed files:
+- ~/doc/cpp/List.md: Updated references to added files.
+- ~/doc/cpp/pub_list-AI.md, ~/doc/cpp/pub_list-AI_iter.md: Improved references.
+- ~/src/cpp/inc/pub/List.h, ~/src/cpp/inc/pub/bits/List.h,
+- ~/src/cpp/lib/pub/List.cpp: Added implementation iterations of DHDL_sort;
+Moved some AI_list method implementations into List.cpp.
+
+All pub library includes `#include <pub/List.h>` changed to
+`#include "pub/List.h"` so they would be recompiled whenever `pub/List.h` or
+`pub/bits/List.h` changed.

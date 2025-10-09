@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (c) 2023 Frank Eskesen.
+//       Copyright (c) 2023-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under cc by-sa version 4.0
 //       with attribution required.
@@ -11,20 +11,19 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/doc/cpp/pub_list-ai.md
+//       ~/doc/cpp/pub_list-AI.md
 //
 // Purpose-
 //       List.h reference manual: AI_list<T>
 //
 // Last change date-
-//       2023/09/22
+//       2025/10/05
 //
 -------------------------------------------------------------------------- -->
-## `AI_list<T>::` begin, end, fifo, get_tail, is_coherent, is_empty, is_on_list, reset(void), reset(void*)
-
 ###### Defined in header <pub/List.h>
+## `pub::AI_list<T>`
 
-See also: [`AI_list<T>::iterator`](./pub_list-ai_iter.md)
+See also: [`AI_list<T>::iterator`](./pub_list-AI_iter.md)
 
 Types:
 - `AI_list<T>::struct Link`: The Link type
@@ -33,7 +32,7 @@ Types:
 `class T : public pub::AI_list<T>::Link {...};`
 
 ---
-#### iterator begin() noexcept;
+#### <a id="begin">iterator begin() noexcept</a>
 Create/construct a begin() iterator.
 
 *Implementation notes*:
@@ -46,35 +45,35 @@ begin() iterator equals end().
 Doing so can result in more problems than you might imagine.
 
 ---
-#### iterator end() noexcept;
+#### <a id="end">iterator end() noexcept</a>
 Create/construct the (default) end() iterator.
 
 ---
-#### pointer fifo(pointer link);
+#### <a id="fifo">pointer fifo(pointer link)</a>
 Insert *link* onto the list with FIFO (First In, First Out) ordering.
 
 ---
-#### pointer get_tail(void)
+#### <a id="get_tail">pointer get_tail(void)</a>
 Obtain the tail link
 
 ---
-#### bool is_coherent(void)
+#### <a id="is_coherent">bool is_coherent(void)</a>
 (Debugging) Consistency check
 
 ---
-#### bool is_empty(void)
+#### <a id="is_empty">bool is_empty(void)</a>
 Check whether the List is empty
 
 ---
-#### bool is_on_list
+#### <a id="is_on_list">bool is_on_list</a>
 Check whether the List contains a Link
 
 ---
-#### pointer reset(void)
+#### <a id="reset0">pointer reset(void)</a>
 Reset (empty) the List
 
 ---
-#### pointer reset(void*)
+#### <a id="reset1">pointer reset(void*)</a>
 Empty the List, replacing it with a dummy Link
 
 ---
