@@ -17,7 +17,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2025/09/15
+//       2025/10/09
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -35,6 +35,7 @@
 #include <pub/Debug.h>              // For Debug, namespace pub::debugging
 #include <pub/Thread.h>             // For pub::Thread::sleep
 #include <pub/Trace.h>              // For pub::Trace
+#include <pub/utility.h>            // For pub::utility::wildstrcmp, ...
 
 #include "Active.h"                 // For Active
 #include "Config.h"                 // For namespace config

@@ -17,7 +17,7 @@
 //       Implement Signals.h
 //
 // Last change date-
-//       2025/01/22
+//       2025/10/09
 //
 //----------------------------------------------------------------------------
 #include <functional>               // For std::function
@@ -25,10 +25,11 @@
 #include <mutex>                    // For std::lock_guard
 
 #include <pub/Debug.h>              // For namespace pub::debugging
-#include <pub/List.h>               // For pub::List
+#include "pub/List.h"               // For pub::List
 #include <pub/Latch.h>              // For pub::XCL_latch, SHR_latch
 #include "pub/Signals.h"            // For pub::Signals interface, implemented
 #include "pub/Trace.h"              // For pub::Trace
+#include "pub/utility.h"            // For pub::demangle
 #include "pub/utility.i"            // For conversion subroutines
 
 #define PUB _LIBPUB_NAMESPACE

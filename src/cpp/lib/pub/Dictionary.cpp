@@ -17,9 +17,10 @@
 //       Dictionary method implementation.
 //
 // Last change date-
-//       2025/09/15
+//       2025/10/09
 //
 //----------------------------------------------------------------------------
+#include <memory>                   // For std:unique_ptr, make_unique
 #include <string>                   // For std::string
 #include <cstring>                  // For strcmp, ...
 
@@ -28,7 +29,7 @@
 #include <pub/Data.h>               // For namespace pub::data
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include "pub/Dictionary.h"         // For pub::Dictionary, implemented
-#include <pub/List.h>               // For pub::List
+#include "pub/List.h"               // For pub::List
 #include <pub/Tokenizer.h>          // For pub::Tokenizer
 
 #define PUB _LIBPUB_NAMESPACE
