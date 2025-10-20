@@ -17,7 +17,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2025/09/14
+//       2025/10/20
 //
 //----------------------------------------------------------------------------
 #include <iostream>                 // For std::cout
@@ -547,29 +547,6 @@ static inline int
    error_count += MUST_EQ(shr.count, 1);
    shr.unlock();
    error_count += MUST_EQ(shr.count, 0);
-
-   //-------------------------------------------------------------------------
-   if( opt_verbose )
-     debugf("..Testing: TestLatch\n");
-   TestLatch test_latch;
-   tid= recursive.latch.load();
-   error_count += MUST_EQ(tid, null_id);
-   error_count += MUST_EQ(false, test_latch.is_held());
-
-   {{{{ std::lock_guard<decltype(test_latch)> lock1(test_latch);
-     error_count += MUST_EQ(true, test_latch.is_held());
-     try {
-       {{{{ std::lock_guard<decltype(test_latch)> lock2(test_latch);
-         error_count += MUST_NOT(Recursively hold test_latch);
-       }}}}
-     } catch(std::runtime_error& X) {
-       if( opt_verbose )
-         debugf("....Expected: %s\n", X.what());
-       tid= recursive.latch.load();
-       error_count += MUST_EQ(tid, null_id);
-     }
-   }}}}
-   error_count += MUST_EQ(false, test_latch.is_held());
 
    //-------------------------------------------------------------------------
    if( opt_verbose )

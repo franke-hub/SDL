@@ -26,7 +26,7 @@
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include "pub/List.h"               // For pub::List
-#include <pub/Latch.h>              // For pub::XCL_latch, SHR_latch
+#include "pub/Latch.h"              // For pub::XCL_latch, SHR_latch
 #include "pub/Signals.h"            // For pub::Signals interface, implemented
 #include "pub/Trace.h"              // For pub::Trace
 #include "pub/utility.h"            // For pub::demangle

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2024 Frank Eskesen.
+//       Copyright (c) 2018-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Primitive mechanisms for granting access to a resource.
 //
 // Last change date-
-//       2024/11/20
+//       2025/10/20
 //
 // Implementation notes-
 //       Internal logic for these mechanisms are further described in
@@ -127,7 +127,10 @@ void
 //       Primitive (exclusive) spin latch.
 //
 // Implementation notes-
-//       We improve error checking by using the thread id as the latch.
+//       Error checks: (std::runtime_error thrown if detected)
+//       - In try_lock, the Latch must NOT be held by this Thread. If this
+//         check fails, the Latch is released before an exception is thrown.
+//       - In unlock, the Latch must be held by this Thread.
 //
 //----------------------------------------------------------------------------
 struct Latch {                      // Latch descriptor
@@ -154,8 +157,11 @@ void
      if( (spinCount & 0x0000000f) == 0 ) {
        if( (spinCount & 0x00000010) != 0 )
          std::this_thread::yield();
-       else
+       else {
          std::this_thread::sleep_for(std::chrono::nanoseconds(spinCount));
+         if( spinCount > 10'000 )   // Maximum delay: 10 microseconds
+           spinCount= 0;
+       }
      }
    }
 }
@@ -166,8 +172,14 @@ void
 
 bool                                // TRUE iff successful
    try_lock( void )                 // Attempt to obtain the Latch
-{  std::thread::id oldValue= std::thread::id();
+{
+   std::thread::id oldValue= latch.load();
    std::thread::id newValue= std::this_thread::get_id();
+   if( oldValue == newValue ) {     // If already held
+     latch.store(std::thread::id());
+     throw std::runtime_error("Latch recursion error");
+   }
+
    return latch.compare_exchange_strong(oldValue, newValue);
 }
 
@@ -294,7 +306,7 @@ struct SHR_latch {                  // SHR_latch descriptor
 std::atomic<uintptr_t> count{};     // The number of shared users
 
 static constexpr const uintptr_t
-       HBIT= sizeof(uintptr_t) == 8 ? 0x8000000000000000L : 0x80000000;
+       HBIT= sizeof(uintptr_t) == 8 ? 0x8000'0000'0000'0000L : 0x8000'0000;
 
 //----------------------------------------------------------------------------
 // SHR_latch::Methods
@@ -475,61 +487,5 @@ bool                                // TRUE iff successful
 void
    unlock( void ) {}                // Release the NullLatch
 }; // struct NullLatch
-
-//----------------------------------------------------------------------------
-//
-// Struct-
-//       TestLatch
-//
-// Purpose-
-//       Primitive non-recursive debugging latch.
-//
-// Implementation notes-
-//       The TestLatch object is a special purpose (debugging) Latch that
-//       explicitly disallows recursion, thus detecting Latch self-deadlocks.
-//       If a thread attempts to obtain a TestLatch while holding it, a
-//       std::runtime_error is thrown. *THE LATCH IS RELEASED* before the
-//       exception is thrown.
-//
-//----------------------------------------------------------------------------
-struct TestLatch {                  // TestLatch descriptor
-std::atomic<std::thread::id>
-                       latch;       // The latch holder
-
-//----------------------------------------------------------------------------
-// TestLatch::Methods
-//----------------------------------------------------------------------------
-bool                                // TRUE if latch is held
-   is_held( void ) const            // Is latch held
-{  return latch.load() != std::thread::id(); }
-
-void
-   lock( void )                     // Obtain the Latch
-{
-   while( !try_lock() )
-     std::this_thread::sleep_for(std::chrono::nanoseconds(8));
-}
-
-void                                // NOTE: This method is NOT thread-safe
-   reset( void )                    // Initialize/Reset the TestLatch
-{  latch.store(std::thread::id()); }
-
-bool                                // TRUE iff successful
-   try_lock( void )                 // Attempt to obtain the TestLatch
-{
-   std::thread::id oldValue= latch.load();
-   std::thread::id newValue= std::this_thread::get_id();
-   if( oldValue == newValue ) {     // If recursive
-     latch.store(std::thread::id());
-     throw std::runtime_error("TestLatch recursion error");
-   }
-
-   return latch.compare_exchange_strong(oldValue, newValue);
-}
-
-void
-   unlock( void )                   // Release the TestLatch
-{  latch.store(std::thread::id()); }
-}; // struct TestLatch
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_LATCH_H_INCLUDED
