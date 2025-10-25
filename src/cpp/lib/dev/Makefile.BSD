@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2023-2024 Frank Eskesen.
+##       Copyright (c) 2023-2025 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2024/03/21
+##       2025/10/24
 ##
 ##############################################################################
 
@@ -93,9 +93,11 @@ include $(INCDIR)/dev/Makefile.BSD
 .PHONY: dev.clean dev.pristine
 clean: dev.clean
 dev.clean: ;
+	(cd $(OBJDIR)/Test/; $(MAKE) clean)
 	@rm -f cygdev.* libdev.*
 	@rm -f Makeproj.*
 
 pristine: dev.pristine
 dev.pristine: ;
+	(cd $(OBJDIR)/Test/; $(MAKE) pristine)
 	@rm -f .have-version

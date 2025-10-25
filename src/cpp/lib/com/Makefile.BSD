@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2024 Frank Eskesen.
+##       Copyright (c) 2007-2025 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2024/03/21
+##       2025/10/24
 ##
 ##############################################################################
 
@@ -57,6 +57,19 @@ shr: libcom.so.1.0
 endif
 
 ##############################################################################
+## Implicit rule to make assembler source, listing (NO OUTPUT)
+AS     := as ######################### Assembler
+
+%.s: $(SRCDIR)/%.cpp
+	$(CC) -o $@ -S $(CFLAGS) -c $<
+
+%.lst: %.s
+	$(AS) -o /dev/null -a=$@ $<
+
+Atomic.s: $(SRCDIR)/HW/X86/Atomic.GNU
+Hardware.s: $(SRCDIR)/HW/X86/Hardware.GNU
+
+##############################################################################
 ## TARGET: libcom.a
 libcom.a: $(MAKOBJ)
 	rm -f $@
@@ -93,22 +106,11 @@ include $(INCDIR)/com/Makefile.BSD
 .PHONY: com.clean com.pristine
 clean: com.clean
 com.clean: ;
+	(cd $(OBJDIR)/Test/; $(MAKE) clean)
 	@rm -f cygcom.* libcom.*
 	@rm -f Makeproj.*
 
 pristine: com.pristine
 com.pristine: ;
+	(cd $(OBJDIR)/Test/; $(MAKE) pristine)
 	@rm -f .have-version
-
-##############################################################################
-## Explicit rule to make assembler source, listing (NO OUTPUT)
-AS     := as ######################### Assembler
-
-%.s: $(SRCDIR)/%.cpp
-	$(CC) -o $@ -S $(CFLAGS) -c $<
-
-%.lst: %.s
-	$(AS) -o /dev/null -a=$@ $<
-
-Atomic.s: $(SRCDIR)/HW/X86/Atomic.GNU
-Hardware.s: $(SRCDIR)/HW/X86/Hardware.GNU
