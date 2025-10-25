@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2007-2024 Frank Eskesen.
+//       Copyright (C) 2007-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Debug object methods.
 //
 // Last change date-
-//       2024/10/28
+//       2025/10/25
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard, ...
@@ -463,9 +463,8 @@ void
    std::lock_guard<decltype(mutex)> lock(mutex);
 
    if( handle )                     // If file is open
-     throw Exception(
-         utility::to_string("Debug(%p)::set_file_mode, File(%s) open",
-                            this, file_name.c_str()));
+     fprintf(stderr, "Debug(%p)::set_file_mode ignored, File(%s) open\n", this
+                   , file_name.c_str());
 
    file_mode= mode;                 // Set the file mode
 }
