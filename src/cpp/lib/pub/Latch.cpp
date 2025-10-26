@@ -17,7 +17,7 @@
 //       Primitive mechanisms for granting access to a resource.
 //
 // Last change date-
-//       2025/10/25
+//       2025/10/26
 //
 // Implementation notes-
 //       Maintain implementation compatability with Latch.h
@@ -26,10 +26,6 @@
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE                 // For sched_getcpu
 #define _GNU_SOURCE
-#endif
-
-#ifndef _PUBLIB_LATCH_DEBUG
-#define _PUBLIB_LATCH_DEBUG         // (Always use outline methods)
 #endif
 
 #include <atomic>                   // For std::atomic
@@ -48,6 +44,9 @@
 using namespace PUB;                // For pub::Trace methods
 using namespace PUB::debugging;     // For debugging subroutines
 using namespace PUB::utility;       // For pub::utility::to_string
+
+//----------------------------------------------------------------------------
+#ifdef _PUBLIB_LATCH_DEBUG          // Conditionally compiled
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -440,3 +439,4 @@ bool                                // TRUE iff successful
 void
    pub::NullLatch::unlock( void )   // Release the NullLatch
 {  }
+#endif // #ifdef _PUBLIB_LATCH_DEBUG
