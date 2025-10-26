@@ -17,7 +17,7 @@
 //       Thread method implementations.
 //
 // Last change date-
-//       2025/01/11
+//       2025/10/26
 //
 // Implementation note-
 //       We use Thread Local Storage to maintain the Thread::tlss state.
@@ -25,6 +25,9 @@
 //       pointer to the state in Thread::_tlss and in automatic storage while
 //       running Thread::drive. But, since Thread::current *really needs* it
 //       we'll continue to use it.
+//
+//       If _PUBLIB_THREAD_DEBUG is defined in Thread.h, the debugging version
+//       of certain methods are implemented here.
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<> statistics
@@ -56,9 +59,6 @@ namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-// USE_HCDM_DEBUGGING uses debugging versions of Thread.h inlines.
-#define USE_HCDM_DEBUGGING          // Use Thread.h debugging implementations?
-
 // Production mode settings: HCDM= false; VERBOSE= 1;
 //   USE_CHECK= false; USE_ITRACE= false; USE_TIMING=false
 enum
@@ -66,7 +66,7 @@ enum
 ,  VERBOSE= 1                       // Verbosity, higher is more verbose
 
 // Production mode settings: USE_CHECK= true; USE_TIMING= false
-,  USE_CHECK= true                  // Use self-checking code?
+,  USE_CHECK= false                 // Use self-checking code?
 ,  USE_ITRACE= false                // Use internal trace?
 ,  USE_TIMING= false                // Use timing code?
 }; // generic enum
@@ -98,22 +98,19 @@ static atomic_size_t   max_run= 0;  // Maximum running Thread count
 static atomic_size_t   running= 0;  // Number of running Threads
 static atomic_size_t   started= 0;  // Number of started Threads
 
-#if 0  // Currently unused - - - - - - - - - - - - - - - - - - - - - - - - - -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Global initialization/termination
 namespace {                         // Anonymous namespace
 static struct StaticGlobal {
    StaticGlobal( void )             // Initialize main()'s tl_tlss
 {  if( HCDM ) debugh("Thread::StaticGlobal!\n");
-   // (Placeholder)
 }
 
    ~StaticGlobal( void )            // Initialize main()'s tl_tlss
 {  if( HCDM ) debugh("Thread::StaticGlobal~\n");
-   // (Placeholder)
 }
 }  static_global;
 }  // Anonymous namespace
-#endif // Currently unused - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 //----------------------------------------------------------------------------
 //
@@ -187,7 +184,7 @@ static const char*                  // "free" || "held"
 //       Destrutor
 //
 //----------------------------------------------------------------------------
-#ifdef USE_HCDM_DEBUGGING           // Debugging version
+#ifdef _PUBLIB_THREAD_DEBUG         // Debugging (outline) version
    Thread::tlss::tlss(              // Constructor
      Thread*           thread)      // Associated Thread
 :  pub_thread(thread)
@@ -196,19 +193,6 @@ static const char*                  // "free" || "held"
    Thread::tlss::~tlss( void )      // Destructor
 {  if( HCDM ) debugh("Thread::tlss(%p)~\n", this); }
 #endif
-
-/* _LIBPUB_THREAD_DEBUGGING constructor/destructor ***************************
-   tlss(Thread* thread);            // TODO: REPLACE WITH INLINE VERSION
-   ~tlss( void );
-*****************************************************************************/
-
-/* Production constructor/destructor *****************************************
-   tlss(                            // Constructor
-     Thread*           thread)      // Associated Thread
-:  pub_thread(thread) { }
-
-   ~tlss( void ) = default;         // (Destructor does nothing)
-*****************************************************************************/
 
 //----------------------------------------------------------------------------
 //
@@ -287,7 +271,8 @@ void
 
    if( _tlss )                      // (Avoid NOP detach call)
      detach();
-//debugh("%4d Thread~ EXIT\n", __LINE__);
+
+   if( HCDM ) debugh("%4d Thread~ EXIT\n", __LINE__);
 }
 
 //----------------------------------------------------------------------------
@@ -362,8 +347,8 @@ bool                                // TRUE if this thread is joinable
        case FSM_OWNER:              // Thread completed  (default joinable)
          return true;
 
-// When detached, _tlss == nullptr (so DETACHED is an invalid state)
-//     case FSM_DETACHED:           // Thread already detached
+       // When detached, _tlss == nullptr (so DETACHED is an invalid state)
+       // case FSM_DETACHED:        // Thread already detached
        case FSM_JOINING:            // (Can't be joined again, so FALSE)
          return false;
 
@@ -420,15 +405,20 @@ void
    tlss* _tlss= this->_tlss;
    int fsm= -1;
 
-if( _tlss == nullptr ) {
-// We usually *silently* ignore multiple detaches or detach after join.
-// But, we're debugging and making some noise here. It's not an error.
-debugh("%4d Thread(%p) _tlss == nullptr (DUPLICATE) DETACH\n", __LINE__, this);
-}
+   if( HCDM ) {
+     if( _tlss == nullptr ) {
+       // We usually *silently* ignore multiple detaches or detach after join.
+       // But, we're debugging and making some noise here. It's not an error.
+       debugh("%4d Thread(%p) _tlss == nullptr (DUPLICATE) DETACH\n", __LINE__
+             , this);
+     }
+   }
 
    if( _tlss ) {{{{
      std::lock_guard<decltype(tlss::mutex)> lock(_tlss->mutex);
-//debugh("Thread(%p,0x%zx).detach\n", this, intptr_t(_tlss->std_thread));
+
+     if( HCDM )
+       debugh("Thread(%p,0x%zx).detach\n", this, intptr_t(_tlss->std_thread));
 
      fsm= _tlss->fsm;
      if( fsm != FSM_DRIVE && fsm != FSM_OWNER ) {
@@ -442,8 +432,6 @@ debugh("%4d Thread(%p) _tlss == nullptr (DUPLICATE) DETACH\n", __LINE__, this);
      // At this point the Thread should be detachable (or joinable.)
      // If (somehow) it's not, join will return an error, which indicates a
      // problem in this code
-//_tlss->debug("Before detach");
-//debugh("%4d Thread.detach HCDM TIMING\n", __LINE__);
      int rc= pthread_detach(_tlss->std_thread);
      if( rc ) {
        if( USE_ITRACE )
@@ -451,7 +439,6 @@ debugh("%4d Thread(%p) _tlss == nullptr (DUPLICATE) DETACH\n", __LINE__, this);
 
        errorh("pthread_detach(0x%zx) error %d:%s\b"
              , intptr_t(_tlss->std_thread), rc, strerror(rc));
-//debugh("%4d Thread.detach HCDM TIMING\n", __LINE__);
      }
 
      if( USE_TIMING )
@@ -463,12 +450,8 @@ debugh("%4d Thread(%p) _tlss == nullptr (DUPLICATE) DETACH\n", __LINE__, this);
        ++detached;                  // Thread::drive will decrement this
        _tlss->pub_thread= nullptr;  // (Thread cannot be referenced)
        _tlss->std_thread= null_handle; // (Thread ID meaningless)
-//_tlss->std_thread= pthread_t(intptr_t(-1)); // (Thread ID meaningless)
-//debug("detach DRIVE=>DETACHED"); // _tlss not zeroed yet, so full debug
        this->_tlss= nullptr;        // We do not own the tlss
 
-//Thread::static_debug("Detach[DRIVE] exit");
-//debugh("%4d detach EXIT, _tlss==nullptr\n", __LINE__);
        if( USE_ITRACE )
          Trace::trace(".THR", "=FSM", this, i2v(fsm));
        return;
@@ -480,15 +463,12 @@ debugh("%4d Thread(%p) _tlss == nullptr (DUPLICATE) DETACH\n", __LINE__, this);
      if( USE_CHECK && _tlss->fsm != FSM_OWNER )
        abortf("Thread.cpp: _tlss->fsm!=FSM_OWNER");
 
-//debug("detach DRIVE=>FSM_OWNER [tlss delete]");
      if( USE_ITRACE )
        Trace::trace(".THR", "-TLS", this, _tlss);
      delete _tlss;                // (We own it, so we delete it)
      this->_tlss= nullptr;        // The tlss is no longer meaningful
    }
 
-//debug("Detach exit");
-//Thread::static_debug("Detach exit");
    if( USE_ITRACE )
      Trace::trace(".THR", "DXIT", this, _tlss);
    if( USE_TIMING ) {
@@ -547,21 +527,13 @@ void
        Trace::trace(".THR", "JFSM", this, i2v(_tlss->fsm));
    }}}}
 
-// If we map Threads, how do we handle state after run exit but before Thread
-// either joins or detaches? Need to remove from map after join/detach then.
-// TODO: DEBUGGING: MAKE IT A TIMED JOIN IN A LOOP
-
-   // Once we set the FSM to FSM_JOINING nobody's going to change it (except
+   // We set the FSM to FSM_JOINING so nobody's allowed to change it (except
    // possibly to OWNER.) In any case nobody gets to delete the tlss but us.
-
-//_tlss->debug("before join");        // TODO: REMOVE
-//debugf("JOINING(%p,0x%zx)...\n", this, intptr_t(_tlss->std_thread));
 
    int rc= pthread_join(_tlss->std_thread, nullptr);
    if( rc ) {                       // Handle join error
+     // Except for this message, we ignore the error.
      debugh("Thread(%p)::join ERROR %d:%s\n", this, rc, strerror(rc));
-
-     // So much for error recovery. We're ignoring the error
    }
 
    if( USE_TIMING )
@@ -787,7 +759,6 @@ void*                               // (Always nullptr)
        if( USE_TIMING )
          traceh("%4d Thread(%p) tlss(%p,%p) drive FSM(%s) (run exit)\n"
                , __LINE__, thread, _tlss, tl_tlss, f2c(fsm));
-//_tlss->debug("run exit");
 
        if( USE_ITRACE )
          Trace::trace(".THR", "<run", thread, i2v(fsm));
@@ -809,12 +780,6 @@ void*                               // (Always nullptr)
          _tlss->set_fsm(FSM_OWNER); // Pass tlss ownership to Thread
          tl_tlss= nullptr;          // tl_tlss available for re-use
 
-// We hold the tlss::mutex, so `thread` and thread->_tlss` are still valid.
-//Thread::static_debug("FSM==OWNER");
-//thread->debug("FSM==OWNER");
-
-// Last message before exit <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-//debugh("%4d HCDM Thread(%p).drive EXIT FSM==OWNER\n", __LINE__, thread);
          if( USE_ITRACE )
            Trace::trace(".THR", "<xit", thread, nullptr);
          return nullptr;
@@ -826,8 +791,6 @@ void*                               // (Always nullptr)
      //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
      --detached;                    // (A detached Thread completed)
 
-// TODO: These checks can be removed after production test succeeds
-// if( use_check && false && ... ) Maybe we'll need them again
      if( USE_CHECK ) {
        if( _tlss != tl_tlss )
          abortf("Thread.cpp: _tlss!=tl_tlss");

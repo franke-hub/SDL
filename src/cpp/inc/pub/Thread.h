@@ -17,7 +17,7 @@
 //       Define the Thread control object.
 //
 // Last change date-
-//       2025/02/24
+//       2025/10/26
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_THREAD_H_INCLUDED
@@ -33,6 +33,20 @@
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
+// MACRO _IF_PUBLIB_THREAD_INLINE, controlled by _PUBLIB_THREAD_DEBUG
+//----------------------------------------------------------------------------
+#ifndef   _PUBLIB_THREAD_DEBUG
+#  define _PUBLIB_THREAD_DEBUG      // (Last for OUTLINE compilation)
+#  undef  _PUBLIB_THREAD_DEBUG      // (Last for INLINE compilation)
+#endif
+
+#ifndef _PUBLIB_THREAD_DEBUG
+#  define _IF_PUBLIB_THREAD_INLINE(x) x
+#else
+#  define _IF_PUBLIB_THREAD_INLINE(x) ;
+#endif
+
+//----------------------------------------------------------------------------
 //
 // Class-
 //       Thread
@@ -47,6 +61,8 @@ public:
 // Thread::tlss || Thread Local Storage struct
 //----------------------------------------------------------------------------
 struct tlss {                       // Thread Local Storage
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Attributes
 typedef pthread_t      handle_t;    // The native handle type
 
 RecursiveLatch         mutex;       // Protects this struct
@@ -58,10 +74,18 @@ handle_t               std_thread= {}; // The associated system thread
 // This Event is used during Thread startup
 pub::Event             drive_initialized; // Thread::drive init complete
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Constructor/destructor
-   tlss(Thread* thread);            // TODO: REPLACE WITH INLINE VERSION
-   ~tlss( void );
+   tlss(Thread* thread)
+_IF_PUBLIB_THREAD_INLINE(
+:  pub_thread(thread)
+{  })
 
+   ~tlss( void )
+_IF_PUBLIB_THREAD_INLINE(
+{  })
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Methods
 void
    debug(                           // Write debugging message
