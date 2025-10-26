@@ -16,7 +16,7 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2025/10/24
+##       2025/10/26
 ##
 ##############################################################################
 
@@ -94,8 +94,10 @@ include $(INCDIR)/gui/Makefile.BSD
 clean: gui.clean
 gui.clean: ;
 	(cd $(OBJDIR)/Test/; $(MAKE) clean)
-	@rm -f cyggui.* libgui.*
 	@rm -f Makeproj.*
+	@rm -f cyggui.* libgui.*
+	@rm -f L/shared/libgui.* L/shared/cyggui.*
+	@rm -f L/static/libgui.*
 
 pristine: gui.pristine
 gui.pristine: ;

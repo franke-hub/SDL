@@ -16,7 +16,7 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2025/10/24
+##       2025/10/26
 ##
 ##############################################################################
 
@@ -107,8 +107,10 @@ include $(INCDIR)/com/Makefile.BSD
 clean: com.clean
 com.clean: ;
 	(cd $(OBJDIR)/Test/; $(MAKE) clean)
-	@rm -f cygcom.* libcom.*
 	@rm -f Makeproj.*
+	@rm -f cygcom.* libcom.*
+	@rm -f L/shared/libcom.* L/shared/cygcom.*
+	@rm -f L/static/libcom.*
 
 pristine: com.pristine
 com.pristine: ;

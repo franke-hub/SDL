@@ -16,7 +16,7 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2025/10/24
+##       2025/10/26
 ##
 ##############################################################################
 
@@ -94,8 +94,10 @@ include $(INCDIR)/obj/Makefile.BSD
 clean: obj.clean
 obj.clean: ;
 	(cd $(OBJDIR)/Test/; $(MAKE) clean)
-	@rm -f cygobj.* libobj.*
 	@rm -f Makeproj.*
+	@rm -f cygobj.* libobj.*
+	@rm -f L/shared/libobj.* L/shared/cygobj.*
+	@rm -f L/static/libobj.*
 
 pristine: obj.pristine
 obj.pristine: ;

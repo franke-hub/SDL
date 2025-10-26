@@ -16,7 +16,7 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2025/10/24
+##       2025/10/26
 ##
 ##############################################################################
 
@@ -89,13 +89,24 @@ config: ;
 include $(INCDIR)/pub/Makefile.BSD
 
 ##############################################################################
+## TARGET: echo
+.PHONY: echo
+echo: ;
+	@echo PWD $PWD
+	@echo OBJDIR $(OBJDIR)
+	@echo LIBDIR $(LIBDIR)
+	@echo SHRDIR $(SHRDIR)
+
+##############################################################################
 ## Cleanup
 .PHONY: pub.clean pub.pristine
 clean: pub.clean
 pub.clean: ;
 	(cd $(OBJDIR)/Test/; $(MAKE) clean)
-	@rm -f cygpub.* libpub.*
 	@rm -f Makeproj.*
+	@rm -f cygpub.* libpub.*
+	@rm -f L/shared/libpub.* L/shared/cygpub.*
+	@rm -f L/static/libpub.*
 
 pristine: pub.pristine
 pub.pristine: ;

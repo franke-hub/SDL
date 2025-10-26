@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2020 Frank Eskesen.
+##       Copyright (C) 2020-2025 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,27 +16,30 @@
 ##       Development status, history, and reminders.
 ##
 ## Last change date-
-##       2020/10/07
+##       2025/10/26
 ##
 ##############################################################################
 
 ##############################################################################
 ## STATUS:
-2020/10/07 Updated for compiler options: -Wall -Wextra -Werror
-
-##############################################################################
-## FEATURES:
+2025/10/25 Open TODOs
 
 ##############################################################################
 ## BUGS:
 
 ##############################################################################
+## FEATURES:
+
+##############################################################################
 ## TODO:
+2025/10/25 Should not update .have-version until library is up to date.
+         (Now it's updated before compilation even begins.)
 2020/10/07 Add compiler option -Wconversion (and possibly -Warith-conversion)
 2020/10/07 Add compiler option -Wshadow (Big effort: extensive shadowing)
 
 ##############################################################################
 ## FIXED:
+2020/10/07 Updated for compiler options: -Wall -Wextra -Werror
 
 ##############################################################################
 ## CLOSED:
