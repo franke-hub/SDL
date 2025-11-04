@@ -16,7 +16,7 @@
 ##       C++ build control makefile
 ##
 ## Last change date-
-##       2025/09/15
+##       2025/10/26
 ##
 ## Implementation notes-
 ##       ~/obj/cpp/Makefile links to this file.
@@ -78,8 +78,8 @@ CPP_ +=  Xample    XML
 
 ##----------------------------------------------------------------------------
 check: is-installed
-	(echo; echo; cd lib/pub/Test; regression)
-	(echo; echo; cd lib/dev/Test; regression)
+	@(echo; echo; cd lib/pub/Test; regression)
+	@(echo; echo; cd lib/dev/Test; regression)
 	@echo "** C++ check completed OK **"
 
 ##----------------------------------------------------------------------------
