@@ -38,7 +38,7 @@ The gitk viewer provides a line by line change view.
 Commits are now sorted in date order rather than reverse date order.
 (Oldest first, newest last)
 
-[\[Last change date:\]](#last-change-date) 2025/09/09
+[\[Last change date:\]](#last-change-date) 2025/10/09
 
 ----
 
