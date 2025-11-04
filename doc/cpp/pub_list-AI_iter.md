@@ -17,10 +17,10 @@
 //       List.h reference manual: AI_list iterator
 //
 // Last change date-
-//       2025/10/05
+//       2025/10/19
 //
 -------------------------------------------------------------------------- -->
-###### Defined by header <pub/List.h> (
+###### Defined by header <pub/List.h>
 ## `pub::AI_list<T>::iterator`
 
 While an AI_list::iterator references the AI_list, the AI_list *does not*

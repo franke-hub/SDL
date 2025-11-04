@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (c) 2022-2024 Frank Eskesen.
+//       Copyright (c) 2022-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under cc by-sa version 4.0
 //       with attribution required.
@@ -17,7 +17,7 @@
 //       SDL Distribution reference manual
 //
 // Last change date-
-//       2024/08/30
+//       2025/10/19
 //
 -------------------------------------------------------------------------- -->
 # Software Development Lab (SDL) C++ Library Reference Manual
@@ -107,16 +107,22 @@ timestamp counter.
 (deprecated. To be removed.)
 If really wanted, use ~/src/cpp/inc/com/ifmacro.h instead.
 - Interval.h: Provides an interval timer.
-- Latch.h: Provides (lockable) spin latches, which can sometimes be more
-useful than a mutex. There is also a latch type that can be accessed either
-in shared or exclusive mode.
-- List.h: Provides AI_List, DHDL_list, DHSL_list, and SHSL_list: respectively
-Atomic Insert list,
-Doubly Headed Doubly Linked list,
-Doubly Headed Singly Linked list, and
-Singly Headed Singly Linked list.
-It also provides List, an alias for DHDL_list.
-- [List.h:](./List.md) (Currently only documents AI_list.)
+- [Latch.h:](./Latch.md) Provides spin Latches, which can sometimes be less
+overhead than a mutex.
+  - [Basic_latch:](./pub_latch-BASIC.md) Basic spin Latch
+  - [Latch:](./pub_latch-LATCH.md) Spin Latch
+  - [RecursiveLatch:](./pub_latch-RECURSIVE.md) Recursive spin Latch
+  - [SHR_latch:](./pub_latch-SHR.md) Multipurpose Latch - shared mode
+  - [XCL_latch:](./pub_latch-XCL.md) Multipurpose Latch - exclusive mode
+  - [NullLatch:](./pub_latch-NULL.md) Does nothing, but imitates a Latch.
+- [List.h:](./List.md) Provides:
+  - [AI_List:](./pub_list-AI.md) Atomic Insert list,
+  - [DHDL_list:](./pub_list-DHDL.md) Doubly Headed Doubly Linked list,
+  - [DHDL_sort:](./pub_list-SORT.md) Doubly Headed Doubly Linked list (sortable,)
+  - [DHSL_list:](./pub_list-DHSL.md) Doubly Headed Singly Linked list,
+  - [SHSL_list:](./pub_list-SHSL.md) Singly Headed Singly Linked list,
+  - [List:](./pub_list-DHDL.md) An alias for DHDL_list, and
+  - [Sort:](./pub_list-SORT.md) An alias for DHDL_sort.
 - Lock.h: Provides a process-wide named lock.
 - memory.h: Implements atomic_shared_ptr<class T>, currently via boost.
 - Must.h: Provides utility routines that throw std::bad_alloc instead of
