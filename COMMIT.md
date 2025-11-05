@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2025/10/09
+//       2025/11/05
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -38,11 +38,11 @@ The gitk viewer provides a line by line change view.
 Commits are now sorted in date order rather than reverse date order.
 (Oldest first, newest last)
 
-[\[Last change date:\]](#last-change-date) 2025/10/09
-
 ----
 
 <!-- --------------------------------------------------------------------- -->
+### mm/dd/yyyy [The most recent change](#last-change)
+
 ### 01/23/2023 maint commit
 Distribution test: ~/src/java/Webapp/*
 
@@ -739,7 +739,6 @@ Now includes ~/src/cpp/Scanner in the list of compile test subdirectories.
 ~/src/cpp/Fileman.cpp (now using pub/Data.h) remains for fileman command.
 
 ### 2025/10/09
-### <a id="last-change-date">2025/10/09 maint</a>
 This commit contains work in progress.
 
 - The work on ~/src/cpp/inc/List.h and its documentation is incomplete.
@@ -775,3 +774,38 @@ Moved some AI_list method implementations into List.cpp.
 All pub library includes `#include <pub/List.h>` changed to
 `#include "pub/List.h"` so they would be recompiled whenever `pub/List.h` or
 `pub/bits/List.h` changed.
+
+### <a id="last-change">2025/11/05 maint/trunk</a>
+- ~/src/cpp/inc/pub/Latch.h:<br/>
+Removed struct TestLatch; struct Latch includes checks that were in TestLatch.
+- ~/src/cpp/lib/pub/Debug.cpp:<br/>
+Prints error message rather than throwing an exception in set_file_mode when
+invoked after the file has been opened.
+- ~/src/cpp/inc/pub/Latch.h, \~/src/cpp/lib/pub/Latch.cpp:<br/>
+May be compiled with or without inlining.
+It's normally distributed inline but can be compiled without inlining when
+debugging.
+- ~/src/cpp/inc/pub/Thread.h, \~/src/cpp/lib/pub/Thread.cpp:<br/>
+  - Added inline/outline tlss constructor/destructor.
+  - Removed some debugging code. Revised other debugging code making it
+conditionally compiled when testing.
+- ~/src/cpp/lib/\*/Makefile.BSD:<br/>
+Make clean for each library now also removes the associated
+~/obj/cpp/lib/shared and \~/obj/cpp/lib/static library objects.
+- ~/src/.licenses/LICENSE.BY_SA-4.0 and \~/src/.licenses/LICENSE.ZERO:<br/>
+Converted from html to plain text versions.
+- ~/src/.licenses/.LICENSE:<br/>
+Corrected MIT license link.
+- ~/src/.licenses/LICENSE.MIT-0: (Added)
+- ~/src/.licenses/LICENSE.MIT:<br/>
+Corrected license link.
+- ~/src/.headings/\*.MIT and \~/src/.headings/\*.MIT-0:<br/>
+Corrected license link.
+- ~/doc/cpp/REFERENCE.md, \~/doc/cpp/Latch.md, \~/doc/cpp/pub_latch-*.md:<br/>
+Added Latch documentation.
+- [~/doc/gitignore.md:](./doc/gitignore.md)<br/>
+Added: Contains commonly used .gitigore declarations.
+(The above link is the only document link to this file.)
+
+#### 2025/11/05 TODO:
+- Existing code with MIT licenses need to be updated.
