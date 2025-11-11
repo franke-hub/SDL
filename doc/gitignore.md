@@ -2,11 +2,12 @@
 //
 //       Copyright (C) 2025 Frank Eskesen.
 //
-//       This file is free content, distributed under the MIT-0 license.
-//       (See accompanying file LICENSE.MIT-0 or the original contained
-//       within https://opensource.org/license/mit-0)
+//       This file is free content, distributed under cc by-sa version 4.0
+//       with attribution required.
+//       (See accompanying file LICENSE.BY_SA-4.0 or the original contained
+//       within https://creativecommons.org/licenses/by-sa/4.0/us/legalcode)
 //
-// SPDX-License-Identifier: MIT-0
+// SPDX-License-Identifier: CC-BY-4.0
 //----------------------------------------------------------------------------
 //
 // Title-

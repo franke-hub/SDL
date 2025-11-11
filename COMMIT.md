@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2025/11/05
+//       2025/11/11
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -775,7 +775,7 @@ All pub library includes `#include <pub/List.h>` changed to
 `#include "pub/List.h"` so they would be recompiled whenever `pub/List.h` or
 `pub/bits/List.h` changed.
 
-### <a id="last-change">2025/11/05 maint/trunk</a>
+### 2025/11/05 maint/trunk
 - ~/src/cpp/inc/pub/Latch.h:<br/>
 Removed struct TestLatch; struct Latch includes checks that were in TestLatch.
 - ~/src/cpp/lib/pub/Debug.cpp:<br/>
@@ -809,3 +809,12 @@ Added: Contains commonly used .gitigore declarations.
 
 #### 2025/11/05 TODO:
 - Existing code with MIT licenses need to be updated.
+
+### <a id="last-change">2025/11/12 maint/trunk</a>
+- All .gitcommit files converted from MIT to MIT-0 copyright.
+- All .html files with GPL or MIT copyright converted to SA40 copyright.
+- Code files with SA40 copyright converted into GPL copyright.
+- Files with MIT or MIT-0 licenses corrected reference URL<br/>
+https://opensource.org/license/mit or https://opensource.org/license/mit-0, not</br>
+https://opensource.org/licenses/MIT or https://opensource.org/licenses/MIT-0, or</br>
+https://opensourse.org/license/mit or https://opensourse.org/licenses/mit-0

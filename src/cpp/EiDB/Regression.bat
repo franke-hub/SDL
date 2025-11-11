@@ -4,7 +4,7 @@
 @REM
 @REM     This file is free content, distributed under the MIT license.
 @REM     (See accompanying file LICENSE.MIT or the original contained
-@REM     within https://opensource.org/licenses/MIT)
+@REM     within https://opensource.org/license/mit)
 @REM
 @REM SPDX-License-Identifier: MIT
 @REM -------------------------------------------------------------------------

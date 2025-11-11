@@ -17,7 +17,7 @@
 //       Source file checker.
 //
 // Last change date-
-//       2025/09/06
+//       2025/11/11
 //
 // Usage-
 //       Scanner {path} options
@@ -60,6 +60,11 @@
 //       scanner --verbose=5 or more
 //         * Adds extensive debugging display
 //
+// Usage notes: copyright replacement-
+//       Files ".remove" and ".revise" (Optionally present)
+//       If both files are detected and auto-correct is enabled,
+//       a copyright matching .remove is converted into .revise.
+//
 // Implementation notes-
 //       TODO: Simplify scanning. All copyrights are identical except for
 //             their leading comment control characters.
@@ -78,6 +83,7 @@
 #include <ctime>                    // For localtime, ...
 
 #include <getopt.h>                 // For getopt_long()
+#include <sys/stat.h>               // For struct stat, ...
 
 #include "pub/Data.h"               // For pub::data classes
 #include <pub/Debug.h>              // For namespace pub::debugging
@@ -86,13 +92,17 @@
 #include <pub/utility.h>            // For pub::utility::to_string
 #include <pub/utility.i>            // For pub::s2c
 
-using namespace pub::data;
 using namespace pub::debugging;
 using std::string;
-using pub::List;
 using pub::s2c;
 using pub::Tokenizer;
 typedef Tokenizer::Iterator Iterator;
+
+using pub::data::Data;
+using pub::data::File;
+using pub::data::Line;
+using pub::data::Path;
+typedef pub::DHDL_list<Line> List;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -102,7 +112,7 @@ enum
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 ,  _USE_AUTOCORRECT_CODE= true      // Use auto_correct_code function?
-,  _USE_AUTOCORRECT_HTML= false     // Use auto_correct_html function?
+,  _USE_AUTOCORRECT_HTML= true      // Use auto_correct_html function?
 ,  _USE_AUTOCORRECT_PREFIX= true    // Use auto_correct_prefix function?
 }; // Generic enum
 
@@ -121,6 +131,9 @@ static string          HOME;        // The HOME environment value + "/"
 static Data            IGNORE;      // The list of file names to ignore
 static string          OWNER_NAME= ""; // For non-standard owner (add .)
 
+static Data*           data_remove= nullptr; // Common: .remove file
+static Data*           data_revise= nullptr; // Common: .revise file
+
 static pub::Properties props;       // Used as simple database
 static struct tm       tod;         // The current year-corrected time of day
 
@@ -132,13 +145,14 @@ static const string    blanks= "                "; // Blank string
 //----------------------------------------------------------------------------
 // Copyright tables and controls
 //----------------------------------------------------------------------------
-#define COPY_TYPES 5
-#define MORE_TYPES 7
+#define COPY_TYPES 6
+#define MORE_TYPES 8
 static Data*           data_none= nullptr; // Common: unmatchable copyright
 
 static Data*           bash_gpl=  nullptr; // The GPL  bash copyright header
 static Data*           bash_lgpl= nullptr; // The LGPL bash copyright header
 static Data*           bash_mit=  nullptr; // The MIT  bash copyright header
+static Data*           bash_mit0= nullptr; // The MIT0 bash copyright header
 static Data*           bash_sa40= nullptr; // The SA40 bash copyright header
 static Data*           bash_zero= nullptr; // The ZERO bash copyright header
 static int             bash_count[COPY_TYPES]= {};
@@ -146,6 +160,7 @@ static int             bash_count[COPY_TYPES]= {};
 static Data*           code_gpl=  nullptr; // The GPL  code copyright header
 static Data*           code_lgpl= nullptr; // The LGPL code copyright header
 static Data*           code_mit=  nullptr; // The MIT  code copyright header
+static Data*           code_mit0= nullptr; // The MIT0 code copyright header
 static Data*           code_sa40= nullptr; // The SA40 code copyright header
 static Data*           code_zero= nullptr; // The ZERO code copyright header
 static int             code_count[COPY_TYPES]= {};
@@ -153,6 +168,7 @@ static int             code_count[COPY_TYPES]= {};
 static Data*           html_gpl=  nullptr; // The GPL  html copyright header
 static Data*           html_lgpl= nullptr; // The LGPL html copyright header
 static Data*           html_mit=  nullptr; // The MIT  html copyright header
+static Data*           html_mit0= nullptr; // The MIT0 html copyright header
 static Data*           html_sa40= nullptr; // The SA40 html copyright header
 static Data*           html_zero= nullptr; // The ZERO html copyright header
 static int             html_count[COPY_TYPES]= {};
@@ -160,6 +176,7 @@ static int             html_count[COPY_TYPES]= {};
 static Data*           lily_gpl=  nullptr; // The GPL  lily copyright header
 static Data*           lily_lgpl= nullptr; // The LGPL lily copyright header
 static Data*           lily_mit=  nullptr; // The MIT  lily copyright header
+static Data*           lily_mit0= nullptr; // The MIT0 lily copyright header
 static Data*           lily_sa40= nullptr; // The SA40 lily copyright header
 static Data*           lily_zero= nullptr; // The ZERO lily copyright header
 static int             lily_count[COPY_TYPES]= {};
@@ -167,6 +184,7 @@ static int             lily_count[COPY_TYPES]= {};
 static Data*           mark_gpl=  nullptr; // The GPL  mark copyright header
 static Data*           mark_lgpl= nullptr; // The LGPL mark copyright header
 static Data*           mark_mit=  nullptr; // The MIT  mark copyright header
+static Data*           mark_mit0= nullptr; // The MIT0 mark copyright header
 static Data*           mark_sa40= nullptr; // The SA40 mark copyright header
 static Data*           mark_zero= nullptr; // The ZERO mark copyright header
 static int             mark_count[COPY_TYPES]= {};
@@ -178,6 +196,7 @@ static Data*           more_bsl1= nullptr; // The BSL1 copyright header
 static Data*           more_gpl=  nullptr; // The GPL  copyright header
 static Data*           more_lgpl= nullptr; // The LGPL copyright header
 static Data*           more_mit=  nullptr; // The MIT  copyright header
+static Data*           more_mit0= nullptr; // The MIT0 copyright header
 static Data*           more_sa40= nullptr; // The SA40 copyright header
 static Data*           more_zero= nullptr; // The ZERO copyright header
 static int             more_count[MORE_TYPES]= {};
@@ -193,6 +212,7 @@ static const name2data bash_table[]=
 {  {  " GPL", &bash_gpl }
 ,  {  "LGPL", &bash_lgpl}
 ,  {  " MIT", &bash_mit }
+,  {  "MIT0", &bash_mit0}
 ,  {  "SA40", &bash_sa40}
 ,  {  "ZERO", &bash_zero}
 ,  {  nullptr, nullptr  }
@@ -202,6 +222,7 @@ static const name2data code_table[]=
 {  {  " GPL", &code_gpl }
 ,  {  "LGPL", &code_lgpl}
 ,  {  " MIT", &code_mit }
+,  {  "MIT0", &code_mit0}
 ,  {  "SA40", &code_sa40}
 ,  {  "ZERO", &code_zero}
 ,  {  nullptr, nullptr  }
@@ -211,6 +232,7 @@ static const name2data html_table[]=
 {  {  " GPL", &html_gpl }
 ,  {  "LGPL", &html_lgpl}
 ,  {  " MIT", &html_mit }
+,  {  "MIT0", &html_mit0}
 ,  {  "SA40", &html_sa40}
 ,  {  "ZERO", &html_zero}
 ,  {  nullptr, nullptr  }
@@ -220,6 +242,7 @@ static const name2data lily_table[]=
 {  {  " GPL", &lily_gpl }
 ,  {  "LGPL", &lily_lgpl}
 ,  {  " MIT", &lily_mit }
+,  {  "MIT0", &lily_mit0}
 ,  {  "SA40", &lily_sa40}
 ,  {  "ZERO", &lily_zero}
 ,  {  nullptr, nullptr  }
@@ -229,6 +252,7 @@ static const name2data mark_table[]=
 {  {  " GPL", &mark_gpl }
 ,  {  "LGPL", &mark_lgpl}
 ,  {  " MIT", &mark_mit }
+,  {  "MIT0", &mark_mit0}
 ,  {  "SA40", &mark_sa40}
 ,  {  "ZERO", &mark_zero}
 ,  {  nullptr, nullptr  }
@@ -242,6 +266,7 @@ static const name2data more_table[]=
 ,  {  " GPL", &more_gpl }
 ,  {  "LGPL", &more_lgpl}
 ,  {  " MIT", &more_mit }
+,  {  "MIT0", &more_mit0}
 ,  {  "SA40", &more_sa40}
 ,  {  "ZERO", &more_zero}
 ,  {  nullptr, nullptr  }
@@ -303,6 +328,36 @@ static inline void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       debug_list
+//
+// Function-
+//       Debug a sequence of lines
+//
+//----------------------------------------------------------------------------
+static inline void                  // (Only used when debugging)
+   debug_list(                      // Debug a sequence of lines
+     const char*       info,        // Information
+     const Line*       head,        // The first line
+     const Line*       tail)        // The last  line
+{
+   debugf("\ndebug_list(%s,{%p,%p})\n", info, head, tail);
+   const Line* line= head;          // The current line
+   for(;;) {                        // Display the sequence
+     if( line == nullptr ) {        // If sequence ended without tail
+       debugf("*ERROR* tail(%p) not in sequence\n", tail);
+       break;
+     }
+     debugf("[%p] %s\n", line, line->text);
+     if( line == tail )
+       break;
+
+     line= line->get_next();
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       ends_with
 //
 // Function-
@@ -356,6 +411,30 @@ static string                       // The resultant substring
 
    // (Only blanks found)
    return "";
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       trim
+//
+// Function-
+//       Trim leading and trailing blanks
+//
+//----------------------------------------------------------------------------
+static void
+   trim(                            // Remove leading and trailing blanks
+     string&           str)         // From this string
+{
+   // Remove leading blanks
+   while( str.size() > 0 && str[0] == ' ' ) {
+     str= str.substr(1);
+   }
+
+   // Remove trailing blanks
+   while( str.size() > 1 && str.substr(str.size()-1, 1) == " " ) {
+     str= str.substr(0, str.size()-1);
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -423,11 +502,8 @@ static void
    verify_data(                     // Verify Data file contains data
      Data*             data)        // (The Data file)
 {
-   using pub::data::Line;
-   typedef pub::DHDL_list<Line>     Line_list;
-
-   Line_list& line_list= data->line(); // Get the line list
-   if( line_list.get_head() )       // If data present
+   List& list= data->line();        // Get the line list
+   if( list.get_head() )            // If data present
      return;                        // Everything's OK
 
    errorf("Error: File(%s) is empty/missing\n", s2c(data->full()));
@@ -457,30 +533,35 @@ static void
    bash_gpl=  new Data(base, "B.GPL");  // Load the GPL  copyright
    bash_lgpl= data_none;                // Load the LGPL copyright (disallowed)
    bash_mit=  new Data(base, "B.MIT");  // Load the MIT  copyright
+   bash_mit0= new Data(base, "B.MIT0"); // Load the MIT0 copyright
    bash_sa40= data_none;                // Load the SA40 copyright (disallowed)
    bash_zero= new Data(base, "B.ZERO"); // Load the ZERO copyright
 
    code_gpl=  new Data(base, "C.GPL");  // Load the GPL  copyright
    code_lgpl= new Data(base, "C.LGPL"); // Load the LGPL copyright
    code_mit=  new Data(base, "C.MIT");  // Load the MIT  copyright
+   code_mit0= new Data(base, "C.MIT0"); // Load the MIT0 copyright
    code_sa40= new Data(base, "C.SA40"); // Load the SA40 copyright
    code_zero= new Data(base, "C.ZERO"); // Load the ZERO copyright
 
    html_gpl=  new Data(base, "H.GPL");  // Load the GPL  copyright
    html_lgpl= data_none;                // Load the LGPL copyright (disallowed)
    html_mit=  new Data(base, "H.MIT");  // Load the MIT  copyright
+   html_mit0= new Data(base, "H.MIT0"); // Load the MIT0 copyright
    html_sa40= new Data(base, "H.SA40"); // Load the SA40 copyright
    html_zero= new Data(base, "H.ZERO"); // Load the ZERO copyright
 
    lily_gpl=  new Data(base, "L.GPL");  // Load the GPL  copyright
    lily_lgpl= data_none;                // Load the LGPL copyright (disallowed)
    lily_mit=  data_none;                // Load the MIT  copyright (disallowed)
+   lily_mit0= data_none;                // Load the MIT0 copyright (disallowed)
    lily_sa40= new Data(base, "L.SA40"); // Load the SA40 copyright
    lily_zero= new Data(base, "L.ZERO"); // Load the ZERO copyright
 
    mark_gpl=  html_gpl;             // Load the GPL  copyright
    mark_lgpl= data_none;            // Load the LGPL copyright (disallowed)
    mark_mit=  html_mit;             // Load the MIT  copyright
+   mark_mit0= html_mit0;            // Load the MIT0 copyright
    mark_sa40= html_sa40;            // Load the SA40 copyright
    mark_zero= html_zero;            // Load the ZERO copyright
 
@@ -489,6 +570,7 @@ static void
    more_gpl=  new Data(base, "M.GPL");  // Load the GPL  copyright
    more_lgpl= new Data(base, "M.LGPL"); // Load the LGPL copyright
    more_mit=  new Data(base, "M.MIT");  // Load the MIT  copyright
+   more_mit0= new Data(base, "M.MIT0"); // Load the MIT0 copyright
    more_sa40= new Data(base, "M.SA40"); // Load the SA40 copyright
    more_zero= new Data(base, "M.ZERO"); // Load the ZERO copyright
 
@@ -498,24 +580,28 @@ static void
    verify_data(bash_gpl);
    verify_data(bash_lgpl);
    verify_data(bash_mit);
+   verify_data(bash_mit0);
    verify_data(bash_sa40);
    verify_data(bash_zero);
 
    verify_data(code_gpl);
    verify_data(code_lgpl);
    verify_data(code_mit);
+   verify_data(code_mit0);
    verify_data(code_sa40);
    verify_data(code_zero);
 
    verify_data(html_gpl);
    verify_data(html_lgpl);
    verify_data(html_mit);
+   verify_data(html_mit0);
    verify_data(html_sa40);
    verify_data(html_zero);
 
    verify_data(lily_gpl);
    verify_data(lily_lgpl);
    verify_data(lily_mit);
+   verify_data(lily_mit0);
    verify_data(lily_sa40);
    verify_data(lily_zero);
 
@@ -524,8 +610,26 @@ static void
    verify_data(more_gpl);
    verify_data(more_lgpl);
    verify_data(more_mit);
+   verify_data(more_mit0);
    verify_data(more_sa40);
    verify_data(more_zero);
+
+   // Load .remove / .revise files
+   struct stat info= {};          // STAT information
+   int rc= stat(".remove", &info);
+   if( rc == 0 ) {
+     data_remove= new Data(".", ".remove");
+     verify_data(data_remove);
+
+     rc= stat(".revise", &info);
+     if( rc == 0 ) {
+       data_revise= new Data(".", ".revise");
+       verify_data(data_revise);
+     } else {
+       delete data_remove;
+       data_remove= nullptr;
+     }
+   }
 
    // Get list of IGNORED files
    IGNORE.open(".", ".ignore");     // List of files to ignore
@@ -564,24 +668,28 @@ static void
    delete bash_gpl;
 // delete bash_lgpl;
    delete bash_mit;
+   delete bash_mit0;
 // delete bash_sa40;
    delete bash_zero;
 
    delete code_gpl;
    delete code_lgpl;
    delete code_mit;
+   delete code_mit0;
    delete code_sa40;
    delete code_zero;
 
    delete html_gpl;
 // delete html_lgpl;
    delete html_mit;
+   delete html_mit0;
    delete html_sa40;
    delete html_zero;
 
    delete lily_gpl;
 // delete lily_lgpl;
 // delete lily_mit;
+// delete lily_mit0;
    delete lily_sa40;
    delete lily_zero;
 
@@ -590,8 +698,12 @@ static void
    delete more_gpl;
    delete more_lgpl;
    delete more_mit;
+   delete more_mit0;
    delete more_sa40;
    delete more_zero;
+
+   delete data_remove;
+   delete data_revise;
 
    //-------------------------------------------------------------------------
    // Verify all IGNORE entries found
@@ -870,6 +982,46 @@ static inline string                // The filename extension, "" if none
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       has_copyright
+//
+// Function-
+//       Test exact copyright match.
+//
+//----------------------------------------------------------------------------
+static bool                         // TRUE if copyright files match
+   has_copyright(                   // Does file have copyright?
+     Data&             data,        // For this data file
+     Data*             copy)        // And this copyright file
+{
+   Line* lhs= get_copy_line(*copy);
+   if( lhs == nullptr )
+     return false;
+   lhs= lhs->get_next();
+   if( lhs == nullptr )
+     return false;
+
+   Line* rhs= get_copy_line(data);
+   if( rhs == nullptr )
+     return false;
+   rhs= rhs->get_next();
+   while( lhs ) {
+     if( !rhs )                     // If file ends inside copyright
+       return false;                // (No match)
+
+     // Compare line for line, including prefix
+     if( strcmp(lhs->text, rhs->text) != 0 )
+       return false;
+
+     lhs= lhs->get_next();
+     rhs= rhs->get_next();
+   }
+
+   return true;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       is_bash
 //
 // Function-
@@ -1105,6 +1257,10 @@ static void
      Data*             have_copy,   // Having this copyright
      Data*             want_copy)   // Replacement copyright
 {
+   if( HCDM )
+     debugf("replace_copyright(%s,%s,%s)\n", s2c(data.full())
+           , s2c(have_copy->full()), s2c(want_copy->full()));
+
    typedef pub::DHDL_list<Line>     List; // The Data's line list type
 
    Line* lhs= get_copy_line(*have_copy)->get_next();
@@ -1118,7 +1274,7 @@ static void
 
      tail= tail->get_next();
    }
-   Line* after= head->get_prev();   // (The line to insert after
+   Line* after= head->get_prev();   // (The line to insert after)
 
    List& list= data.line();         // (The File's line list)
    list.remove(head, tail);
@@ -1369,7 +1525,8 @@ static int                          // The copyright year, -1 if invalid
    if( text[0] != ' ' )             // If a leading token exists
      comment= (tok_iter++)();       // Get/skip leading comment token
    if( tok_iter() != "Copyright" ) { // If missing copyright statement
-     errorf("File(%s) '%s' != 'Copyright'\n", s2c(full), s2c(text));
+     errorf("File(%s) Line '%s' is missing 'Copyright' token\n"
+           , s2c(full), s2c(text));
      allow_multi();
      return -1;
    }
@@ -1462,15 +1619,22 @@ static int                          // The copyright year, -1 if invalid
 //       auto_correct_code
 //
 // Function-
-//       Auto-detect code files with "SA40" copyright
+//       Auto-convert code files with "SA40" copyright into "GPL" copyright
 //
 //----------------------------------------------------------------------------
 static void
    auto_correct_code(               // Automatically correct code files
      Data&             data,        // For this data file
+     Data*             copy,        // And this copyright file
      const string      type)        // And this copyright type
 {
    if( _USE_AUTOCORRECT_CODE && is_code(data.file()) ) {
+     (void)copy;                    // (Auto-correct not implemented)
+
+     if( HCDM )
+       debugf("auto_correct_code(%s,%s,%s)\n"
+             , s2c(data.full()), s2c(copy->full()), s2c(type));
+
      // Disallow "SA40" copyright (but allow for java)
      if( type == "SA40" && get_extension(data.file()) != "java" ) {
        errorf("Code file(%s) has disallowed SA40 copyright\n"
@@ -1486,27 +1650,38 @@ static void
 //       auto_correct_html
 //
 // Function-
-//       Auto-detect html files with "GPL" or "MIT" copyright
-//
-// Implementation note-
-//       DISABLED
+//       Auto-correct html files with "GPL" or "MIT" copyright
 //
 //----------------------------------------------------------------------------
 static void
    auto_correct_html(               // Automatically correct html files
      Data&             data,        // For this data file
+     Data*             copy,        // And this copyright file
      const string      type)        // And this copyright type
 {
    if( _USE_AUTOCORRECT_HTML &&is_html(data.file()) ) {
-     // HTML cannot have "GPL" or "MIT" format
-     if( type == " GPL" ) {
-        errorf("HTML file(%s) has disallowed GPL copyright\n"
-              , s2c(data.full()));
-        allow_multi();
+     if( HCDM )
+       debugf("auto_correct_html(%s,%s,%s)\n"
+             , s2c(data.full()), s2c(copy->full()), s2c(type));
+
+     const char* disallowed= nullptr; // The disallowed type
+     if( type == " GPL" ) {         // HTML cannot have "GPL" format
+       disallowed= " GPL";
      } else
-     if( type == " MIT" ) {
-       errorf("HTML file(%s) has disallowed MIT copyright\n"
-             , s2c(data.full()));
+     if( type == " MIT" ) {         // HTML cannot have "MIT" format
+       disallowed= " MIT";
+     }
+
+     if( disallowed ) {             // If disallowed type detected
+       if( opt_auto ) {             // If auto-correcting
+         replace_copyright(data, copy, html_sa40);
+         errorf("File(%s) copyright(%s=>SA40)\n"
+               , s2c(data.full()), s2c(type));
+       } else {
+         errorf("File(%s) has disallowed %s copyright\n"
+              , s2c(data.full()), disallowed);
+       }
+
        allow_multi();
      }
    }
@@ -1527,6 +1702,10 @@ static void
      Data*             copy,        // And this copyright file
      const string      type)        // For this data type name
 {
+   if( HCDM )
+     debugf("auto_correct_mark(%s,%s,%s)\n"
+           , s2c(data.full()), s2c(copy->full()), s2c(type));
+
    if( is_mark(data.file()) ) {
      if( type != "SA40" ) {
        if( opt_auto ) {             // If auto-correcting
@@ -1560,6 +1739,10 @@ static void
      const string      prefix)      // And this prefix
 {
    if( _USE_AUTOCORRECT_PREFIX ) {  // If function is enabled
+   if( HCDM )
+       debugf("auto_correct_prefix(%s,%s,%s)\n"
+             , s2c(data.full()), s2c(copy->full()), s2c(prefix));
+
      typedef pub::DHDL_list<Line>     List; // The Data's line list type
 
      Tokenizer tokenizer(prefix, " ");
@@ -1609,7 +1792,7 @@ static void
 
            if( !corrected ) {
              corrected= true;
-             errorf("File(%s) modified:\n", s2c(data.full()));
+             errorf("File(%s) prefix modified:\n", s2c(data.full()));
            }
            errorf("old: '%s'\nnew: '%s'\n", s2c(old_text), line->text);
          } else {
@@ -1628,6 +1811,153 @@ static void
        allow_multi();
      }
    }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       auto_correct_spdx
+//
+// Function-
+//       Handle missing "SPDX-License-Identifier:"
+//
+//----------------------------------------------------------------------------
+static bool                         // TRUE if SPDX identifier added
+   auto_correct_spdx(               // Handle missing SPDX identifier
+     Data&             data,        // For this data file
+     const char*       type,        // And this copyright type
+     const string&     prefix,      // And this copyright prefix
+     Line*             lhs,         // And this copyright Line
+     Line*             rhs)         // And this File Line
+{
+   if( HCDM )
+     debugf("auto_correct_spdx(%s,%s)\n", s2c(data.full()), type);
+
+   bool changed= false;             // Default, not changed
+
+   if( rhs && memcmp(lhs->text+3, "SPDX-License-Identifier:", 24) == 0 ) {
+     if( opt_auto ) {               // If auto-correct allowed
+       List& list= data.line();     // (The file line list)
+
+       string S(prefix);
+       trim(S);
+       S += " ";
+       S += skipb(findb(lhs->text));
+       Line* line= data.get_line(S); // (Adding the SPDX-License-Identifier)
+       list.insert(rhs->get_prev(), line);
+
+       data.write();
+       errorf("File(%s) %s SPDX-License-Identifier added\n"
+             , s2c(data.full()), type);
+       changed= true;
+     } else {                       // Auto-correct not allowed
+       errorf("File(%s) %s SPDX-License-Identifier missing\n"
+             , s2c(data.full()), type);
+     }
+     allow_multi();
+   }
+
+   return changed;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       auto_correct_type
+//
+// Function-
+//       Make sure type is valid for file
+//
+//----------------------------------------------------------------------------
+static void
+   auto_correct_type(               // Automatically correct code files
+     Data&             data,        // For this data file
+     Data*             copy,        // And this copyright file
+     const string      type)        // And this copyright type
+{
+   if( HCDM )
+     debugf("auto_correct_type(%s,%s,%s)\n"
+           , s2c(data.full()), s2c(copy->full()), s2c(type));
+
+   // .gitignore files must have "MIT0" format
+   if( true && data.file() == ".gitignore" ) {
+     if( type == "MIT0" )           // If already "MIT-0" format
+       return;
+
+     if( opt_auto ) {               // If auto-correcting
+       replace_copyright(data, copy, bash_mit0);
+       errorf("File(%s) copyright(%s=>MIT0)\n"
+             , s2c(data.full()), s2c(type));
+     } else {
+       errorf("File(%s) requires MIT-0 copyright\n", s2c(data.full()));
+     }
+
+     allow_multi();
+     return;
+   }
+
+   // HTML files cannot have "GPL", "MIT", or "MIT0" format
+   if( true && is_html(data.file()) ) {
+     const char* disallowed= nullptr; // The disallowed type
+     if( type == " GPL" ) {
+       disallowed= "GPL";
+     } else
+     if( type == " MIT" ) {
+       disallowed= "MIT";
+     } else
+     if( type == "MIT0" ) {
+       disallowed= "MIT0";
+     }
+
+     if( disallowed ) {             // If disallowed type detected
+       if( opt_auto ) {             // If auto-correcting
+         replace_copyright(data, copy, html_sa40);
+         errorf("File(%s) copyright(%s=>SA40)\n"
+               , s2c(data.full()), s2c(type));
+       } else {
+         errorf("File(%s) has disallowed %s copyright\n"
+              , s2c(data.full()), disallowed);
+       }
+
+       allow_multi();
+     }
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       auto_update
+//
+// Function-
+//       Handle copyright .remove => .revise update
+//
+//----------------------------------------------------------------------------
+static bool                         // TRUE if copyright converted
+   auto_update(                     // Handle copyright update
+     Data&             data)        // For this data file
+{
+   if( HCDM )
+     debugf("auto_update(%s)\n", s2c(data.full()));
+
+   bool changed= false;             // Default, not changed
+
+   if( data_remove && data_revise ) {
+     if( has_copyright(data, data_remove) ) {
+       if( opt_auto ) {             // If auto-correcting
+         replace_copyright(data, data_remove, data_revise);
+         data.write();
+         errorf("File(%s) copyright updated\n", s2c(data.full()));
+         changed= true;
+       } else {
+         errorf("File(%s) copyright update required\n", s2c(data.full()));
+       }
+
+       allow_multi();
+     }
+   }
+
+   return changed;
 }
 
 //----------------------------------------------------------------------------
@@ -1654,7 +1984,6 @@ static void
      return;
    }
 
-   typedef pub::DHDL_list<Line>     List; // The Data's line list type
    string       data_full= data.full(); // (The string must be persistent)
    const char*       full= s2c(data_full); // Fully qualified file name
    int*             count= misc_count; // Default: misc (a.k.a bash)
@@ -1709,12 +2038,16 @@ static void
        rhs= rhs->get_next();
      }
 
-     // If copyright text matched, handle special cases
-     if( lhs == nullptr ) {
+     if( lhs == nullptr ) {         // If copyright text matched
+       if( HCDM )
+         debugf("copyright_match(%s,%s)\n", s2c(data.full()), table[i].name);
+
+       // Handle special cases
        string type= table[i].name;  // The copyright type
-       auto_correct_code(data, type); // Auto-detect code files
-       auto_correct_html(data, type); // Auto-detect html files
+       auto_correct_code(data, copy, type); // Auto-detect code files
+       auto_correct_html(data, copy, type); // Auto-detect html files
        auto_correct_mark(data, copy, type); // Auto-correct markdown files
+       auto_correct_type(data, copy, type); // Auto-detect type mismatch
 
        auto_correct_prefix(data, copy, prefix); // Correct prefix inconsistency
 
@@ -1727,32 +2060,23 @@ static void
      }
 
      // Copyright text did not match any of the supported versions.
-     // Check for missing "SPDX-License-Identifier:"
-     if( rhs && memcmp(lhs->text+3, "SPDX-License-Identifier:", 24) == 0 ) {
-       if( opt_auto ) {             // If auto-correct allowed
-         List& list= data.line();   // (The file line list)
-
-         string S(prefix);
-         S += lhs->text + 2;
-         Line* line= data.get_line(S); // (The SPDX-License-Id.. line)
-         list.insert(rhs->get_prev(), line);
-
-         data.write();
-         errorf("File(%s) %s SPDX-License-Identifier added\n"
-               , full, table[i].name);
-       } else {                     // Auto-correct disallowed
-         errorf("File(%s) %s SPDX-License-Identifier missing\n"
-               , full, table[i].name);
-       }
-       allow_multi();
+     // Auto-correct missing SPDX identifier
+     if( auto_correct_spdx(data, table[i].name, prefix, lhs, rhs) )
        return;
-     }
    }
+
+   // No copyright match detected
+   if( HCDM )
+     debugf("non-standard copyright(%s)\n", s2c(data.full()));
+
+   if( auto_update(data) )          // Auto-correct changed copyright
+     return;
 
    // Check for other copyright formats
    for(int i= 0; more_table[i].name; ++i) {
-     Line* lhs= (*more_table[i].data)->line().get_head();
-     if( lhs == nullptr ) {
+     Data* copy= *more_table[i].data;
+     Line* lhs= get_copy_line(*copy);
+     if( lhs == nullptr ) {         // (Should not occur)
        errorf("More(%s) invalid, exiting\n", more_table[i].name);
        exit(1);
      }
@@ -1787,6 +2111,13 @@ static void
        // Update match count
        if( opt_verbose > 1 )
          debugf("[%s]: '%s'\n", more_table[i].name, full);
+
+       // Handle special cases
+       string type= more_table[i].name; // The copyright type
+       auto_correct_code(data, copy, type); // Auto-detect code files
+       auto_correct_html(data, copy, type); // Auto-detect html files
+       auto_correct_mark(data, copy, type); // Auto-correct markdown files
+       auto_correct_type(data, copy, type); // Auto-detect type mismatch
 
        ++more_count[i];
        return;
