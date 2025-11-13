@@ -17,7 +17,7 @@
 //       Source file checker.
 //
 // Last change date-
-//       2025/11/11
+//       2025/11/13
 //
 // Usage-
 //       Scanner {path} options
@@ -61,9 +61,9 @@
 //         * Adds extensive debugging display
 //
 // Usage notes: copyright replacement-
-//       Files ".remove" and ".revise" (Optionally present)
-//       If both files are detected and auto-correct is enabled,
-//       a copyright matching .remove is converted into .revise.
+//       Subdirectories ".remove.d" and ".revise.d" (Optionally present):
+//       If auto-correct is enabled, a copyright matching .remove.d/XX
+//       is converted into .revise.d/XX.
 //
 // Implementation notes-
 //       TODO: Simplify scanning. All copyrights are identical except for
@@ -87,6 +87,7 @@
 
 #include "pub/Data.h"               // For pub::data classes
 #include <pub/Debug.h>              // For namespace pub::debugging
+#include <pub/List.h>               // For pub::List, pub::Sort
 #include <pub/Properties.h>         // For pub::Properties
 #include <pub/Tokenizer.h>          // For pub::Tokenizer
 #include <pub/utility.h>            // For pub::utility::to_string
@@ -102,7 +103,7 @@ using pub::data::Data;
 using pub::data::File;
 using pub::data::Line;
 using pub::data::Path;
-typedef pub::DHDL_list<Line> List;
+typedef pub::DHDL_list<Line>                  List;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -203,6 +204,9 @@ static int             more_count[MORE_TYPES]= {};
 
 static int             none_count= 0; // (Files without copyright statements)
 
+//----------------------------------------------------------------------------
+// Name to Data conversion
+//----------------------------------------------------------------------------
 struct name2data {
    const char*         name;
    Data**              data;
@@ -273,6 +277,17 @@ static const name2data more_table[]=
 };
 
 //----------------------------------------------------------------------------
+// Remove to revise association
+//----------------------------------------------------------------------------
+struct remove_revise_item : public pub::DHDL_list<remove_revise_item>::Link {
+   Data*               remove= nullptr; // The remove Data
+   Data*               revise= nullptr; // The revise Data
+};
+
+pub::DHDL_list<remove_revise_item>
+                       remove_revise_list; // The remove_revise list
+
+//----------------------------------------------------------------------------
 // Option values and controls
 //----------------------------------------------------------------------------
 static int             opt_help= false; // --help (or error)
@@ -293,7 +308,7 @@ static struct option   OPTS[]=      // The getopt_long longopts parameter
 ,  {"auto",      no_argument,       &opt_auto,    true}
 ,  {"listx",     no_argument,       &opt_listx,   true}
 ,  {"mode",      no_argument,       &opt_mode,    true}
-,  {"multi",     no_argument,       &opt_multi,   true}
+,  {"multi",     optional_argument, &opt_multi,      1}
 ,  {"permits",   no_argument,       &opt_mode,    true}
 ,  {"unix",      no_argument,       &opt_unix,    true}
 ,  {"copy",      no_argument,       &opt_copy,    true}
@@ -305,6 +320,7 @@ enum OPT_INDEX
 {  OPT_HELP= 0
 ,  OPT_VERBOSE= 1
 ,  OPT_ALL= 2
+,  OPT_MULTI= 6
 };
 
 //----------------------------------------------------------------------------
@@ -513,6 +529,83 @@ static void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       init_remove_revise
+//
+// Function-
+//       Initialize the remove_revise list .
+//
+//----------------------------------------------------------------------------
+static void
+   init_remove_revise( void )       // Initialize
+{
+   Path*               remove= nullptr; // The .remove.d Path
+   Path*               revise= nullptr; // The .revise.d Path
+   remove_revise_item  rr_item;     // (Working remove_revise item)
+
+   int                 rc;          // (Working return code)
+
+   struct stat info= {};            // STAT information
+   rc= stat(".remove.d", &info);
+   if( rc == 0 && S_ISDIR(info.st_mode) )
+     remove= new Path(".remove.d");
+   else if( opt_verbose )
+     errorf("Directory(.remove.d) missing or invalid\n");
+
+   rc= stat(".revise.d", &info);
+   if( rc == 0 && S_ISDIR(info.st_mode) )
+     revise= new Path(".revise.d");
+   else if( opt_verbose )
+     errorf("Directory(.revise.d) missing or invalid\n");
+
+   if( remove && revise ) {         // If paths found
+     pub::DHDL_sort<File>& rem_li= remove->list;
+     pub::DHDL_sort<File>& rev_li= revise->list;
+
+     for(auto rem_it= rem_li.begin(); rem_it != rem_li.end(); ++rem_it) {
+       File* rem_file= rem_it.get();
+       string rem_name= rem_file->name;
+
+       bool match= false;           // Default, no match
+       for(auto rev_it= rev_li.begin(); rev_it != rev_li.end(); ++rev_it) {
+         File* rev_file= rev_it.get();
+         string rev_name= rev_file->name;
+
+         if( rev_name == rem_name ) {
+           rr_item.remove= new Data();
+           rc= rr_item.remove->open(".remove.d", rem_name);
+           if( rc != 0 ) {
+             errorf("ERROR: %d= open(%s,%s)\n", rc, ".remove.d", s2c(rem_name));
+             delete rr_item.remove;
+             break;
+           }
+
+           rr_item.revise= new Data();
+           rc= rr_item.revise->open(".revise.d", rev_name);
+           if( rc != 0 ) {
+             errorf("ERROR: %d= open(%s,%s)\n", rc, ".revise.d", s2c(rev_name));
+             delete rr_item.remove;
+             delete rr_item.revise;
+             break;
+           } else {
+             match= true;
+           }
+         }
+       }
+       if( match ) {                // If match found
+         remove_revise_item* rr_copy= new remove_revise_item();
+         *rr_copy= rr_item;
+         remove_revise_list.fifo(rr_copy);
+       } else {
+         errorf("ERROR: .remove.d/%s without .revise.d/%s\n"
+               , s2c(rem_name), s2c(rem_name));
+       }
+     }
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       init
 //
 // Function-
@@ -614,22 +707,10 @@ static void
    verify_data(more_sa40);
    verify_data(more_zero);
 
-   // Load .remove / .revise files
-   struct stat info= {};          // STAT information
-   int rc= stat(".remove", &info);
-   if( rc == 0 ) {
-     data_remove= new Data(".", ".remove");
-     verify_data(data_remove);
-
-     rc= stat(".revise", &info);
-     if( rc == 0 ) {
-       data_revise= new Data(".", ".revise");
-       verify_data(data_revise);
-     } else {
-       delete data_remove;
-       data_remove= nullptr;
-     }
-   }
+   //-------------------------------------------------------------------------
+   // Initialize the remove_revise_list
+   //-------------------------------------------------------------------------
+   init_remove_revise();
 
    // Get list of IGNORED files
    IGNORE.open(".", ".ignore");     // List of files to ignore
@@ -648,6 +729,29 @@ static void
    tod= *localtime(&now);           // Calendar date
    tod.tm_year += 1900;             // Correct the year
    tod.tm_mon  += 1;                // Correct the month
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       term_remove_revise
+//
+// Function-
+//       Deallocate the remove_revise list.
+//
+//----------------------------------------------------------------------------
+static void
+   term_remove_revise( void )       // Remove_revise list termination
+{
+   for(;;) {                        // Delete the remove_revise_list items
+     remove_revise_item* rr_item= remove_revise_list.remq();
+     if( rr_item == nullptr )
+       break;
+
+     delete rr_item->remove;
+     delete rr_item->revise;
+     delete rr_item;
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -704,6 +808,11 @@ static void
 
    delete data_remove;
    delete data_revise;
+
+   //-------------------------------------------------------------------------
+   // Delete the remove_revise_list items
+   //-------------------------------------------------------------------------
+   term_remove_revise();
 
    //-------------------------------------------------------------------------
    // Verify all IGNORE entries found
@@ -871,6 +980,11 @@ static void
        {{{{
          switch( opt_index )
          {
+           case OPT_MULTI:
+             if( optarg )
+               opt_multi= parm_int();
+             break;
+
            case OPT_VERBOSE:
              if( optarg )
                opt_verbose= parm_int();
@@ -921,7 +1035,7 @@ static void
      debugf("%5s --copy\n",    opt_copy  ? " true" : "false");
      debugf("%5s --listx\n",   opt_listx ? " true" : "false");
      debugf("%5s --mode\n",    opt_mode  ? " true" : "false");
-     debugf("%5s --multi\n",   opt_multi ? " true" : "false");
+     debugf("%5d --multi\n",   opt_multi);
      debugf("%5s --unix\n",    opt_unix  ? " true" : "false");
      debugf("\n");
    }
@@ -1055,10 +1169,14 @@ static inline bool                  // TRUE iff name specifies binary format
 {
    string ext= get_extension(name);
    if(    ext == "class"
+       || ext == "a"
+       || ext == "dll"
+       || ext == "exe"
        || ext == "gif"
        || ext == "gpg"
        || ext == "gz"
        || ext == "jar"
+       || ext == "o"
        || ext == "odt"
        || ext == "pdf"
        || ext == "png"
@@ -1604,7 +1722,7 @@ static int                          // The copyright year, -1 if invalid
      delete line;
 
      data.write();
-     errorf("File(%s) Copyright line corrected\n", s2c(full));
+     debugf("File(%s) Copyright line corrected\n", s2c(full));
    } else {                         // Auto-correct disallowed
      errorf("File(%s) Copyright line correctable\n", s2c(full));
    }
@@ -1675,7 +1793,7 @@ static void
      if( disallowed ) {             // If disallowed type detected
        if( opt_auto ) {             // If auto-correcting
          replace_copyright(data, copy, html_sa40);
-         errorf("File(%s) copyright(%s=>SA40)\n"
+         debugf("File(%s) copyright(%s=>SA40)\n"
                , s2c(data.full()), s2c(type));
        } else {
          errorf("File(%s) has disallowed %s copyright\n"
@@ -1710,7 +1828,7 @@ static void
      if( type != "SA40" ) {
        if( opt_auto ) {             // If auto-correcting
          replace_copyright(data, copy, html_sa40);
-         errorf("Markdown file(%s) format(%s=>SA40)\n"
+         debugf("Markdown file(%s) format(%s=>SA40)\n"
                , s2c(data.full()), s2c(type));
 
        } else {
@@ -1792,9 +1910,9 @@ static void
 
            if( !corrected ) {
              corrected= true;
-             errorf("File(%s) prefix modified:\n", s2c(data.full()));
+             debugf("File(%s) prefix modified:\n", s2c(data.full()));
            }
-           errorf("old: '%s'\nnew: '%s'\n", s2c(old_text), line->text);
+           debugf("old: '%s'\nnew: '%s'\n", s2c(old_text), line->text);
          } else {
            errorf("File(%s) Inconsistent copyright format (unchanged)\n"
                  , s2c(data.full()));
@@ -1847,13 +1965,16 @@ static bool                         // TRUE if SPDX identifier added
        list.insert(rhs->get_prev(), line);
 
        data.write();
-       errorf("File(%s) %s SPDX-License-Identifier added\n"
+       debugf("File(%s) %s SPDX-License-Identifier added\n"
              , s2c(data.full()), type);
        changed= true;
      } else {                       // Auto-correct not allowed
        errorf("File(%s) %s SPDX-License-Identifier missing\n"
              , s2c(data.full()), type);
      }
+
+     if( opt_multi < 0 )            // If stricter multi enforcement
+       exit(1);
      allow_multi();
    }
 
@@ -1886,7 +2007,7 @@ static void
 
      if( opt_auto ) {               // If auto-correcting
        replace_copyright(data, copy, bash_mit0);
-       errorf("File(%s) copyright(%s=>MIT0)\n"
+       debugf("File(%s) copyright(%s=>MIT0)\n"
              , s2c(data.full()), s2c(type));
      } else {
        errorf("File(%s) requires MIT-0 copyright\n", s2c(data.full()));
@@ -1912,7 +2033,7 @@ static void
      if( disallowed ) {             // If disallowed type detected
        if( opt_auto ) {             // If auto-correcting
          replace_copyright(data, copy, html_sa40);
-         errorf("File(%s) copyright(%s=>SA40)\n"
+         debugf("File(%s) copyright(%s=>SA40)\n"
                , s2c(data.full()), s2c(type));
        } else {
          errorf("File(%s) has disallowed %s copyright\n"
@@ -1941,20 +2062,25 @@ static bool                         // TRUE if copyright converted
      debugf("auto_update(%s)\n", s2c(data.full()));
 
    bool changed= false;             // Default, not changed
-
-   if( data_remove && data_revise ) {
-     if( has_copyright(data, data_remove) ) {
+   remove_revise_item* rr_item= remove_revise_list.get_head();
+   while( rr_item ) {
+     if( has_copyright(data, rr_item->remove) ) {
        if( opt_auto ) {             // If auto-correcting
-         replace_copyright(data, data_remove, data_revise);
+         replace_copyright(data, rr_item->remove, rr_item->revise);
          data.write();
-         errorf("File(%s) copyright updated\n", s2c(data.full()));
+         debugf("File(%s) copyright updated\n", s2c(data.full()));
          changed= true;
        } else {
          errorf("File(%s) copyright update required\n", s2c(data.full()));
        }
 
+       if( opt_multi < 0 )          // If stricter multi enforcement
+         exit(1);
        allow_multi();
+       break;
      }
+
+     rr_item= rr_item->get_next();
    }
 
    return changed;
@@ -2052,7 +2178,7 @@ static void
        auto_correct_prefix(data, copy, prefix); // Correct prefix inconsistency
 
        // Update match count
-       if( opt_verbose > 1 )
+       if( opt_verbose > 2 )
          debugf("[%s]: '%s'\n", table[i].name, full);
 
        ++count[i];
@@ -2069,7 +2195,7 @@ static void
    if( HCDM )
      debugf("non-standard copyright(%s)\n", s2c(data.full()));
 
-   if( auto_update(data) )          // Auto-correct changed copyright
+   if( auto_update(data) )          // Auto-correct remove/replace copyrights
      return;
 
    // Check for other copyright formats
@@ -2368,7 +2494,7 @@ static void
              mode= file->st.st_mode & ~(ACCESSPERMS);
              mode |= want;
              chmod(s2c(full), mode);
-             errorf("CHMOD File: %s\n", s2c(full));
+             debugf("CHMOD File: %s\n", s2c(full));
            }
            allow_multi();
          }
@@ -2380,7 +2506,7 @@ static void
          if( had_change || had_blanks ) { // If file changed
            if( opt_auto ) {
              if( had_change )
-               errorf("File(%s) ==> unix format\n", s2c(data.full()));
+               debugf("File(%s) ==> unix format\n", s2c(data.full()));
              data.write();
              data.change(false);
            } else {
@@ -2441,7 +2567,7 @@ static void
              mode= file->st.st_mode & ~(ACCESSPERMS);
              mode |= exec;
              chmod(s2c(full), mode);
-             errorf("CHMOD Path: %s\n", s2c(full));
+             debugf("CHMOD Path: %s\n", s2c(full));
            } else {                 // Auto-correct disallowed
              errorf("Path: -%s%s%s%s%s%s%s%s%s %s\n"
                     , mode & S_IRUSR ? "r" : "-"

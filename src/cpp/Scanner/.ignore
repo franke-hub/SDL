@@ -16,7 +16,7 @@
 ##       Scanner ignore path/file control
 ##
 ## Last change date-
-##       2025/09/15
+##       2025/11/13
 ##
 ##############################################################################
 
@@ -42,6 +42,8 @@
 .home/src/cpp/lib/pub/Test/script/inp/*
 .home/src/cpp/lib/pub/Test/script/out/*
 .home/src/cpp/NNC/data/*
+.home/src/cpp/Scanner/.remove.d/*
+.home/src/cpp/Scanner/.revise.d/*
 .home/src/cpp/Tools/codec/data/INP/*
 .home/src/cpp/Tools/Secure/data/*
 .home/src/cpp/Wilbur/data/*

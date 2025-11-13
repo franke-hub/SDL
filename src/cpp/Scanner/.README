@@ -10,13 +10,13 @@
 ##############################################################################
 ##
 ## Title-
-##       ~/src/cpp/Dataman/.README
+##       ~/src/cpp/Scanner/.README
 ##
 ## Purpose-
 ##       Subdirectory information.
 ##
 ## Last change date-
-##       2025/11/01
+##       2025/11/13
 ##
 ##############################################################################
 
@@ -24,7 +24,17 @@
 ## TODO:
 2020/02/02 Allow comments in .ignore file, both full line and after entry.
 
+##############################################################################
+## DONE: 2025/11/13
+2025/11/13 Allow multiple remove/restore combinations.
+         Note that the remove/restore combination B.MIT-licenses-SPDX follows
+         B.MIT-licenses. (Licenses are checked in order.)
+
 2025/11/01 Autocorrect improper capitalization in files with MIT copyrights
 
 2025/11/01 All .gitignore files should have MIT-0 copyrights
-         Add MIT-0 to list of licenses.
+         Added MIT-0 to list of licenses.
+
+         Remove/revise logic handles this, but correction of .gitignore files
+         that require capitalization and also have missing SPDX identifiers
+         requires multiple passes.

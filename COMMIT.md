@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2025/11/12
+//       2025/11/13
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -810,7 +810,7 @@ Added: Contains commonly used .gitigore declarations.
 #### 2025/11/05 TODO:
 - Existing code with MIT licenses need to be updated.
 
-### <a id="last-change">2025/11/12 maint/trunk</a>
+### 2025/11/12 maint/trunk
 - All .gitcommit files converted from MIT to MIT-0 copyright.
 - All .html files with GPL or MIT copyright converted to SA40 copyright.
 - Code files with SA40 copyright converted into GPL copyright.
@@ -818,3 +818,12 @@ Added: Contains commonly used .gitigore declarations.
 https://opensource.org/license/mit or https://opensource.org/license/mit-0, not</br>
 https://opensource.org/licenses/MIT or https://opensource.org/licenses/MIT-0, or</br>
 https://opensourse.org/license/mit or https://opensourse.org/licenses/mit-0
+
+### <a id="last-change">2025/11/13 maint/trunk</a>
+Updated ~/src/cpp/Scanner/Scanner.cpp
+- Now has a list of remove/revise files<br/>
+Added subdirectories .remove.d and .revise.d which contain correpondingly
+named remove and replace files.
+- The "--multi" option is now numeric.
+A value less than zero exits if certain errors occur.
+These correctable errors occur when scanning object subdirectories.
