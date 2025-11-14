@@ -19,4 +19,6 @@
 !/S
 !/.home
 !/.ignore
+!/.remove.d
+!/.revise.d
 !/regression
