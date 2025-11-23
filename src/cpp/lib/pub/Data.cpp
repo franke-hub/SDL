@@ -17,7 +17,7 @@
 //       Data.h object methods
 //
 // Last change date-
-//       2025/09/23
+//       2025/11/23
 //
 // Implementation note-
 //       Derived from Fileman.cpp
@@ -342,6 +342,30 @@ int                                 // Return code, 0 OK
    Name::Name(                      // Constructor
      std::string       full_name)   // The file name
 {  reset(full_name); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       pub::data::Name::extension
+//
+// Purpose-
+//       Get file extension part of file_name
+//
+//----------------------------------------------------------------------------
+std::string                         // The file name extension, "" if none
+   Name::get_extension(             // Get file name extension for
+     std::string       file_name)   // This file name
+{
+   ssize_t X= file_name.length() - 1; // Last character in file_name
+   while( X >= 0 && file_name[X] != '/' ) { // Find last '.' in name
+     if( file_name[X] == '.' )      // If extension separator
+       return file_name.substr(X + 1);
+
+     --X;
+   }
+
+   return "";                       // (No extension)
+}
 
 //----------------------------------------------------------------------------
 //

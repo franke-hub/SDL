@@ -17,13 +17,14 @@
 //       Dictionary method implementation.
 //
 // Last change date-
-//       2025/10/09
+//       2025/11/23
 //
 //----------------------------------------------------------------------------
 #include <memory>                   // For std:unique_ptr, make_unique
 #include <string>                   // For std::string
 #include <cstring>                  // For strcmp, ...
 
+#include <stdlib.h>                 // For getenv
 #include <sys/stat.h>               // For struct stat
 
 #include <pub/Data.h>               // For namespace pub::data
@@ -33,7 +34,7 @@
 #include <pub/Tokenizer.h>          // For pub::Tokenizer
 
 #define PUB _LIBPUB_NAMESPACE
-using namespace PUB::debugging;     // For debugf, ...
+using namespace PUB::debugging;     // For debugf, errorf, ...
 using namespace PUB::data;          // For (typedef) Data, Line, ...
 using std::string;                  // For (typedef) string
 
@@ -53,6 +54,26 @@ enum
 typedef std::string                 string;
 typedef string::size_type           size_type;
 static const size_type npos=        string::npos;
+
+//----------------------------------------------------------------------------
+// Default dictionary/rule table
+//----------------------------------------------------------------------------
+struct dict_rule_t {
+const char*            dict;        // Dictionary name
+const char*            rule;        // Rule name
+};
+
+dict_rule_t            dict_rule[]=
+{  {"/usr/share/myspell/en_US-large.dic", "/usr/share/myspell/en_US-large.aff"}
+,  {"/usr/share/myspell/en_US.dic", "/usr/share/myspell/en_US.aff"}
+,  {nullptr, nullptr}
+};
+
+const char*            optional_lib[]= // Built-in optional dictionary libs
+{  "Library/Spelling"
+,  ".local/lib/Spelling"
+,  nullptr
+};
 
 //----------------------------------------------------------------------------
 //
@@ -84,7 +105,7 @@ static bool
    if_rule(string rule, string text) // Does the rule apply to the string?
 {
    if( debugging_stop(text) )       // (Use with gdb)
-     debugf("%4d if_rule(%s,%s)\n", __LINE__, rule.c_str(), text.c_str());
+     errorf("%4d if_rule(%s,%s)\n", __LINE__, rule.c_str(), text.c_str());
 
    if( rule[0] != '[' ) {           // If character match rule
      if( rule == "." )
@@ -102,7 +123,7 @@ static bool
 
    size_type X= rule.find(']');
    if( X == npos ) {                // (Should not occur)
-     debugf("Malformed rule '%s', '[' without ']'\n", rule.c_str());
+     errorf("Malformed rule '%s', '[' without ']'\n", rule.c_str());
      return false;
    }
 
@@ -140,50 +161,6 @@ static bool
 
 //----------------------------------------------------------------------------
 //
-// Subroutine-
-//       quick_sort
-//
-// Purpose-
-//       Quick sort the Word array
-//
-//----------------------------------------------------------------------------
-static void
-   quick_sort(                      // (Partially) sort the Word array
-     size_t            inp_bot,     // Leftmost index
-     size_t            inp_top,     // Rightmost index
-     Dictionary::Word**array)       // Word array
-{
-   size_t              bot= inp_bot; // Working left index
-   size_t              top= inp_top; // Working right index
-   Dictionary::Word*   pword= array[inp_bot]; // Pivot Word
-   std::string         pvstr= pword->word; // Pivot String
-
-   while( bot < top ) {
-     while( bot < top && array[top]->word >= pvstr )
-       top--;
-     if( bot != top ) {
-       array[bot]= array[top];
-       bot++;
-     }
-
-     while( bot < top && array[bot]->word <= pvstr )
-       bot++;
-     if( bot != top ) {
-       array[top]= array[bot];
-       top--;
-     }
-   }
-
-   array[bot]= pword;
-   if( inp_bot < bot )
-     quick_sort(inp_bot, bot-1, array);
-
-   if( inp_top > bot )
-     quick_sort(bot+1, inp_top, array);
-}
-
-//----------------------------------------------------------------------------
-//
 // Method-
 //       Dictionary::Dictionary
 //
@@ -196,22 +173,65 @@ static void
 :  list()
 {  if( HCDM ) debugf("!Dictionary(%p)\n", this);
 
-   struct stat info;
-   const char* rule= "/usr/share/hunspell/en_US.aff";
-   const char* dict= "/usr/share/hunspell/en_US.dic";
-   if( stat(rule, &info) ) {
-     rule= "/usr/share/myspell/en_US.aff";
-     dict= "/usr/share/myspell/en_US.dic";
-     if( stat(rule, &info) ) {
-       fprintf(stderr, "Default word list not found\n");
-       return;
+   string      HOME= getenv("HOME"); // The HOME directory
+   struct stat info;                // Working info struct
+
+   const char* dict= nullptr;
+   const char* rule= nullptr;
+   for(int i= 0; dict_rule[i].dict; ++i) {
+     if( stat(dict_rule[i].rule, &info) == 0 ) { // If rule found
+       dict= dict_rule[i].dict;
+       rule= dict_rule[i].rule;
+       if( stat(dict, &info) ) {    // If no associated dictionary
+         fprintf(stderr, "ERROR: hunspell not properly installed\n"
+                         "File(%s) exists but File(%s) does not\n"
+                       , rule, dict);
+         exit(1);
+       }
+
+       break;
      }
+   }
+
+   if( dict == nullptr || rule == nullptr ) {
+     fprintf(stderr, "ERROR: hunspell not installed\n"
+                     "File(%s) not found\n", dict_rule[1].rule);
+     exit(1);
    }
 
    load_rule(rule);
    load_dict(dict);
-   if( user_dict ) {                // If user_list specified
+
+   // Load built-in OPTIONAL dictionary libraries
+   for(int i= 0; optional_lib[i]; ++i) {
+     string lib= optional_lib[i];
+     if( lib[0] != '/' ) {          // If not fully qualified name
+       lib= HOME + "/" + lib;       // Get relative name (to HOME)
+     }
+
+     if( stat(lib.c_str(), &info) == 0 ) { // If library found
+       if( S_ISDIR(info.st_mode) ) { // If it's a directory
+         pub::data::Path path(lib.c_str());
+         for(auto iter= path.list.begin(); iter != path.list.end(); ++iter) {
+           pub::data::Name name= lib + "/" + iter->name;
+           string extension= name.get_extension(name.name);
+           if( extension == "dic" ) {
+             load_dict(name.name.c_str());
+           } else if( HCDM && VERBOSE > 1 ) {
+             errorf("HCDM Skipping File(%s) extension(%s)\n"
+                   , name.get_extension(name.name).c_str(), extension.c_str());
+           }
+         }
+       } else {                     // If it's a single file
+         load_dict(lib.c_str());
+       }
+     }
+   }
+
+   // Load user-supplied OPTIONAL dictionaries
+   if( user_dict ) {
      for(size_t i= 0; user_dict[i]; ++i) {
+
        Name name(user_dict[i]);
        const char* full= name.name.c_str();
        // const char* path= name.path_name.c_str();
@@ -219,7 +239,7 @@ static void
        if( stat(full, &info) == 0 )
          load_dict(full);
        else
-         fprintf(stderr, "Optional file(%s) not found\n", full);
+         errorf("WARNING: Optional file(%s) not found\n", full);
      }
    }
 
@@ -268,7 +288,7 @@ void
    else
      debugf("list{} (empty)\n");
 
-   if( VERBOSE ) {
+   if( VERBOSE > 0 ) {
      debugf("\nRule table:\n");
      for(int i= 0; i < DIM_CHAR; ++i) {
        affix_head* head= rule[i].get();
@@ -322,7 +342,7 @@ void
      int max_search= 8;             // Maximum search length
      for(Word* item= list.get_tail(); item; item= item->get_prev()) {
        if( word == item->word ) {   // If duplicate
-         if( HCDM && VERBOSE ) {
+         if( HCDM && VERBOSE > 0 ) {
            if( affix )
              debugf("Insert(%s) %s skipped duplicate\n", word.c_str(), affix);
            else
@@ -336,7 +356,7 @@ void
      }
    }
 
-   if( HCDM && VERBOSE && affix )
+   if( HCDM && VERBOSE > 0 && affix )
      debugf("Insert(%s) %s\n", word.c_str(), affix);
 
    list.fifo(new Word(word));
@@ -371,10 +391,11 @@ bool                                // TRUE if rule applies
 //       Load a dictionary
 //
 //----------------------------------------------------------------------------
-int                                 // Return code, 0 expected
+void
    Dictionary::load_dict(           // Load a dictionary
      const char*       full_name)   // The dictionary name
-{
+{  if( HCDM ) debugf("Dictionary(%p)::load_dict(%s)\n", this, full_name);
+
    Name name(full_name);
    const char* path= name.path_name.c_str();
    const char* file= name.file_name.c_str();
@@ -385,8 +406,8 @@ int                                 // Return code, 0 expected
    // Load the word list
    Line* line= dict.line().get_head(); // 1st (count) line skipped
    if( line == nullptr ) {
-     debugf("ERROR: Empty dictionary(%s)\n", dict.full().c_str());
-     exit(2);
+     errorf("WARNING: Empty dictionary(%s)\n", dict.full().c_str());
+     return;
    }
 
    for(line= line->get_next(); line; line= line->get_next()) {
@@ -426,7 +447,7 @@ int                                 // Return code, 0 expected
 
        affix_head* head= rule[(int)mark[i]].get();
        if( head == nullptr ) {
-         debugf("%s unknown rule(%c)\n", line->text, mark[i]);
+         errorf("%s unknown rule(%c)\n", line->text, mark[i]);
          continue;
        }
 
@@ -458,13 +479,9 @@ int                                 // Return code, 0 expected
      }
    }
 
-   // The list must contain at least one valid word
-   if( list.get_head() == nullptr ) {
-     debugf("ERROR: no valid words in dictionary(%s)\n", dict.full().c_str());
-     return 2;
-   }
-
-   return 0;
+   // The list should contain at least one valid word
+   if( list.get_head() == nullptr )
+     errorf("WARNING: no valid words in dictionary(%s)\n", dict.full().c_str());
 }
 
 //----------------------------------------------------------------------------
@@ -476,10 +493,11 @@ int                                 // Return code, 0 expected
 //       Load the rule table
 //
 //----------------------------------------------------------------------------
-int                                 // Return code, 0 expected
+void
    Dictionary::load_rule(           // Load the rule table
      const char*       full_name)   // The rule table file name
-{
+{  if( HCDM ) debugf("Dictionary(%p)::load_rule(%s)\n", this, full_name);
+
    Name name(full_name);
    const char* path= name.path_name.c_str();
    const char* file= name.file_name.c_str();
@@ -503,8 +521,8 @@ int                                 // Return code, 0 expected
 
          text= (++it)();
          if( text.size() != 1 || text[0] >= DIM_CHAR ) {
-           debugf("Invalid affix line '%s'\n", line->text);
-           return 2;
+           errorf("Invalid affix line '%s'\n", line->text);
+           return;
          }
          head->index= text[0];
 
@@ -532,7 +550,7 @@ int                                 // Return code, 0 expected
 
        // Verify prefix rule (Only the first prefix rule rules)
        if( head->prefix && (rule.remove != "0" || rule.ifrule != ".") ) {
-         debugf("PFX rule(%s) unknown, ignored\n", line->text);
+         errorf("PFX rule(%s) unknown, ignored\n", line->text);
          continue;
        }
 
@@ -543,8 +561,6 @@ int                                 // Return code, 0 expected
          rule[head->index]= std::move(head);
      }
    }
-
-   return 0;
 }
 
 //----------------------------------------------------------------------------
@@ -559,42 +575,24 @@ int                                 // Return code, 0 expected
 void
    Dictionary::cleanup( void )      // Clean up the Dictionary
 {
-   // QuickSort the Word list
-   size_t count= 0;
-   Word* word= list.get_head();     // Count the list entries
-   while( word ) {
-     ++count;
-     word= word->get_next();
-   }
+   // Sort the Word list
+   list.sort();
 
-   if( count == 0 )                 // (Should not occur)
-     return;
+   // Delete duplicates
+   Word* prior= list.get_head();    // Add the first Word
+   if( prior )                      // If empty list
+     return;                        // (Nothing to delete)
 
-   Word** temp= (Word**)malloc(count * sizeof(Word*)); // Create sortable array
-   if( temp == nullptr )            // If storage not available
-     return;                        // Don't bother removing duplicates
-
-   word= list.reset();              // (Empties the list)
-   for(size_t i= 0; i<count; ++i) { // Fill the array
-     temp[i]= word;
-     word= word->get_next();
-   }
-
-   quick_sort(0, count-1, temp);    // Sort the array
-
-   // Restore the Word list, omitting and deleting duplicates
-   list.fifo(temp[0]);              // Add the first Word
-   std::string last= temp[0]->word;
-   for(size_t i= 1; i<count; ++i) { // Add the remaining Words, removing dups
-     Word* item= temp[i];
-     if( last == item->word ) {
-       delete item;                 // Remove duplicate
-     } else {                       // Insert unique Word
-       list.fifo(item);
-       last= item->word;
+   Word* link= prior->get_next();
+   while( link ) {
+     if( prior->word == link->word ) { // If duplicate
+       list.remove(link);
+       free(link);
+     } else {                       // If unique
+       prior= link;
      }
-   }
 
-   free(temp);
+     link= prior->get_next();
+   }
 }
 } // namespace _LIBPUB_NAMESPACE

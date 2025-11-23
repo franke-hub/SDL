@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2024 Frank Eskesen.
+//       Copyright (c) 2024-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Dictionary definition and implementation.
 //
 // Last change date-
-//       2024/01/09
+//       2025/11/23
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_DICTIONARY_H_INCLUDED
@@ -64,7 +64,7 @@ public:
 //----------------------------------------------------------------------------
 // Dictionary::Word
 //----------------------------------------------------------------------------
-class Word : public pub::List<Word>::Link { // Dictionary word
+class Word : public pub::Sort<Word>::Link { // Dictionary word
 // Word::Attributes
 public:
 std::string            word;        // The associated word
@@ -74,6 +74,13 @@ public:
    Word(                            // Constructor
      std::string       text)        // The associated word
 :  word(text) {}
+
+// Word::operator<                  // (Used for sorting)
+virtual bool operator<(const Base& _that) const override
+{
+   const Word* that= static_cast<const Word*>(&_that);
+   return word < that->word;
+}
 }; // class Dictionary::Word
 
 //----------------------------------------------------------------------------
@@ -96,83 +103,13 @@ bool                   prefix= false; // Prefix || suffix?
 //----------------------------------------------------------------------------
 // Dictionary::Iterator
 //----------------------------------------------------------------------------
-struct Iterator {
-   typedef ptrdiff_t                        difference_type;
-   typedef std::input_iterator_tag          iterator_category;
-   typedef const std::string                value_type;
-   typedef value_type*                      pointer;
-   typedef value_type&                      reference;
-
-   typedef Word                             _Link;
-   typedef pub::List<Word>                  _List;
-   typedef Iterator                         _Self;
-
-   _Link*       _link= nullptr;     // The current Word (Link)
-   _List* const _list= nullptr;     // The associated List<List>*
-
-   Iterator() noexcept = default;
-
-   Iterator(const Iterator& that) noexcept
-   :  _link(that._link), _list(that._list) {}
-
-explicit
-   Iterator(_List* list) noexcept
-   :  _link(list->get_head()), _list(list) {}
-
-pointer
-   get() const // noexcept
-{  if( _link )
-     return &_link->word;
-   throw end_dereferenced();
-}
-
-operator bool()
-{  return bool(_link); }
-
-reference
-   operator*() const // noexcept
-{  if( _link )
-     return (reference)(_link->word);
-   throw end_dereferenced();
-}
-
-pointer
-   operator->() const // noexcept
-{  if( _link )
-     return &_link->word;
-   throw end_dereferenced();
-}
-
-_Self&
-   operator++() noexcept
-{
-   if( _link )
-     _link= _link->get_next();
-
-   return *this;
-}
-
-_Self
-   operator++(int) noexcept {
-     _Self __tmp = *this;
-     operator++();
-     return __tmp;
-   }
-
-friend bool
-   operator==(const _Self& lhs, const _Self& rhs) noexcept
-{  return lhs._link == rhs._link; }
-
-friend bool
-   operator!=(const _Self& lhs, const _Self& rhs) noexcept
-{  return lhs._link != rhs._link; }
-}; // struct Dictionary::Iterator
+typedef Sort<Word>::iterator        Iterator;
 
 //----------------------------------------------------------------------------
 // Dictionary::Attributes
 //----------------------------------------------------------------------------
 protected:
-pub::List<Word>        list;        // The word list
+pub::Sort<Word>        list;        // The word list
 
 std::unique_ptr<affix_head>
                        rule[DIM_CHAR]= {}; // Rule table, ASCII char index
@@ -191,11 +128,11 @@ public:
 //----------------------------------------------------------------------------
 Iterator
    begin( void )                    // Get begin Iterator
-{  return Iterator(&list); }
+{  return list.begin(); }
 
 Iterator
    end( void )                      // Get end Iterator
-{  return Iterator(); }
+{  return list.end(); }
 
 //----------------------------------------------------------------------------
 // Dictionary::Methods
@@ -222,10 +159,10 @@ bool                                // TRUE if rule applies
      string            rule,        // Does this rule apply to
      string            text);       // This string?
 
-int                                 // Return code, 0 expected
+void
    load_dict(const char*);          // Load a dictionary
 
-int                                 // Return code, 0 expected
+void
    load_rule(const char*);          // Load the dictionary rule table
 
 void

@@ -17,7 +17,7 @@
 //       File management classes, conveniently packaged in one file.
 //
 // Last change date-
-//       2025/10/04
+//       2025/11/23
 //
 // Implementation note-
 //       Derived from Fileman.h
@@ -239,14 +239,20 @@ std::string            path_name;   // The path name (without file_name)
 //----------------------------------------------------------------------------
 //
 // Method-
+//       pub::data::Name::get_extension
 //       pub::data::Name::get_file_name
 //       pub::data::Name::get_path_name
 //
 // Purpose-
+//       Get extension part of (locally qualified) file name.
 //       Get file name part of (locally qualified) file name.
 //       Get path name part of (locally qualified) file name.
 //
 //----------------------------------------------------------------------------
+static std::string                  // The file part of file_name
+   get_extension(                   // Get file part of
+     std::string       file_name);  // This relative file name
+
 static std::string                  // The file part of (relative) full_name
    get_file_name(                   // Get file part of
      std::string       full_name);  // This relative full name

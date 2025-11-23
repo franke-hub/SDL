@@ -17,7 +17,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2025/10/20
+//       2025/11/23
 //
 //----------------------------------------------------------------------------
 #include <iostream>                 // For std::cout
@@ -293,6 +293,14 @@ static inline int
    if( opt_verbose ) {
      Dictionary dict((const char**)dict_list); // Compilation/Load test
      dict.debug("Usage test");
+
+     if( opt_verbose > 5) {
+       debugf("Full dictionary\n");
+       size_t i= 0;
+       for(auto iter= dict.begin(); iter != dict.end(); ++iter) {
+         debugf("[%6zd] '%s'\n", i++, iter->word.c_str());
+       }
+     }
    } else {
      Dictionary dict;               // Compilation/Load test
    }
