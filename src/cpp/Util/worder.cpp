@@ -17,14 +17,11 @@
 //       Search for word match.
 //
 // Last change date-
-//       2025/09/15
+//       2025/11/24
 //
 // Implementation notes-
-//       worder table:+++-= abort:==--+ ... (ABATE)
+//       worder table+++-= abort==--+ ... (ABATE)
 //         '+' indicates yellow letter, '=' indicates green letter
-//
-//       Duplicate definitions may exist in dictionary. If they match they're
-//       reported more than once.
 //
 //----------------------------------------------------------------------------
 #include <list>                     // For std::list
@@ -37,6 +34,7 @@
 
 #include <pub/Data.h>               // For namespace pub::data
 #include <pub/Debug.h>              // For namespace pub::debugging
+#include <pub/Dictionary.h>         // For pub::Dictionary
 #include <pub/List.h>               // For pub::List
 #include <pub/utility.h>            // For pub::utility methods
 
@@ -45,14 +43,9 @@ using namespace pub::data;          // For (typedef) Data, Line, ...
 using std::string;                  // For (typedef) string
 
 //----------------------------------------------------------------------------
-// Dictionary definition
-//----------------------------------------------------------------------------
-#include "worder.hpp"               // For Dictionary, ...
-
-//----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-static Dictionary      dict;        // (Word list) Dictionary
+static pub::Dictionary dict;        // (Word list) Dictionary
 
 static int             count= 0;    // Number of letters in target word
 static int             opt_debug= 0; // --debug
@@ -114,6 +107,23 @@ static void
 
    debugf("\n%s %s %s\n", __FILE__, __DATE__, __TIME__);
 }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       debugging_stop
+//
+// Purpose-
+//       Debugging word stop (Use with gdb)
+//
+//----------------------------------------------------------------------------
+static constexpr const char*
+                       DEBUGGING_STOP_WORD= ".";
+//                       DEBUGGING_STOP_WORD= "error";
+
+static bool                         // TRUE if word detected
+   debugging_stop(string word)      // Debugging word stop
+{  return word == DEBUGGING_STOP_WORD; }
 
 //----------------------------------------------------------------------------
 //
@@ -320,7 +330,6 @@ int                                 // Main return code
    // Initialize
    //-------------------------------------------------------------------------
    parm(argc, argv);                // Parameter analysis
-   dict.load();                     // Load the dictionary
    if( opt_debug ) {                // If --debug specified
      debug("--debug");
      if( count == 0 )
@@ -331,7 +340,7 @@ int                                 // Main return code
    // Find matching words in dictionary
    //-------------------------------------------------------------------------
    for(auto it= dict.begin(); it != dict.end(); ++it) {
-     const char* text= (*it).c_str();
+     const char* text= (*it).word.c_str();
      if( debugging_stop(text) )     // (Use with gdb)
        debugf("%4d STOP: %s\n", __LINE__, text);
 
