@@ -17,7 +17,7 @@
 //       Dictionary method implementation.
 //
 // Last change date-
-//       2025/11/23
+//       2025/11/24
 //
 //----------------------------------------------------------------------------
 #include <memory>                   // For std:unique_ptr, make_unique
@@ -582,7 +582,7 @@ void
 
    // Delete duplicates
    Word* prior= list.get_head();    // Add the first Word
-   if( prior )                      // If empty list
+   if( prior == nullptr )           // If empty list
      return;                        // (Nothing to delete)
 
    Word* link= prior->get_next();
