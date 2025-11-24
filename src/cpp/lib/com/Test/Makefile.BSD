@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2024 Frank Eskesen.
+##       Copyright (c) 2007-2025 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2024/02/10
+##       2025/11/24
 ##
 ##############################################################################
 
@@ -40,7 +40,7 @@ CINCL  += -I$(OBJDIR)############## Local include directory
 ##############################################################################
 ## Set default target
 ifeq "" "$(DEFAULT)"
-DEFAULT:= make.dir
+DEFAULT:= make.all
 endif
 
 default: $(DEFAULT)
