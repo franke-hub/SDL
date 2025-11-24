@@ -19,14 +19,13 @@
 // Last change date-
 //       2025/11/24
 //
-// Implementation notes-
-//       worder table+++-= abort==--+ ... (ABATE)
-//         '+' indicates yellow letter, '=' indicates green letter
+// Parameter hint-
+//       worder sable-++-= abort==--+ ... (abate)
 //
 //----------------------------------------------------------------------------
 #include <memory>                   // For std::unique_ptr
 #include <string>                   // For std::string
-#include <cstdlib>                  // For exit, ...
+#include <cstdlib>                  // For atoi, exit, ...
 #include <cstring>                  // For strcmp, ...
 
 #include <sys/stat.h>               // For struct stat
@@ -39,12 +38,23 @@ using namespace pub::debugging;     // For debugf, ...
 using std::string;                  // For (typedef) string
 
 //----------------------------------------------------------------------------
+// Control: DEBUGGING_STOP_WORD (Only used when opt_debug is used)
+//   (opt_debug != 0 scans the dictionary, looking for DEBUGGING_STOP_WORD)
+//      A message is written when the word is found. (Useful with gdb)
+//
+//   (opt_debug > 1 prints the dictionary)
+//----------------------------------------------------------------------------
+static constexpr const char*
+                       DEBUGGING_STOP_WORD= ".";
+//                       DEBUGGING_STOP_WORD= "dater";
+
+//----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
 static pub::Dictionary dict;        // (Word list) Dictionary
 
 static int             count= 0;    // Number of letters in target word
-static int             opt_debug= 0; // --debug
+static int             opt_debug= 0; // --debug{=n}
 
 enum
 {  DIM_ALPH= 128                    // Big enough for any ASCII character
@@ -76,6 +86,21 @@ static void
 {
    dict.debug(info);
 
+   if( opt_debug ) {
+     size_t X= 0;
+     for(auto it= dict.begin(); it != dict.end(); ++it) {
+       const char* text= (*it).word.c_str();
+       if( opt_debug > 1 )
+         debugf("[%6zd] '%s'\n", X++, text);
+
+       if( strcmp(DEBUGGING_STOP_WORD, text) == 0 )
+         debugf("%4d FOUND: '%s'\n", __LINE__, text); // (GDB breakpoint here)
+     }
+   }
+
+   if( count == 0 )                 // If no word parameters were specified
+     return;
+
    debugf("\nKnown: '");
    for(int wx= 0; wx < count; ++wx)
      debugf("%c", known[wx] ? known[wx] : '-');
@@ -88,7 +113,6 @@ static void
      string S= "Unknown";
      int maxi= maxis[C];
      if( maxi == 0 ) {
-       S= "Does not occur";
        S= "Occurs 0 times";
      } else {
        int mini= minis[C];
@@ -103,23 +127,6 @@ static void
 
    debugf("\n%s %s %s\n", __FILE__, __DATE__, __TIME__);
 }
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       debugging_stop
-//
-// Purpose-
-//       Debugging word stop (Use with gdb)
-//
-//----------------------------------------------------------------------------
-static constexpr const char*
-                       DEBUGGING_STOP_WORD= ".";
-//                       DEBUGGING_STOP_WORD= "error";
-
-static bool                         // TRUE if word detected
-   debugging_stop(string word)      // Debugging word stop
-{  return word == DEBUGGING_STOP_WORD; }
 
 //----------------------------------------------------------------------------
 //
@@ -139,19 +146,19 @@ static void
      "\n"
      "Options:\n"
      "  --help\tDisplay this help message and exit\n"
-     "  --debug\tDebugging display\n"
+     "  --debug{=n}\tDebugging display {=verbosity}\n"
      "\n"
      "Rule: LLLLL?????\n"
      "  Where 'L' is '@' or any lower case character between 'a' and 'z'\n"
-     "    ('@' does not appear in any word), and\n"
-     "  '?' is either '-', '+', '=', or '%%', and\n"
+     "    ('@' does not appear in any word)\n"
+     "    '?' is either '-', '+', '=', or '%%', and\n"
      "    '-' indicates the letter doesn't appear at this position in a word\n"
      "        and, if it's not a duplicate, doesn't appear in any word\n"
      "    '+' indicates the letter appears at another position in a word\n"
      "    '=' indicates the letter appears at this position in a word\n"
      "    '%%' indicates the letter appears at any position in a word\n"
      "\n"
-     "Example: worder steam--++- brake--=-+\n"
+     "Example: worder sable-++-= abort==--+ ... (abate)\n"
    );
 
    exit(EXIT_FAILURE);
@@ -183,21 +190,35 @@ static void
      info(1);
    }
 
-   if( strcmp(argv[1], "--help") == 0 )
-     info();
+   int argw= 0;                     // argv[0] is program name
+   for(int i= 1; i<argc; ++i) {
+     if( argv[i][0] != '-' ) {      // If word parameter
+       argw= i;
+       break;
+     }
 
-   int argn= 1;
-   if( strcmp(argv[1], "--debug") == 0 ) {
-     argn= 2;
-     opt_debug= true;
-     if( argc < 3 )
-       return;
+     if( strcmp(argv[i], "--help") == 0 )
+       info();
+
+     if( strcmp(argv[i], "--debug") == 0 )
+       opt_debug= true;
+
+     if( memcmp(argv[i], "--debug=", 8) == 0 ) {
+       opt_debug= atoi(argv[i]+8);
+       if( opt_debug == 0 ) {
+         fprintf(stderr, "Invalid parameter '%s'\n", argv[i]);
+         info(1);
+       }
+     }
    }
 
-   // Get and verify count, using first parameter
-   count= int(strlen(argv[argn]));
+   if( argw == 0 )                  // If no word parameters were specified
+     return;
+
+   // Get and verify count, using first word parameter
+   count= int(strlen(argv[argw]));
    if( count < 2 || (count & 1) ) { // Rule "" is invalid
-     fprintf(stderr, "Malformed parameter '%s'\n", argv[argn]);
+     fprintf(stderr, "Malformed parameter '%s'\n", argv[argw]);
      info(1);
    }
    count /= 2;
@@ -207,7 +228,7 @@ static void
      maxis[C]= count;
 
    //=========================================================================
-   for(int argi= argn; argi < argc; ++argi) { // For each parameter
+   for(int argi= argw; argi < argc; ++argi) { // For each word parameter
      char* parm= argv[argi];
      bool valid= true;
      // Valid letters 'a' through'z' or '.' (an invalid character)
@@ -217,9 +238,6 @@ static void
          break;
        }
      }
-
-     if( debugging_stop(parm) )     // (Use with gdb)
-       printf("%4d STOP: %s\n", __LINE__, parm);
 
      char* desc= parm + count;
      for(int wx= 0; wx < count; ++wx) { // Valid codes:
@@ -231,11 +249,11 @@ static void
      }
 
      if( desc[count] )              // Descriptor must have correct length
-         valid= false;
+       valid= false;
 
      if( !valid ) {
        fprintf(stderr, "Malformed parameter '%s'\n", parm);
-       info();
+       info(1);
      }
 
      // Initialize letter occurrance counters
@@ -337,9 +355,6 @@ int                                 // Main return code
    //-------------------------------------------------------------------------
    for(auto it= dict.begin(); it != dict.end(); ++it) {
      const char* text= (*it).word.c_str();
-     if( debugging_stop(text) )     // (Use with gdb)
-       debugf("%4d STOP: %s\n", __LINE__, text);
-
      if( strlen(text) != size_t(count) ) // Ignore words of incorrect length
        continue;
 
