@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2025/11/13
+//       2025/11/24
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -819,7 +819,7 @@ https://opensource.org/license/mit or https://opensource.org/license/mit-0, not<
 https://opensource.org/licenses/MIT or https://opensource.org/licenses/MIT-0, or</br>
 https://opensourse.org/license/mit or https://opensourse.org/licenses/mit-0
 
-### <a id="last-change">2025/11/13 maint/trunk</a>
+### 2025/11/13 maint/trunk
 Updated ~/src/cpp/Scanner/Scanner.cpp
 - Now has a list of remove/revise files<br/>
 Added subdirectories .remove.d and .revise.d which contain correpondingly
@@ -827,3 +827,19 @@ named remove and replace files.
 - The "--multi" option is now numeric.
 A value less than zero exits if certain errors occur.
 These correctable errors occur when scanning object subdirectories.
+
+### <a id="last-change">2025/11/24 maint/trunk</a>
+- Corrected links: ~/obj/cpp/Scanner .remove.d and .revise.d
+- Updated ~/bat/.tweaks: when invoking a Linux machine from a CYGWIN machine,
+the "linux" colorset is used.
+- Updated ~/src/cpp/lib/pub/Dictionary.cpp and ~/src/cpp/inc/pub/Dictionary.h:
+Automatically loads standard dictionaries and (some) user dictionaries.
+- Updated ~/src/cpp/lib/pub/Data.cpp and ~/src/cpp/inc/pub/Data.h:
+Added method get_extension.
+- Updated ~/src/cpp/Util/worder.cpp to use <pub/Dictionary.h><br/>
+(~/src/cpp/Util/worder.hpp was an early implementation of Dictionary.)
+- Added compile tests for all library Test subdirectories<br/>
+(~/src/cpp/lib/obj/Test/Thing.cpp failed the compile test
+using GCC version 15.)
+- Updated ~/src/cpp/lib/obj/Test/Thing.cpp for gcc version 15<br/>
+Added _GLIBCXX_* modifiers copied from c++/new.
