@@ -16,7 +16,7 @@
 ##       C++ build control makefile
 ##
 ## Last change date-
-##       2025/10/26
+##       2025/11/24
 ##
 ## Implementation notes-
 ##       ~/obj/cpp/Makefile links to this file.
@@ -52,6 +52,8 @@ endif
 ##############################################################################
 ## C++ source directories (for compile test)
 CPP_ :=
+CPP_ +=  lib/com/Test        lib/dev/Test        lib/gui/Test
+CPP_ +=  lib/obj/Test        lib/pub/Test
 CPP_ +=  Brian
 CPP_ +=  Clean     Clone     Copy
 CPP_ +=  Darwin    Decoder   Diag
