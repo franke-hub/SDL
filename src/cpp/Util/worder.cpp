@@ -24,7 +24,6 @@
 //         '+' indicates yellow letter, '=' indicates green letter
 //
 //----------------------------------------------------------------------------
-#include <list>                     // For std::list
 #include <memory>                   // For std::unique_ptr
 #include <string>                   // For std::string
 #include <cstdlib>                  // For exit, ...
@@ -32,14 +31,11 @@
 
 #include <sys/stat.h>               // For struct stat
 
-#include <pub/Data.h>               // For namespace pub::data
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Dictionary.h>         // For pub::Dictionary
-#include <pub/List.h>               // For pub::List
-#include <pub/utility.h>            // For pub::utility methods
+#include <pub/utility.h>            // For pub::utility::to_string
 
 using namespace pub::debugging;     // For debugf, ...
-using namespace pub::data;          // For (typedef) Data, Line, ...
 using std::string;                  // For (typedef) string
 
 //----------------------------------------------------------------------------
