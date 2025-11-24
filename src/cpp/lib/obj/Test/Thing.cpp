@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2021 Frank Eskesen.
+//       Copyright (c) 2018-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Define static Thing attributes.
 //
 // Last change date-
-//       2021/08/06
+//       2025/11/24
 //
 // Implementation notes-
 //       Fast array (de)allocation skips allocation counting/checking, but
@@ -521,7 +521,8 @@ void
 //
 //----------------------------------------------------------------------------
 void
-   operator delete(void* addr)      // Global operator delete (replacement)
+   operator delete(void* addr)
+   _GLIBCXX_TXN_SAFE _GLIBCXX_USE_NOEXCEPT
 {
    if( HCDM && true  ) {            // (Can't use debugf here)
      printf("0p%.10zx= operator delete(addr)\n", intptr_t(addr));
@@ -531,6 +532,7 @@ void
 }
 void
    operator delete(void* addr, size_t size)
+   _GLIBCXX_TXN_SAFE _GLIBCXX_USE_NOEXCEPT
 {
    if( HCDM )                       // (Can't use debugf here)
      printf("0p%.10zx= operator delete(%zd)\n", intptr_t(addr), size);
@@ -554,6 +556,7 @@ void
 
 void*
    operator new(size_t size)        // Global operator new (replacement)
+   _GLIBCXX_TXN_SAFE _GLIBCXX_THROW (std::bad_alloc)
 {
    void* addr= nullptr;
 
