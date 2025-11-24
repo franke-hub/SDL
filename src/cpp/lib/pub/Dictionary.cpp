@@ -66,6 +66,8 @@ const char*            rule;        // Rule name
 dict_rule_t            dict_rule[]=
 {  {"/usr/share/myspell/en_US-large.dic", "/usr/share/myspell/en_US-large.aff"}
 ,  {"/usr/share/myspell/en_US.dic", "/usr/share/myspell/en_US.aff"}
+,  {"/usr/share/hunspell/en_US-large.dic", "/usr/share/hunspell-large/en_US.aff"}
+,  {"/usr/share/hunspell/en_US.dic", "/usr/share/hunspell/en_US.aff"}
 ,  {nullptr, nullptr}
 };
 
