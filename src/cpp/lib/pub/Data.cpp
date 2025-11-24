@@ -17,7 +17,7 @@
 //       Data.h object methods
 //
 // Last change date-
-//       2025/11/23
+//       2025/11/24
 //
 // Implementation note-
 //       Derived from Fileman.cpp
@@ -346,10 +346,10 @@ int                                 // Return code, 0 OK
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::data::Name::extension
+//       pub::data::Name::get_extension
 //
 // Purpose-
-//       Get file extension part of file_name
+//       Get the file extension part of a file_name
 //
 //----------------------------------------------------------------------------
 std::string                         // The file name extension, "" if none
