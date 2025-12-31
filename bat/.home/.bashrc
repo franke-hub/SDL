@@ -24,6 +24,7 @@
 
 ##############################################################################
 ## Debugging hook
+## export debugging=$HOME/.local/log/user.log
 [ -n "$debugging" ] && date "+%s.%N HOST($HOST) USER($USER) begin .bashrc $$ $0" >>$debugging
 
 ##############################################################################
