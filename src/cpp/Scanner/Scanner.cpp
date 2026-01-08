@@ -17,7 +17,7 @@
 //       Source file checker.
 //
 // Last change date-
-//       2025/11/13
+//       2025/12/31
 //
 // Usage-
 //       Scanner {path} options
@@ -1170,17 +1170,27 @@ static inline bool                  // TRUE iff name specifies binary format
    string ext= get_extension(name);
    if(    ext == "class"
        || ext == "a"
+       || ext == "avi" || ext == "AVI"
+       || ext == "bmp"
+       || ext == "db"
        || ext == "dll"
        || ext == "exe"
        || ext == "gif"
        || ext == "gpg"
        || ext == "gz"
        || ext == "jar"
+       || ext == "jpeg" || ext == "JPEG"
+       || ext == "jpg" || ext == "JPG"
+       || ext == "mov" || ext == "MOV"
+       || ext == "mp4" || ext == "MP4"
        || ext == "o"
        || ext == "odt"
+       || ext == "pcx"
        || ext == "pdf"
-       || ext == "png"
+       || ext == "png" || ext == "PNG"
        || ext == "pyc"
+       || ext == "swf"
+       || ext == "tif"
        || ext == "tgz"
        || ext == "zip"
      ) return true;
