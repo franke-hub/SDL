@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (C) 2023-2025 Frank Eskesen.
+//       Copyright (C) 2023-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under cc by-sa version 4.0
 //       with attribution required.
@@ -17,12 +17,12 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2025/11/24
+//       2026/01/08
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
 
-Copyright (C) 2023-2025 Frank Eskesen.
+Copyright (C) 2023-2026 Frank Eskesen.
 
 This file is free content, distributed under cc by-sa version 4.0
 with attribution required.
@@ -828,7 +828,7 @@ named remove and replace files.
 A value less than zero exits if certain errors occur.
 These correctable errors occur when scanning object subdirectories.
 
-### <a id="last-change">2025/11/24 maint/trunk</a>
+### 2025/11/24 maint/trunk
 - Corrected links: ~/obj/cpp/Scanner .remove.d and .revise.d
 - Updated ~/bat/.tweaks: when invoking a Linux machine from a CYGWIN machine,
 the "linux" colorset is used.
@@ -843,3 +843,11 @@ Added method get_extension.
 using GCC version 15.)
 - Updated ~/src/cpp/lib/obj/Test/Thing.cpp for gcc version 15<br/>
 Added _GLIBCXX_* modifiers copied from c++/new.
+
+### <a id="last-change">2026/01/08 maint/trunk</a>
+- ~/src/cpp/Scanner/Scanner.cpp: Added additional binary file types
+- Fixed Xcb/Term Editor problem: Possible incorrect locate column in UTF8 files
+  - ~/src/cpp/inc/pub/Utf.h: Define utf8_decoder::set_buffer_offset
+  - ~/src/cpp/lib/pub/Utf.cpp: Implement utf8_decoder::set_buffer_offset
+  - ~/src/cpp/lib/pub/Test/Test_utf.cpp: Test utf8_decoder::set_buffer_offset
+  - ~/src/cpp/Edit/Xcb/Editor.cpp: Use utf8_decoder::set_buffer_offset

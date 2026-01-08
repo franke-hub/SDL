@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2020-2025 Frank Eskesen.
+##       Copyright (c) 2020-2026 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       Time/date/version marker for maint branch merge operation.
 ##
 ## Last change date-
-##       2025/11/24 17:35
+##       2026/01/08 16:30
 ##
 ## Implementation note-
 ##       DO NOT UPDATE THE CHANGE DATE WITHOUT RUNNING REGRESSION TESTS!
