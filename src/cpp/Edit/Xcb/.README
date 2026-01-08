@@ -16,7 +16,7 @@
 ##       EDITOR README information file. (XCB version)
 ##
 ## Last change date-
-##       2025/12/31
+##       2025/10/03
 ##
 ## Implementation notes-
 ##       See ".USAGE.md" for usage and implementation information.
@@ -26,14 +26,11 @@
 
 ##############################################################################
 ## STATUS:
-2025/12/31 Fully operational, but with 2 open problems.
+2025/10/01 Fully operational, but with 1 open problem.
          In production. Ongoing documentation update.
 
 ##############################################################################
 ## OPEN:
-2025/12/31 Cursor position error when locating to different line w/ UTF.
-         Cursor position not calculated properly.
-
 2025/04/16 xcbedit/xtmedit Don't handle some UTF characters correctly.
          We rely on XCB or NCURSES to handle the characters but some of them
          aren't handled properly.
