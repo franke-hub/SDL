@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2021-2024 Frank Eskesen.
+//       Copyright (c) 2021-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       UTF utilities
 //
 // Last change date-
-//       2024/09/12
+//       2026/01/08
 //
 // Usage notes-
 //       To expose Utf class types in your .cpp file, include "pub/Utf.i"
@@ -34,8 +34,37 @@
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
+// Forward references
+//----------------------------------------------------------------------------
+struct utf8_decoder;
+struct utf8_encoder;
+struct utf16_decoder;
+struct utf16_encoder;
+struct utf32_decoder;
+struct utf32_encoder;
+
+//----------------------------------------------------------------------------
+// Exception: pub::utf_invalid_argument (a std::invalid_argument)
 //
-// Class-
+// Thrown by an decoder or encoder when a method receives an invalid argument.
+//----------------------------------------------------------------------------
+class utf_invalid_argument : public std::invalid_argument {
+   using std::invalid_argument::invalid_argument;
+}; // class utf_invalid_argument
+
+//----------------------------------------------------------------------------
+// Exception: pub::utf_overflow_error (a std::overflow_error)
+//
+// Thrown by an encoder when it's assigned from a source that would overflow
+// its buffer. The assignment operation is incomplete.
+//----------------------------------------------------------------------------
+class utf_overflow_error : public std::overflow_error {
+   using std::overflow_error::overflow_error;
+}; // class utf_overflow_error
+
+//----------------------------------------------------------------------------
+//
+// Struct-
 //       Utf
 //
 // Purpose-
@@ -89,7 +118,7 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //     UNI_REPLACEMENT, the Unicode error replacement character.
 //
 //----------------------------------------------------------------------------
-class Utf {
+struct Utf {
 public:
 //----------------------------------------------------------------------------
 // Utf::Typedefs and enumerations
@@ -150,36 +179,7 @@ static inline Length                // Length (in native units)
 static inline Length                // Length (in native units)
    utflen(                          // Get length (in native units)
      const utf32_t*    addr) noexcept; // Of this U32-string
-}; // class Utf
-
-//----------------------------------------------------------------------------
-// Forward references
-//----------------------------------------------------------------------------
-struct utf8_decoder;
-struct utf16_decoder;
-struct utf32_decoder;
-struct utf8_encoder;
-struct utf16_encoder;
-struct utf32_encoder;
-
-//----------------------------------------------------------------------------
-// Exception: pub::utf_invalid_argument (a std::invalid_argument)
-//
-// Thrown by an decoder or encoder when a method passed an invalid argument.
-//----------------------------------------------------------------------------
-class utf_invalid_argument : public std::invalid_argument {
-   using std::invalid_argument::invalid_argument;
-}; // class utf_invalid_argument
-
-//----------------------------------------------------------------------------
-// Exception: pub::utf_overflow_error (a std::overflow_error)
-//
-// Thrown by an encoder when it's assigned from a source that would overflow
-// its buffer. The assignment operation is partially complete.
-//----------------------------------------------------------------------------
-class utf_overflow_error : public std::overflow_error {
-   using std::overflow_error::overflow_error;
-}; // class utf_overflow_error
+}; // struct Utf
 
 //----------------------------------------------------------------------------
 //
@@ -188,6 +188,10 @@ class utf_overflow_error : public std::overflow_error {
 //
 // Purpose-
 //       The UTF-8 decoder
+//
+// Implementation note (set_buffer_offset)-
+//       If the specified buffer offset is not a Symbol Origin, the buffer
+//       Offset is set to the prior Symbol's Oigin.
 //
 //----------------------------------------------------------------------------
 struct utf8_decoder : public Utf {
@@ -238,6 +242,10 @@ void
 Count                               // The total column Count
    get_column_count( void ) const;  // Get total column Count
 
+const utf8_t*                       // The buffer
+   get_buffer( void ) const         // Get buffer
+{  return buffer; }
+
 Index                               // The current column Index
    get_column_index( void ) const;  // Get current column Index
 
@@ -252,9 +260,15 @@ Offset
 Count                               // The total symbol Count
    get_symbol_count( void ) const;  // Get total symbol Count
 
+static unsigned                     // The Symbol's Length
+   get_symbol_length(Symbol);       // Get Symbol's Length
+
 bool                                // TRUE iff Symbol is a combining character
    is_combining( void ) const       // Is the current Symbol combining?
 {  return Utf::is_combining(current()); }
+
+Index                               // The associated column Index
+   set_buffer_offset(Offset);       // Set buffer Offset, get column Index
 
 Count                               // Number of units past end of buffer
    set_column_index(Index);         // Set the column index

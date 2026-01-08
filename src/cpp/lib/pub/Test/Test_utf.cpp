@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2024 Frank Eskesen.
+//       Copyright (c) 2024-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Test Utf.h
 //
 // Last change date-
-//       2024/12/20
+//       2026/01/08
 //
 //----------------------------------------------------------------------------
 #include <endian.h>                 // For endian subroutines
@@ -39,7 +39,8 @@ using namespace PUB::debugging;     // For debugging namespace
 using PUB::Wrapper;                 // For pub::Wrapper class
 
 //----------------------------------------------------------------------------
-// Internal data areas
+// Symbol offset (in native units) table for testing
+// (BYTE_ORDER_MARK characters are SKIPPED [not encoded] for UTF-8.)
 //----------------------------------------------------------------------------
 enum Glyph                          // Glyph definitions
 {  ASCII_NUL=          0x00'0000    // (ASCII NUL character)
@@ -49,44 +50,43 @@ enum Glyph                          // Glyph definitions
 }; // Glyph
 
 // Byte Order Mark isn't needed for single NUL character.
-static const utf32_t   test00[]=    // COL O32 O16 O08 S08
-{  ASCII_NUL                        //   0   0   0   0   0
-}; // test00                        //   0   1   1   1   1 (EOF/LENGTH)
+static const utf32_t   test00[]=    // S32 S16 S08 COL
+{  ASCII_NUL                        //   0   0   0   0
+}; // test00                        //   1   1   1   0 (EOF/LENGTH)
 
 // Byte Order Mark isn't needed for single NUL character, but it doesn't hurt.
-// (The BYTE_ORDER_MARK characters are SKIPPED [not encoded] for UTF-8.)
-static const utf32_t   test01[]=    // COL O32 O16 O08 S08
-{  BYTE_ORDER_MARK32                //   -   0   0   -   -
-,  ASCII_NUL                        //   0   1   1   0   0
-}; // test01                        //   0   2   2   1   1 (EOF/LENGTH)
+static const utf32_t   test01[]=    // S32 S16 S08 COL
+{  BYTE_ORDER_MARK32                //   0   0   -   -
+,  ASCII_NUL                        //   1   1   0   0
+}; // test01                        //   2   2   1   1 (EOF/LENGTH)
 
 // Byte Order Mark required: The target machine's endian mode isn't known.
-static const utf32_t   test02[]=    // COL O32 O16 O08 S08
-{  BYTE_ORDER_MARK32                //   -   0   0   -   -
-,  COMBO_LEFT                       //   0   1   1   0   0
-,  COMBO_RIGHT                      //   -   2   2   2   1
-,  DOTTED_CIRCLE                    //   1   3   3   4   2
-,  COMBO_LEFT                       //   -   4   4   7   3
-,  COMBO_RIGHT                      //   -   5   5   9   4
-,  DOTTED_CIRCLE                    //   2   6   6  11   5
-}; // test02                        //   2   7   7  14   6 (EOF/LENGTH)
+static const utf32_t   test02[]=    // S32 S16 S08 COL
+{  BYTE_ORDER_MARK32                //   0   0   -   -
+,  COMBO_LEFT                       //   1   1   0   0
+,  COMBO_RIGHT                      //   2   2   2   -
+,  DOTTED_CIRCLE                    //   3   3   4   1
+,  COMBO_LEFT                       //   4   4   7   -
+,  COMBO_RIGHT                      //   5   5   9   -
+,  DOTTED_CIRCLE                    //   6   6  11   2
+}; // test02                        //   7   7  14   3 (EOF/LENGTH)
 
 // Byte Order Mark required: The target machine's endian mode isn't known.
-static const utf32_t   test03[]=    // COL O32 O16 O08 S08
-{  BYTE_ORDER_MARK32                //   -   0   0   -   -
-,  ASCII_NUL                        //   0   1   1   0   0
-,  DOTTED_CIRCLE                    //   1   2   2   1   1
-,  COMBO_LEFT                       //   -   3   3   4   2
-,  COMBO_RIGHT                      //   -   4   4   6   3
-,  DOTTED_CIRCLE                    //   2   5   5   8   4
-,  COMBO_RIGHT                      //   -   6   6  11   5
-,  COMBO_LEFT                       //   -   7   7  13   6
-,  0x01'2345                        //   3   8   8  15   7
-,  'x'                              //   4   9  10  19   8
-,  'y'                              //   5  10  11  20   9
-,  'z'                              //   6  11  12  21  10
-,  ASCII_NUL                        //   7  12  13  22  11
-}; // test03                        //   7  13  14  23  12 (EOF/LENGTH)
+static const utf32_t   test03[]=    // S32 S16 S08 COL
+{  BYTE_ORDER_MARK32                //   0   0   -   -
+,  ASCII_NUL                        //   1   1   0   0
+,  DOTTED_CIRCLE                    //   2   2   1   1
+,  COMBO_LEFT                       //   3   3   4   -
+,  COMBO_RIGHT                      //   4   4   6   -
+,  DOTTED_CIRCLE                    //   5   5   8   2
+,  COMBO_RIGHT                      //   6   6  11   -
+,  COMBO_LEFT                       //   7   7  13   -
+,  0x01'2345                        //   8   8  15   3
+,  'x'                              //   9  10  19   4
+,  'y'                              //  10  11  20   5
+,  'z'                              //  11  12  21   6
+,  ASCII_NUL                        //  12  13  22   7
+}; // test03                        //  13  14  23   8 (EOF/LENGTH)
 
 //----------------------------------------------------------------------------
 //
@@ -251,6 +251,48 @@ debugf("\n%4d HCDM VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n", line);
            , actual, decoder.get_column_index(), decoder.get_offset());
      debugf("  Expect: 0x%.6X= decode() column(%zd) offset(%zd) length(%zd)\n"
            , expect, column, offset, decoder.get_length());
+debugf("%4d ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n", line);
+
+     return 1;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       VERIFY_set_buffer_offset
+//
+// Purpose-
+//       Verify decoder.set_buffer_offset operation
+//
+//----------------------------------------------------------------------------
+static inline int                   // Error count (0 or 1)
+   VERIFY_set_buffer_offset(        // Verify set_buffer_offset operation
+     int               line,        // Caller's line number
+     Index             newcol,      // Expected current Column (and result)
+     utf8_decoder&     decoder,     // The decoder
+     Offset            offset,      // The set_buffer_offset parameter
+     Offset            newoff)      // Expected current Offset
+{
+   Index actual= decoder.set_buffer_offset(offset);
+
+   // If unexpected resultant
+   if( actual == newcol
+       && decoder.get_column_index()  == newcol
+       && decoder.get_offset() == newoff )
+     return 0;
+
+debugf("\n%4d HCDM VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n", line);
+
+debugf("Decoder:::\n"); // marker
+pub::utility::dump(decoder.get_buffer(), decoder.get_length());
+
+     debugf("%4d Error: VERIFY(decoder.set_buffer_offset(%zd) == %zd)\n", line
+           , offset, newcol);
+     debugf("  Actual: %zd= set_buffer_offset(%zd) column(%zd) offset(%zd)\n"
+           , actual, offset
+           , decoder.get_column_index(), decoder.get_offset());
+     debugf("  Expect: %zd= set_buffer_offset(%zd) column(%zd) offset(%zd)\n"
+           , newcol, offset, newcol, newoff);
 debugf("%4d ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n", line);
 
      return 1;
@@ -707,6 +749,9 @@ static inline int                   // Number of errors found
    error_count += VERIFY( decoder.get_symbol_count() ==  0 );
    error_count += VERIFY( decoder.get_column_count() ==  0 );
 
+   error_count += VERIFY_set_buffer_offset(__LINE__, -1, decoder, 0, 0);
+   error_count += VERIFY_set_buffer_offset(__LINE__, -1, decoder, 1, 0);
+
    error_count += VERIFY_set_column_index(__LINE__,  0, decoder,  0, -1, 0);
    error_count += VERIFY_set_column_index(__LINE__,  1, decoder,  1, -1, 0);
    error_count += VERIFY_set_column_index(__LINE__,  5, decoder,  5, -1, 0);
@@ -725,6 +770,10 @@ static inline int                   // Number of errors found
    error_count += VERIFY( decoder.get_symbol_count() ==  1 );
    error_count += VERIFY( decoder.get_column_count() ==  1 );
 
+   error_count += VERIFY_set_buffer_offset(__LINE__, 0, decoder, 0, 0);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 0, decoder, 1, 0);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 0, decoder, 2, 0);
+
    error_count += VERIFY_set_column_index(__LINE__,  0, decoder,  0, 0, 0);
    error_count += VERIFY_set_column_index(__LINE__,  1, decoder,  1, 0, 1);
    error_count += VERIFY_set_column_index(__LINE__,  5, decoder,  5, 0, 1);
@@ -734,10 +783,15 @@ static inline int                   // Number of errors found
    error_count += VERIFY_set_symbol_index(__LINE__,  1, decoder,  1, 1);
    error_count += VERIFY_set_symbol_index(__LINE__,  5, decoder,  5, 1);
 
+   //-------------------------------------------------------------------------
    if( opt_verbose ) debugf("test01\n"); // test01 {BOM,0}--------------------
    convert.reset(test01, 2);
    encoder= convert;                // ** DOES NOT CONVERT BOM **
    decoder= encoder;                // test01 {0}----------------
+
+   error_count += VERIFY_set_buffer_offset(__LINE__, 0, decoder, 0, 0);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 0, decoder, 1, 0);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 0, decoder, 2, 0);
 
    error_count += VERIFY( decoder.get_symbol_count() ==  1 );
    error_count += VERIFY( decoder.get_column_count() ==  1 );
@@ -759,6 +813,23 @@ static inline int                   // Number of errors found
 
    error_count += VERIFY( decoder.get_symbol_count() ==  6 );
    error_count += VERIFY( decoder.get_column_count() ==  2 );
+
+   error_count += VERIFY_set_buffer_offset(__LINE__, 0, decoder,  0,  0);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 0, decoder,  1,  0);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 0, decoder,  2,  2);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 0, decoder,  3,  2);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 1, decoder,  4,  4);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 1, decoder,  5,  4);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 1, decoder,  6,  4);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 1, decoder,  7,  7);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 1, decoder,  8,  7);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 1, decoder,  9,  9);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 1, decoder, 10,  9);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 2, decoder, 11, 11);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 2, decoder, 12, 11);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 2, decoder, 13, 11);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 2, decoder, 14, 11);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 2, decoder, 15, 11);
 
    error_count += VERIFY_set_column_index(__LINE__,  0, decoder,  0,  0,  0);
    error_count += VERIFY_set_column_index(__LINE__,  0, decoder,  1,  1,  4);
@@ -797,6 +868,32 @@ static inline int                   // Number of errors found
    convert.reset(test03, 13);
    encoder= convert;                // ** DOES NOT CONVERT BOM **
    decoder= encoder;                // test03 {0,CHAR,combo,...}-
+
+   error_count += VERIFY_set_buffer_offset(__LINE__, 0, decoder,  0,  0);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 1, decoder,  1,  1);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 1, decoder,  2,  1);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 1, decoder,  3,  1);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 1, decoder,  4,  4);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 1, decoder,  5,  4);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 1, decoder,  6,  6);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 1, decoder,  7,  6);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 2, decoder,  8,  8);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 2, decoder,  9,  8);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 2, decoder, 10,  8);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 2, decoder, 11, 11);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 2, decoder, 12, 11);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 2, decoder, 13, 13);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 2, decoder, 14, 13);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 3, decoder, 15, 15);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 3, decoder, 16, 15);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 3, decoder, 17, 15);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 3, decoder, 18, 15);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 4, decoder, 19, 19);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 5, decoder, 20, 20);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 6, decoder, 21, 21);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 7, decoder, 22, 22);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 7, decoder, 23, 22);
+   error_count += VERIFY_set_buffer_offset(__LINE__, 7, decoder, 24, 22);
 
    error_count += VERIFY( decoder.get_symbol_count() == 12 );
    error_count += VERIFY( decoder.get_column_count() ==  8 );

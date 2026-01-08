@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2020-2025 Frank Eskesen.
+##       Copyright (c) 2020-2026 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       EDITOR README information file. (XCB version)
 ##
 ## Last change date-
-##       2025/10/03
+##       2026/01/08
 ##
 ## Implementation notes-
 ##       See ".USAGE.md" for usage and implementation information.
@@ -26,7 +26,7 @@
 
 ##############################################################################
 ## STATUS:
-2025/10/01 Fully operational, but with 1 open problem.
+2025/12/31 Fully operational, but with 2 open problems.
          In production. Ongoing documentation update.
 
 ##############################################################################
@@ -37,6 +37,9 @@
 
 ##############################################################################
 ## TODO:
+2025/12/31 Cursor position error when locating to different line w/ UTF.
+         Cursor position not calculated properly.
+
 2025/09/23 EdOuts.cpp (Xcb/Term)
          When file is editable, use EDIT in title. When protected, use VIEW.
 

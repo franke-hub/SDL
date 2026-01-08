@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2025 Frank Eskesen.
+//       Copyright (C) 2020-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2025/10/09
+//       2026/01/08
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -35,6 +35,7 @@
 #include <pub/Debug.h>              // For Debug, namespace pub::debugging
 #include <pub/Thread.h>             // For pub::Thread::sleep
 #include <pub/Trace.h>              // For pub::Trace
+#include <pub/Utf.h>                // For pub::utf8_decoder
 #include <pub/utility.h>            // For pub::utility::wildstrcmp, ...
 
 #include "Active.h"                 // For Active
@@ -712,8 +713,9 @@ const char*                         // Return message, nullptr if OK
      const char* C= data->active.get_buffer(column); // Remaining characters
      const char* M= edit_strstr(C, S);
      if( M != nullptr ) {
+       utf8_decoder decoder(C);
        data->activate();
-       column += M - C;
+       column += decoder.set_buffer_offset(M - C);
        unit->move_cursor_H(column);
        unit->draw_top();
        return nullptr;
@@ -726,9 +728,10 @@ const char*                         // Return message, nullptr if OK
      if( (line->flags & EdLine::F_PROT) == 0 ) {
        const char* M= edit_strstr(line->text, S);
        if( M != nullptr ) {
+         utf8_decoder decoder(line->text);
          data->activate();
          unit->activate(line);
-         unit->move_cursor_H(M - line->text);
+         unit->move_cursor_H(decoder.set_buffer_offset(M - line->text));
          return nullptr;
        }
      }
@@ -742,9 +745,10 @@ const char*                         // Return message, nullptr if OK
        if( (line->flags & EdLine::F_PROT) == 0 ) {
          const char* M= edit_strstr(line->text, S);
          if( M != nullptr ) {
+           utf8_decoder decoder(line->text);
            data->activate();
            unit->activate(line);
-           unit->move_cursor_H(M - line->text);
+           unit->move_cursor_H(decoder.set_buffer_offset(M - line->text));
            put_message("Wrapped");
            return nullptr;
          }

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2021-2024 Frank Eskesen.
+//       Copyright (C) 2021-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Implement Utf.h methods.
 //
 // Last change date-
-//       2024/09/12
+//       2026/01/08
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -271,6 +271,70 @@ Utf::Count                          // The total Symbol count
      ++count;
 
    return count;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf8_decoder::get_symbol_length
+//
+// Purpose-
+//       Get a Symbol's length
+//
+//----------------------------------------------------------------------------
+unsigned                            // The Symbol's Length
+   utf8_decoder::get_symbol_length( // Get Symbol's Length
+     Symbol            code)        // (The Symbol)
+{
+   if( code == UTF_EOF )            // If EOF
+     return 0;                      // EOF has zero length)
+
+   if( code < 0x000080 )            // If ASCII code
+     return 1;                      // (All ASCII codes are valid)
+
+   if( !is_unicode(code) )          // If not unicode
+     return 2;                      // (UNI_REPLACEMENT encoding)
+
+   if( code < 0x000800 )
+     return 2;
+
+   if( code < 0x010000 )
+     return 3;
+
+   return 4;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf8_decoder::set_buffer_offset
+//
+// Purpose-
+//       Set the buffer offset
+//
+//----------------------------------------------------------------------------
+Utf::Index                          // The associated column index
+   utf8_decoder::set_buffer_offset( // Set the buffer Offset
+     const Offset      setoff)      // (The Offset)
+{
+   reset();
+   Symbol symbol= current();
+   Index  origin= 0;                // Current symbol offset origin
+   for(;;) {
+     if( symbol == UTF_EOF )
+       return get_column_index();
+
+     unsigned symlen= get_symbol_length(symbol);
+     if( (origin + symlen) >= length )
+       return get_column_index();
+
+     if( (origin + symlen) >  setoff )
+       return get_column_index();
+
+     decode();
+     symbol= current();
+     origin= offset;
+   }
 }
 
 //----------------------------------------------------------------------------
