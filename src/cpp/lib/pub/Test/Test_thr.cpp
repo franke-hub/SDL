@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2024 Frank Eskesen.
+//       Copyright (c) 2018-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,10 @@
 //       Test Thread function.
 //
 // Last change date-
-//       2024/11/01
+//       2026/01/20
+//
+// Implementation notes-
+//       We don't trace but can create a trace table for library use.
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -36,8 +39,10 @@
 #include "pub/Semaphore.h"          // For pub::Semaphore
 #include "pub/Thread.h"             // For pub::Thread
 #include "pub/Wrapper.h"            // For pub::Wrapper
+#include "pub/utility.i"            // For pub::utility conversion routines
 
 #define PUB _LIBPUB_NAMESPACE
+using PUB::s2c;                     // String to char* utility
 using PUB::Debug;
 using PUB::Event;
 using PUB::Exception;
@@ -74,6 +79,20 @@ static int             error_count= 0;
 static Interval        interval;
 static double          noisy_delay= 0.001; // Default noisy delay
 
+static void*           table= nullptr; // The Trace table
+
+//----------------------------------------------------------------------------
+// Extended options
+//----------------------------------------------------------------------------
+////// int             opt_hcdm= HCDM;       // (Wrapper built-in)
+////// int             opt_verbose= VERBOSE; // (Wrapper built-in)
+static int             opt_trace= 0; // --trace
+static struct option   opts[]=      // The getopt_long parameter: longopts
+{  {"********", required_argument, nullptr,    0} // --(ignored)
+,  {"trace",    optional_argument, &opt_trace, 0x0040'0000} // --trace
+,  {0, 0, 0, 0}                     // (End of option list)
+};
+
 //----------------------------------------------------------------------------
 //
 // Class
@@ -102,7 +121,7 @@ virtual void
    run(void)
 {
    if( opt_verbose )
-     debugf("%10.6f NoisyThread(%p).run(%s)\n", interval.stop(), this
+     debugf("%12.6f NoisyThread(%p).run(%s)\n", interval.stop(), this
            , get_name().c_str());
 
    // Indicate started
@@ -115,7 +134,7 @@ virtual void
 #if 0
    // Terminate, display current
    Thread* current= Thread::current();
-   debugf("%10.6f NoisyThread(%p).exit(%s) %s\n", interval.stop(), this,
+   debugf("%12.6f NoisyThread(%p).exit(%s) %s\n", interval.stop(), this,
           get_name().c_str(), this == current ? "SAME" : "DIFF");
    fflush(stdout);
 #endif
@@ -191,7 +210,7 @@ virtual void
    run(void)
 {
    if( HCDM || opt_hcdm )
-     debugf("%10.6f HangingThread(%p).run()\n", interval.stop(), this);
+     debugf("%12.6f HangingThread(%p).run()\n", interval.stop(), this);
 
    Thread* current= Thread::current(); // The current Thread
    if( current != this )               // This MUST BE correct
@@ -218,7 +237,7 @@ virtual void
 
    // Show work being done on a deleted Thread
    if( HCDM || opt_hcdm ) {
-     debugf("%10.6f HangingThread(%p) exit\n", interval.stop(), this);
+     debugf("%12.6f HangingThread(%p) exit\n", interval.stop(), this);
      fflush(stdout);
    }
 }
@@ -362,7 +381,7 @@ virtual void
    run(void)
 {
    if( HCDM || opt_hcdm )
-     debugf("%10.6f StandardThread(%p).run()\n", interval.stop(), this);
+     debugf("%12.6f StandardThread(%p).run()\n", interval.stop(), this);
 
    Thread* current= Thread::current(); // The current Thread
    if( current != this )            // This MUST BE correct
@@ -386,7 +405,7 @@ virtual void
    }
 
    if( HCDM || opt_hcdm )
-     debugf("%10.6f StandardThread(%p) exit\n", interval.stop(), this);
+     debugf("%12.6f StandardThread(%p) exit\n", interval.stop(), this);
 }
 }; // class StandardThread
 
@@ -572,7 +591,7 @@ static inline void
        interval.start();
        if( opt_verbose ) {
          debugf("\n");
-         debugf("%10.6f %4d Creating %d hanging threads\n", interval.stop()
+         debugf("%12.6f %4d Creating %d hanging threads\n", interval.stop()
                , __LINE__, MAXHANGERS);
        }
        for(int i=0; i<MAXHANGERS; i++)
@@ -580,7 +599,7 @@ static inline void
 
        if( opt_verbose ) {
          debugf("\n");
-         debugf("%10.6f %4d Creating %d Noisy threads\n", interval.stop()
+         debugf("%12.6f %4d Creating %d Noisy threads\n", interval.stop()
                , __LINE__, MAXNOISY);
        }
        for(int i=0; i<MAXNOISY; i++) {
@@ -591,8 +610,8 @@ static inline void
 
        if( opt_verbose ) {
          debugf("\n");
-         debugf("%10.6f %4d Creating %d Quiet threads\n", interval.stop()
-               , __LINE__, MAXQUIET);
+         debugf("%12.6f Creating %d Quiet threads\n", interval.stop()
+               , MAXQUIET);
        }
        for(int i=0; i<MAXQUIET; i++)
          quietArray[i]= new QuietThread();
@@ -605,8 +624,8 @@ static inline void
        prior= interval.stop();
        begin= prior;
        if( opt_verbose ) {
-         debugf("%10.6f %4d Starting %d Quiet threads\n", interval.stop()
-               , __LINE__, MAXQUIET);
+         debugf("%12.6f Starting %d Quiet threads\n", interval.stop()
+               , MAXQUIET);
          fflush(stdout);
        }
        double maxstart= 0.0;
@@ -633,13 +652,13 @@ static inline void
        double minjoin= 99999.0;
        if( opt_verbose ) {
          debugf("\n");
-         debugf("%10.6f %4d Joining  %d Quiet threads\n", interval.stop()
-               , __LINE__, MAXQUIET);
+         debugf("%12.6f Joining  %d Quiet threads\n", interval.stop()
+               , MAXQUIET);
          fflush(stdout);
        }
        for(int i=0; i<MAXQUIET; i++) {
          if( HCDM && i == 0 )
-           tracef("%10.6f [0]\n", interval.stop());
+           tracef("%12.6f [0]\n", interval.stop());
          quietArray[i]->join();
          double now= interval.stop();
          double del= now - prior;
@@ -656,28 +675,25 @@ static inline void
 
        if( opt_verbose ) {
          debugf("\n");
-         debugf("%10.6f %4d Deleting Quiet threads\n", interval.stop()
-               , __LINE__);
+         debugf("%12.6f Deleting Quiet threads\n", interval.stop());
        }
        for(int i=0; i<MAXQUIET; i++)
          delete quietArray[i];
 
        if( opt_verbose )
-         debugf("%10.6f %4d Joining Noisy threads\n", interval.stop()
-               , __LINE__);
+         debugf("%12.6f Joining Noisy threads\n", interval.stop());
        for(int i=0; i<MAXNOISY; i++) {
          noisyArray[i]->join();
          delete noisyArray[i];
        }
 
        if( opt_verbose ) {
-         debugf("%10.6f %4d All threads completed\n\n", interval.stop()
-               , __LINE__);
-         debugf("maxstart(%10.6f) minstart(%10.6f) avgstart(%10.6f)\n",
+         debugf("%12.6f All threads completed\n\n", interval.stop());
+         debugf("maxstart(%12.6f) minstart(%12.6f) avgstart(%12.6f)\n",
                 maxstart, minstart, (double)totstart / (double)MAXQUIET);
-         debugf(" maxjoin(%10.6f)  minjoin(%10.6f)  avgjoin(%10.6f)\n",
+         debugf(" maxjoin(%12.6f)  minjoin(%12.6f)  avgjoin(%12.6f)\n",
                 maxjoin,  minjoin, (double)totjoin / (double)MAXQUIET);
-         debugf("totstart(%10.6f)  totjoin(%10.6f)\n", totstart, totjoin);
+         debugf("totstart(%12.6f)  totjoin(%12.6f)\n", totstart, totjoin);
        }
      }
    }  catch(Exception& x) {
@@ -707,7 +723,7 @@ extern int
 {
    //-------------------------------------------------------------------------
    // Initialize
-   Wrapper  tc;                     // The test case wrapper
+   Wrapper  tc= opts;               // The test case wrapper
    Wrapper* tr= &tc;                // A test case wrapper pointer
 
    tc.on_init([](int argc, char* argv[])
@@ -723,6 +739,48 @@ extern int
        noisy_delay= atof(argv[optind]);
 
      return 0;
+   });
+
+   tc.on_info([]()
+   {
+     fprintf(stderr,
+            "  --trace\t{=size} Trace table size\n"
+            );
+   });
+
+   tc.on_parm([tr](std::string P, const char* V)
+   {
+     if( P == "trace" ) {
+       if( V )
+         opt_trace= tr->ptoi(V);
+     } else if( P == "********" ) {
+       // PLACEHOLDER
+     } else {
+       fprintf(stderr, "Invalid option '%s'\n", s2c(P));
+       return 1;
+     }
+
+     return 0;
+   });
+
+   tc.on_init([tr](int, char**)
+   {
+     debug_set_head(Debug::HEAD_THREAD | Debug::HEAD_TIME);
+     if( opt_hcdm )
+       debug_set_mode(Debug::MODE_INTENSIVE);
+
+     if( opt_trace )
+       table= tr->init_trace("./trace.mem", opt_trace);
+
+     setlocale(LC_NUMERIC, "");     // Activates ' thousand separator
+
+     return 0;
+   });
+
+   tc.on_term([tr]()
+   {
+     if( table )
+       tr->term_trace(table, opt_trace);
    });
 
    //-------------------------------------------------------------------------
