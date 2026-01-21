@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2024 Frank Eskesen.
+//       Copyright (c) 2018-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       The base object class.
 //
 // Last change date-
-//       2024/09/26
+//       2026/01/21
 //
 // Implementation notes-
 //       All pub library header files are guaranteed to #include "config.h"
@@ -100,7 +100,7 @@ _LIBPUB_END_NAMESPACE
 //----------------------------------------------------------------------------
 //
 // Description-
-//       Global operators
+//       Global Object operators
 //
 // Purpose-
 //       Global comparison operators, global cout << operator.
@@ -109,45 +109,46 @@ _LIBPUB_END_NAMESPACE
 #define _PUB _LIBPUB_NAMESPACE      // (Temporary)
 inline bool                         // Resultant
    operator==(                      // Compare (L::R) for equality
-     _PUB::Object&     L,           // Left parameter
-     _PUB::Object&     R)           // Right paramaeter
+     const _PUB::Object& L,         // Left parameter
+     const _PUB::Object& R)         // Right paramaeter
 {  return (L.compare(R) == 0); }
 
 inline bool                         // Resultant
    operator!=(                      // Compare (L::R) for inequality
-     _PUB::Object&     L,           // Left parameter
-     _PUB::Object&     R)           // Right paramaeter
+     const _PUB::Object& L,         // Left parameter
+     const _PUB::Object& R)         // Right paramaeter
 {  return (L.compare(R) != 0); }
 
 inline bool                         // Resultant
    operator<=(                      // Compare (L::R) for lesser || equality
-     _PUB::Object&     L,           // Left parameter
-     _PUB::Object&     R)           // Right paramaeter
+     const _PUB::Object& L,         // Left parameter
+     const _PUB::Object& R)         // Right paramaeter
 {  return (L.compare(R) <= 0);
 }
 
 inline bool                         // Resultant
    operator>=(                      // Compare (L::R) for greater || equality
-     _PUB::Object&     L,           // Left parameter
-     _PUB::Object&     R)           // Right paramaeter
+     const _PUB::Object& L,         // Left parameter
+     const _PUB::Object& R)         // Right paramaeter
 {  return (L.compare(R) >= 0); }
 
 inline bool                         // Resultant
    operator<(                       // Compare (L::R) for lesser
-     _PUB::Object&     L,           // Left parameter
-     _PUB::Object&     R)           // Right paramaeter
+     const _PUB::Object& L,         // Left parameter
+     const _PUB::Object& R)         // Right paramaeter
 {  return (L.compare(R) < 0); }
 
 inline bool                         // Resultant
    operator>(                       // Compare (L::R) for greater
-     _PUB::Object&      L,          // Left parameter
-     _PUB::Object&      R)          // Right paramaeter
+     const _PUB::Object& L,         // Left parameter
+     const _PUB::Object& R)         // Right paramaeter
 {  return (L.compare(R) > 0); }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 inline std::ostream&                // (stream)
    operator<<(                      // Append to output stream
-     std::ostream&     stream,      // (This stream)
-     const _PUB::Object&object)     // (This _PUB::Object)
+     std::ostream&       stream,    // (The output stream)
+     const _PUB::Object& object)    // (This _PUB::Object)
 {  return stream << (std::string)object; }
-#undef _PUB
+#undef _PUB                         // (Temporary)
 #endif // _LIBPUB_OBJECT_H_INCLUDED
