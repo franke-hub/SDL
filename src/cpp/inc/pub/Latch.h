@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2025 Frank Eskesen.
+//       Copyright (c) 2018-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Primitive mechanisms for granting access to a resource.
 //
 // Last change date-
-//       2025/10/25
+//       2026/01/18
 //
 // Implementation notes-
 //       All Latch methods are duplicated in ~/src/cpp/lib/pub/Latch.cpp.
@@ -58,7 +58,7 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 // MACRO _IF_PUBLIB_LATCH_INLINE, controlled by _PUBLIB_LATCH_DEBUG
 //----------------------------------------------------------------------------
-#ifndef   _PUBLIB_LATCH_DEBUG
+#ifndef   _PUBLIB_LATCH_DEBUG       // For production, use INLINE compilation
 #  define _PUBLIB_LATCH_DEBUG       // (Last for OUTLINE compilation)
 #  undef  _PUBLIB_LATCH_DEBUG       // (Last for INLINE compilation)
 #endif
@@ -69,7 +69,10 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 #  define _IF_PUBLIB_LATCH_INLINE(x) ;
 #endif
 
-//----------------------------------------------------------------------------
+#define MAX_SPIN 10'000             // Maximim spin delay in nanoseconds
+#define MIN_SPIN  5'000             // Minimum spin delay (after MAX_SPIN)
+
+//============================================================================
 //
 // Struct-
 //       Basic_latch
@@ -97,29 +100,35 @@ bool                                // TRUE if latch is held
 _IF_PUBLIB_LATCH_INLINE(
 {  return latch.load() != 0; })
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    lock( void )                     // Obtain the Basic_latch
 _IF_PUBLIB_LATCH_INLINE(
 {
-   for(uint32_t spinCount= 0;;++spinCount) {
+   for(uint32_t spin_count= 1;;++spin_count) {
      if( try_lock() )
-       return;
+       break;
 
-     if( spinCount & 0x00000008 ) {
-       std::this_thread::sleep_for(std::chrono::nanoseconds(spinCount));
-       if( spinCount >= 0x00008000 )
-         spinCount <<= 1;
-     } else {
-       std::this_thread::yield();
+     if( (spin_count & 0x0000000f) == 0 ) {
+       if( (spin_count & 0x00000010) != 0 )
+         std::this_thread::yield();
+       else {
+         std::this_thread::sleep_for(std::chrono::nanoseconds(spin_count));
+         if( spin_count > MAX_SPIN ) {
+           spin_count= MIN_SPIN;
+         }
+       }
      }
    }
 })
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    reset( void )                    // Initialize/Reset the Basic_latch
 _IF_PUBLIB_LATCH_INLINE(
 {  latch.store(0); })               // Note: Unchecked
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool                                // TRUE iff successful
    try_lock( void )                 // Attempt to obtain the Basic_latch
 _IF_PUBLIB_LATCH_INLINE(
@@ -128,6 +137,7 @@ _IF_PUBLIB_LATCH_INLINE(
    return latch.compare_exchange_strong(oldValue, newValue);
 })
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    unlock( void )                   // Release the Basic_latch
 _IF_PUBLIB_LATCH_INLINE(
@@ -140,7 +150,7 @@ _IF_PUBLIB_LATCH_INLINE(
 })
 }; // struct Basic_latch
 
-//----------------------------------------------------------------------------
+//============================================================================
 //
 // Struct-
 //       Latch
@@ -170,45 +180,54 @@ bool                                // TRUE if latch is held
 _IF_PUBLIB_LATCH_INLINE(
 {  return latch.load() != std::thread::id(); })
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    lock( void )                     // Obtain the Latch
 _IF_PUBLIB_LATCH_INLINE(
 {
-   for(uint32_t spinCount= 1;;spinCount++) {
+   for(uint32_t spin_count= 1;;++spin_count) {
      if( try_lock() )
-       return;
+       break;
 
-     if( (spinCount & 0x0000000f) == 0 ) {
-       if( (spinCount & 0x00000010) != 0 )
+     if( (spin_count & 0x0000000f) == 0 ) {
+       if( (spin_count & 0x00000010) != 0 )
          std::this_thread::yield();
        else {
-         std::this_thread::sleep_for(std::chrono::nanoseconds(spinCount));
-         if( spinCount > 10'000 )   // Maximum delay: 10 microseconds
-           spinCount= 0;
+         std::this_thread::sleep_for(std::chrono::nanoseconds(spin_count));
+         if( spin_count > MAX_SPIN ) {
+           spin_count= MIN_SPIN;
+         }
        }
      }
    }
 })
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    reset( void )                    // Initialize/Reset the Latch
 _IF_PUBLIB_LATCH_INLINE(
 {  latch.store(std::thread::id()); })
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool                                // TRUE iff successful
    try_lock( void )                 // Attempt to obtain the Latch
 _IF_PUBLIB_LATCH_INLINE(
 {
    std::thread::id oldValue= std::thread::id();
    std::thread::id newValue= std::this_thread::get_id();
-   if( latch.load() == newValue ) { // If already held
-     latch.store(std::thread::id());
-     throw std::runtime_error("Latch recursion error");
-   }
+   if( latch.compare_exchange_strong(oldValue, newValue) )
+     return true;
 
-   return latch.compare_exchange_strong(oldValue, newValue);
+   if( oldValue != newValue )
+     return false;
+
+   //-------------------------------------------------------------------------
+   // ERROR: Latch is aready held by this thread (Probably not recoverable)
+   latch.store(std::thread::id());
+   throw std::runtime_error("Latch recursion error");
 })
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    unlock( void )                   // Release the Latch
 _IF_PUBLIB_LATCH_INLINE(
@@ -221,7 +240,7 @@ _IF_PUBLIB_LATCH_INLINE(
 })
 }; // struct Latch
 
-//----------------------------------------------------------------------------
+//============================================================================
 //
 // Struct-
 //       RecursiveLatch
@@ -243,23 +262,29 @@ bool                                // TRUE if latch is held
 _IF_PUBLIB_LATCH_INLINE(
 {  return latch.load() != std::thread::id(); })
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    lock( void )                     // Obtain the Latch
 _IF_PUBLIB_LATCH_INLINE(
 {
-   for(uint32_t spinCount= 1;;spinCount++) {
+   for(uint32_t spin_count= 1;;++spin_count) {
      if( try_lock() )
-       return;
+       break;
 
-     if( (spinCount & 0x0000000f) == 0 ) {
-       if( (spinCount & 0x00000010) != 0 )
+     if( (spin_count & 0x0000000f) == 0 ) {
+       if( (spin_count & 0x00000010) != 0 )
          std::this_thread::yield();
-       else
-         std::this_thread::sleep_for(std::chrono::nanoseconds(spinCount));
+       else {
+         std::this_thread::sleep_for(std::chrono::nanoseconds(spin_count));
+         if( spin_count > MAX_SPIN ) {
+           spin_count= MIN_SPIN;
+         }
+       }
      }
    }
 })
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    reset( void )                    // Initialize/Reset the RecursiveLatch
 _IF_PUBLIB_LATCH_INLINE(
@@ -268,22 +293,23 @@ _IF_PUBLIB_LATCH_INLINE(
    latch.store(std::thread::id());
 })
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool                                // TRUE iff successful
    try_lock( void )                 // Attempt to obtain a RecursiveLatch
 _IF_PUBLIB_LATCH_INLINE(
 {
-   std::thread::id oldValue= latch.load();
+   std::thread::id oldValue= std::thread::id();
    std::thread::id newValue= std::this_thread::get_id();
-   if( oldValue != newValue ) {
-     oldValue= std::thread::id();
-     if( !latch.compare_exchange_strong(oldValue, newValue) )
-       return false;
+   if( latch.compare_exchange_strong(oldValue, newValue)
+       || oldValue == newValue ) {
+     ++count;
+     return true;
    }
 
-   count++;
-   return true;
+   return false;
 })
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    unlock( void )                   // Release the RecursiveLatch
 _IF_PUBLIB_LATCH_INLINE(
@@ -299,7 +325,7 @@ _IF_PUBLIB_LATCH_INLINE(
 })
 }; // struct RecursiveLatch
 
-//----------------------------------------------------------------------------
+//============================================================================
 //
 // Struct-
 //       SHR_latch
@@ -332,19 +358,35 @@ bool                                // TRUE if latch is held
 _IF_PUBLIB_LATCH_INLINE(
 {  return count.load() != 0; })
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    lock( void )                     // Obtain the SHR_latch
 _IF_PUBLIB_LATCH_INLINE(
 {
-   while( !try_lock() )
-     std::this_thread::yield();
+   for(uint32_t spin_count= 1;;++spin_count) {
+     if( try_lock() )
+       break;
+
+     if( (spin_count & 0x0000000f) == 0 ) {
+       if( (spin_count & 0x00000010) != 0 )
+         std::this_thread::yield();
+       else {
+         std::this_thread::sleep_for(std::chrono::nanoseconds(spin_count));
+         if( spin_count > MAX_SPIN ) {
+           spin_count= MIN_SPIN;
+         }
+       }
+     }
+   }
 })
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    reset( void )                    // Initialize/Reset the SHR_latch
 _IF_PUBLIB_LATCH_INLINE(
 {  count.store(0); })
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool                                // TRUE iff successful
    try_lock( void )                 // Attempt to obtain the latch
 _IF_PUBLIB_LATCH_INLINE(
@@ -357,6 +399,7 @@ _IF_PUBLIB_LATCH_INLINE(
    return count.compare_exchange_strong(oldValue, newValue);
 })
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    unlock( void )                   // Release the SHR_latch
 _IF_PUBLIB_LATCH_INLINE(
@@ -369,12 +412,12 @@ _IF_PUBLIB_LATCH_INLINE(
 
      uintptr_t newValue= oldValue - 1;
      if( count.compare_exchange_strong(oldValue, newValue) )
-       return;
+       break;
    }
 })
 }; // struct SHR_latch
 
-//----------------------------------------------------------------------------
+//============================================================================
 //
 // Struct-
 //       XCL_latch
@@ -424,26 +467,35 @@ _IF_PUBLIB_LATCH_INLINE(
    share.count.store(1);
 })
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool                                // TRUE if latch is held
    is_held( void ) const            // Is latch (exclusively) held
 _IF_PUBLIB_LATCH_INLINE(
 {  return share.count.load() & HBIT; })
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    lock( void )                     // Obtain the XCL_latch
 _IF_PUBLIB_LATCH_INLINE(
 {
-   for(uint32_t spinCount= 1;;spinCount++) {
+   for(uint32_t spin_count= 1;;++spin_count) {
      if( try_lock() )
-        break;
+       break;
 
-     if( spinCount & 0x00000007 )
-       std::this_thread::yield();
-     else
-       std::this_thread::sleep_for(std::chrono::nanoseconds(spinCount));
+     if( (spin_count & 0x0000000f) == 0 ) {
+       if( (spin_count & 0x00000010) != 0 )
+         std::this_thread::yield();
+       else {
+         std::this_thread::sleep_for(std::chrono::nanoseconds(spin_count));
+         if( spin_count > MAX_SPIN ) {
+           spin_count= MIN_SPIN;
+         }
+       }
+     }
    }
 })
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    reset( void )                    // Reset the XCL_latch
 _IF_PUBLIB_LATCH_INLINE(
@@ -452,6 +504,7 @@ _IF_PUBLIB_LATCH_INLINE(
    share.reset();
 })
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool                                // TRUE iff successful
    try_lock( void )                 // Attempt to obtain the XCL_latch
 _IF_PUBLIB_LATCH_INLINE(
@@ -470,17 +523,22 @@ _IF_PUBLIB_LATCH_INLINE(
    thread= std::this_thread::get_id(); // We have the reservation
 
    // Wait for all shares to unlock.
-   for(uint32_t spinCount= 1; oldValue != HBIT; spinCount++) {
-     if( spinCount & 0x00000007 )
+   for(uint32_t spin_count= 1; oldValue != HBIT; ++spin_count) {
+     if( spin_count & 0x00000007 )
        std::this_thread::yield();
-     else
-       std::this_thread::sleep_for(std::chrono::nanoseconds(spinCount));
+     else {
+       std::this_thread::sleep_for(std::chrono::nanoseconds(spin_count));
+       if( spin_count > MAX_SPIN ) {
+         spin_count= MIN_SPIN;
+       }
+     }
      oldValue= share.count.load();
    }
 
    return true;
 })
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    unlock( void )                   // Release the XCL_latch
 _IF_PUBLIB_LATCH_INLINE(
@@ -493,7 +551,7 @@ _IF_PUBLIB_LATCH_INLINE(
 })
 }; // struct XCL_latch
 
-//----------------------------------------------------------------------------
+//============================================================================
 //
 // Struct-
 //       NullLatch
@@ -537,6 +595,8 @@ _IF_PUBLIB_LATCH_INLINE(
 {  })
 }; // struct NullLatch
 #undef _IF_PUBLIB_LATCH_INLINE
+#undef MAX_SPIN
+#undef MIN_SPIN
 
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_LATCH_H_INCLUDED

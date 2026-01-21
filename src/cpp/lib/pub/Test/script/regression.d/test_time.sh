@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2022-2025 Frank Eskesen.
+##       Copyright (C) 2022-2026 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -17,7 +17,7 @@
 ##       Run timing tests
 ##
 ## Last change date-
-##       2025/01/15
+##       2026/01/20
 ##
 ##############################################################################
 
@@ -43,8 +43,9 @@ echo "TEST: test_time.sh Timing tests (started)"
 
 ##############################################################################
 ## Run timing tests
-cmd TimeDisp
-cmd TimeDisp --items=4096 --tasks=32
+cmd TimeDisp --verbose
+cmd TimeDisp --verbose --items=4096 --tasks=32
+cmd TimeDisp --verbose --size=2
 
 cmd TestDisp --timing
 cmd TestSock --runtime=30 --verbose --packet --stream --thread --worker

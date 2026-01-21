@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2025 Frank Eskesen.
+//       Copyright (c) 2018-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Define the Thread control object.
 //
 // Last change date-
-//       2025/10/26
+//       2026/01/20
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_THREAD_H_INCLUDED
@@ -29,15 +29,15 @@
 #include <pthread.h>                // For pthread
 
 #include "pub/Event.h"              // For pub::Event
-#include "pub/Latch.h"              // For pub::Basic_latch
+#include "pub/Latch.h"              // For pub::RecursiveLatch
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 // MACRO _IF_PUBLIB_THREAD_INLINE, controlled by _PUBLIB_THREAD_DEBUG
 //----------------------------------------------------------------------------
 #ifndef   _PUBLIB_THREAD_DEBUG
-#  define _PUBLIB_THREAD_DEBUG      // (Last for OUTLINE compilation)
 #  undef  _PUBLIB_THREAD_DEBUG      // (Last for INLINE compilation)
+#  define _PUBLIB_THREAD_DEBUG      // (Last for OUTLINE compilation)
 #endif
 
 #ifndef _PUBLIB_THREAD_DEBUG
@@ -58,21 +58,26 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 class Thread {                      // The Thread object
 public:
 //----------------------------------------------------------------------------
+// Thread::Typedefs and enumerations
+//----------------------------------------------------------------------------
+typedef pthread_t      handle_t;    // Import tlss::handle_t
+
+//----------------------------------------------------------------------------
 // Thread::tlss || Thread Local Storage struct
 //----------------------------------------------------------------------------
 struct tlss {                       // Thread Local Storage
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Attributes
-typedef pthread_t      handle_t;    // The native handle type
-
-RecursiveLatch         mutex;       // Protects this struct
+Latch                  mutex;       // Protects this struct
 int                    fsm= 0;      // Finite State Machine
+int                    ___= 0;      // (For alignment)
 
-Thread*                pub_thread= {}; // The current pub::Thread
-handle_t               std_thread= {}; // The associated system thread
+Thread*                pub_thread{}; // The current pub::Thread
+pthread_t              pth_handle{}; // The associated system pthread handle
 
-// This Event is used during Thread startup
+// These Events are each used once during Thread startup and never reused.
 pub::Event             drive_initialized; // Thread::drive init complete
+pub::Event             start_completed; // Thread::start complete
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Constructor/destructor
@@ -98,10 +103,8 @@ void
 //----------------------------------------------------------------------------
 // Thread::Attributes
 //----------------------------------------------------------------------------
-typedef tlss::handle_t handle_t;    // Import tlss::handle_t
-
 private:
-mutable RecursiveLatch mutex;       // Mutex, protects _tlss *ONLY*
+mutable Latch          mutex;       // Mutex, protects _tlss ONLY)
 tlss*                  _tlss= nullptr; // (Internal, valid only while running)
 
 public:
@@ -135,7 +138,7 @@ static void
 //----------------------------------------------------------------------------
 handle_t                            // The native Thread handle (when active)
    get_handle( void ) const         // Get native Thread handle
-{  return _tlss ? _tlss->std_thread : null_handle; }
+{  return _tlss ? _tlss->pth_handle : null_handle; }
 
 bool                                // TRUE iff Thread is joinable
    joinable( void ) const;          // Is this Thread joinable?
@@ -181,6 +184,10 @@ protected:
 static void*                        // (Thread return code, always nullptr)
    drive(                           // Drive (run)
      void*             _thread);    // This Thread
+
+[[noreturn]]
+void
+   start_failure( void );           // Handle start failure
 }; // class Thread
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_THREAD_H_INCLUDED

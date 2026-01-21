@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2022 Frank Eskesen.
+//       Copyright (c) 2019-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Define a Worker used to handle discrete units of work.
 //
 // Last change date-
-//       2022/09/02
+//       2026/01/20
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_WORKER_H_INCLUDED
@@ -43,25 +43,47 @@ virtual void                        // ** OVERRIDE THIS METHOD **
 
 //----------------------------------------------------------------------------
 //
-// Class-
+// (Static) class-
 //       WorkerPool
 //
 // Purpose-
 //       Manage the Worker thread pool.
 //
-// Implementation note-
-//       Applications may use any number of Threads.
-//       The maximum number of WorkerThreads pooled for later re-use is
-//       implementation defined.
+// Implementation notes-
+//       All methods are static.
+//
+//       The Worker thread pool is a set of Worker threads saved for reuse
+//       instead of being allocated and deleted for each work() invocation.
+//
+//       When work() is invoked, it runs under control of a Worker thread.
+//       This Worker thread is either created (if the thread pool is empty)
+//       or removed from the pool and reused.
+//
+//       When work() returns, if a pool slot is available the Worker thread
+//       is added to the pool. If the pool is full, the thread is deleted.
+//
+//       Applications invoke work without consideration of whether the Worker
+//       is created or reused. The number of pooled threads starts at zero
+//       and only increases when when work() returns.
+//
+//       Invoking set_size(0) is valid. This both empties the current pool and
+//       causes running Worker threads to be deleted when work() returns.
 //
 //----------------------------------------------------------------------------
 class WorkerPool {
+public:
 //----------------------------------------------------------------------------
 // WorkerPool::Methods
 //----------------------------------------------------------------------------
-public:
 static unsigned                      // The current number of running threads
    get_running( void );              // Get current number of running threads
+
+static unsigned                      // The thread pool size
+   get_size( void );                 // Get thread pool size
+
+static void
+   set_size(                         // Set the thread pool size
+     unsigned          size);        // The updated thread pool size
 
 static void
    debug(                            // Debugging display (statistics)

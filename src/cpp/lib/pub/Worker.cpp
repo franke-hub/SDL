@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2019-2025 Frank Eskesen.
+//       Copyright (C) 2019-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,23 +17,27 @@
 //       Worker object methods.
 //
 // Last change date-
-//       2025/01/16
+//       2026/01/20
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<>
 #include <mutex>                    // For std::lock_guard
+#include <cstdlib>                  // For malloc, free
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
 #include "pub/Latch.h"              // For pub::Latch objects
 #include <pub/Semaphore.h>          // For pub::Semaphore
-#include <pub/Thread.h>             // For pub::Thread
+#include "pub/Thread.h"             // For pub::Thread
+#include "pub/Trace.h"              // For pub::Trace
 #include "pub/Worker.h"             // For pub:: Worker, implemented
 #include <pub/utility.h>            // For pub::utility::report_exception
 
-using namespace _LIBPUB_NAMESPACE::debugging; // For debugging methods
-using std::atomic_uint;
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB::debugging;     // For debugging methods
+using pub::Trace;                   // For tracing methods
 using std::atomic_size_t;
+using std::atomic_uint;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -41,6 +45,9 @@ using std::atomic_size_t;
 enum                                // Generic enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
+
+// Production mode settings: USE_ITRACE= false;
+,  USE_ITRACE= false                // Use internal trace?
 }; // (Generic) enum
 
 namespace _LIBPUB_NAMESPACE {
@@ -52,20 +59,20 @@ class WorkerThread;                 // The Worker thread
 //----------------------------------------------------------------------------
 // Static attributes
 //----------------------------------------------------------------------------
-enum { MAX_THREADS= 32 };           // The built-in thread pool size
+enum { MAX_THREADS= 16 };           // The default pool_size
 
 static Latch           pool_mutex;  // Pool access mutex
-static WorkerThread*   pool[MAX_THREADS]; // The built-in thread pool
-// tic WorkerThread*   static_pool[MAX_THREADS]; // The built-in thread pool
-// tic WorkerThread**  pool= static_pool; // The current thread pool
+static WorkerThread*   static_pool[MAX_THREADS]; // The built-in thread pool
+static WorkerThread**  pool= (WorkerThread**)&static_pool; // The current thread pool
 
 // Statistical counters
+static atomic_size_t   del_workers(0); // The number of deleted workers
+static atomic_size_t   new_workers(0); // The number of allocated workers
 static atomic_size_t   max_running(0); // Maximum number of running threads
-// tic unsigned        max_size= MAX_THREADS; // Maximum size of thread pool
 static atomic_uint     max_used(0); // Maximum number of pool threads
 static atomic_size_t   running(0);  // Current number of running threads
-static const unsigned  size= MAX_THREADS; // Size of thread pool
-static unsigned        used= 0;     // Current number of pool threads
+static unsigned        pool_size= MAX_THREADS; // Size of thread pool
+static unsigned        pool_used= 0;     // Current number of pool threads
 static atomic_size_t   workers(0);  // Number of WorkerPool::work() invocations
 
 //----------------------------------------------------------------------------
@@ -74,10 +81,10 @@ static atomic_size_t   workers(0);  // Number of WorkerPool::work() invocations
 namespace {                         // Anonymous namespace
 static struct Global_init_term {
    Global_init_term( void )
-{  if( HCDM ) debugh("Worker::Global_init_term!\n"); }
+{  if( HCDM ) traceh("Worker::Global_init_term!\n"); }
 
    ~Global_init_term( void )
-{  if( HCDM ) debugh("Worker::Global_init_term~\n");
+{  if( HCDM ) traceh("Worker::Global_init_term~\n");
 
    WorkerPool::reset();
    Thread::sleep(0.25);
@@ -91,7 +98,7 @@ static struct Global_init_term {
 //       WorkerThread
 //
 // Purpose-
-//       The Thread used to drive a Worker thread pool.
+//       A Tread pool Worker Thread
 //
 //----------------------------------------------------------------------------
 class WorkerThread : public Thread { // The WorkerThread Thread
@@ -104,33 +111,36 @@ Semaphore              sem;         // State switch event Semaphore
 Worker*                worker;      // The current Worker
 
 //----------------------------------------------------------------------------
-// WorkerThread::Constructors
+// WorkerThread::Constructors/destructor
 //----------------------------------------------------------------------------
 public:
-virtual
-   ~WorkerThread( void ) {}         // Destructor
-
    WorkerThread(                    // Constructor
      Worker*           worker= nullptr) // Associated Worker
 :  Thread(), operational(true), sem(), worker(worker)
-{
+{  if( HCDM )
+     traceh("WorkerThread(%p)!(%p)\n", this, worker);
+   else if( USE_ITRACE )
+     Trace::trace(".WRK", "=NEW", this, worker);
+
+   ++new_workers;
+
    if( false ) {                    // TODO: REMOVE
      // DIAGNOSTIC: Check for excess threads, report once
-     //   MAX_THREADS limits the number of WorkerThreads in the re-use pool.
+     //   MAX_THREADS limits the number of WorkerThreads in the reuse pool.
      //   The number of running WorkerThreads is not limited.
      //   This check was added because WorkerThreads were created in error
-     //   in some sort of loop. The debugf is a convienent gdb breakpoint.
+     //   in some sort of loop. The debugh is a convienent gdb breakpoint.
      size_t was_running= running.load();
      if( was_running > MAX_THREADS ) {
        if( true ) {                 // Report every occurance
-         debugf("%4d %s INFO: %zd threads running\n", __LINE__, __FILE__
+         debugh("%4d %s INFO: %zd threads running\n", __LINE__, __FILE__
                , was_running);
        } else {                     // Report once
          static atomic_uint reported= 0;
          unsigned int was_reported= reported.load();
          while( was_reported == 0 ) {
            if( reported.compare_exchange_weak(was_reported, 1) ) {
-             debugf("%4d %s INFO: %zd threads running\n", __LINE__, __FILE__
+             debugh("%4d %s INFO: %zd threads running\n", __LINE__, __FILE__
                    , was_running);
            }
          }
@@ -141,6 +151,31 @@ virtual
    start();
 }
 
+virtual
+   ~WorkerThread( void )            // Destructor
+{  if( HCDM )
+     traceh("WorkerThread(%p)~(%p)\n", this, worker);
+   else if( USE_ITRACE )
+     Trace::trace(".WRK", "=DEL", this, worker);
+
+   ++del_workers;
+}
+
+//----------------------------------------------------------------------------
+// WorkerThread::debug
+//----------------------------------------------------------------------------
+virtual void
+   debug(const char* info= nullptr) const
+{
+   if( info == nullptr )
+     info= "WorkerThread";
+
+   debugf("WorkerThread(%p)::debug(%s) worker(%p) operational(%s)\n", this
+         , info, worker, operational ? "true" : "false");
+   sem.debug("WorkerThread.sem");
+   Thread::debug(info);
+}
+
 //----------------------------------------------------------------------------
 // WorkerThread::Accessors
 //----------------------------------------------------------------------------
@@ -149,13 +184,15 @@ inline bool
 {  return operational; }
 
 //----------------------------------------------------------------------------
-// WorkerThread::done()
-//
-// Handle work completion.
+// WorkerThread::done(): Handle work completion.
 //----------------------------------------------------------------------------
 inline void
    done( void )                      // Work complete
-{
+{  if( HCDM )
+     traceh("WorkerThread(%p).done(%p)\n", this, worker);
+   else if( USE_ITRACE )
+     Trace::trace(".WRK", "DONE", this, worker);
+
    --running;
    WorkerThread* thread= this;
    unsigned now_used= 0;
@@ -164,19 +201,20 @@ inline void
    {{{{ // PERFORMANCE CRITICAL ==============================================
      std::lock_guard<decltype(pool_mutex)> lock(pool_mutex);
 
-     if( used < size ) {
-       pool[used++]= thread;
+     if( pool_used < pool_size ) {
+       pool[pool_used++]= thread;
        thread= nullptr;
-       now_used= used;
+       now_used= pool_used;
      }
    }}}} // PERFORMANCE CRITICAL ==============================================
 
-   if( thread ) {
-     thread->detach();
-     thread->stop();
-   }
+   if( thread )
+     thread->stop();                // (Trace in stop indicates pool full)
+   else if( USE_ITRACE )
+     Trace::trace(".WRK", "POOL", this);
 
-   unsigned was_maxi= 0;            // (Avoids load if pool size unchanged)
+
+   unsigned was_maxi= 0;            // (Avoids load if pool_size unchanged)
    while( now_used > was_maxi ) {
      if( max_used.compare_exchange_weak(was_maxi, now_used) )
        break;
@@ -184,14 +222,18 @@ inline void
 }
 
 //----------------------------------------------------------------------------
-// WorkerThread::drive()
+// WorkerThread::reuse()
 //
-// Call this function once for each unit of work to be processed.
+// Call this function once for each reuse of the WorkerThread.
 //----------------------------------------------------------------------------
-virtual void
-   drive(                           // Drive
-     Worker*           worker)      // This Worker
-{
+void
+   reuse(                           // Reuse this WorkerThread
+     Worker*           worker)      // Using this Worker
+{  if( HCDM )
+     traceh("WorkerThread(%p).reuse(%p)\n", this, worker);
+   else if( USE_ITRACE )
+     Trace::trace(".WRK", "=USE", this, worker);
+
    this->worker= worker;
    sem.post();
 }
@@ -203,40 +245,60 @@ virtual void
 //----------------------------------------------------------------------------
 virtual void
    stop( void )                     // Terminate processing
-{
+{  if( HCDM )
+     traceh("WorkerThread(%p).stop(%p)\n", this, worker);
+   else if( USE_ITRACE )
+     Trace::trace(".WRK", "STOP", this, worker);
+
    operational= false;
    sem.post();
 }
 
 //----------------------------------------------------------------------------
-// WorkerThread::run()
+// (protected:) WorkerThread::run()
 //
 // Operate the WorkerThread.
 //----------------------------------------------------------------------------
 protected:
 void
    run( void )                      // Operate the Thread
-{
+{  if( HCDM )                       // (Trace first iteration)
+     traceh("WorkerThread(%p).run(%p)\n", this, worker);
+   else if( USE_ITRACE )
+     Trace::trace(".WRK", "=RUN", this, worker);
+
    while( operational ) {
-     if( worker != nullptr ) {
+     if( worker ) {
        try {
          worker->work();
        } catch(Exception& X) {
-         debugging::debugh("WorkerException: %s\n", X.to_string().c_str());
+         debugh("WorkerException: %s\n", X.to_string().c_str());
          utility::report_exception(X.to_string());
        } catch(std::exception& X) {
-         debugging::debugh("WorkerException: what(%s)\n", X.what());
+         debugh("WorkerException: what(%s)\n", X.what());
          utility::report_exception(X.what());
        } catch(...) {
-         debugging::debugh("WorkerException: ...\n");
+         debugh("WorkerException: ...\n");
          utility::report_exception("...");
        }
      }
-     worker= nullptr;
+       else debugh("%4d %s operational but NO WORKER\n", __LINE__, __FILE__); // TODO: REMOVE
 
+     worker= nullptr;
      done();
      sem.wait();
+     sem.reset();
+
+     if( HCDM )
+       traceh("WorkerThread(%p).post(%p)\n", this, worker);
+     else if( USE_ITRACE )
+       Trace::trace(".WRK", "POST", this, worker);
    }
+
+   if( HCDM )
+     traceh("WorkerThread(%p).INOP(%p)\n", this, worker);
+   else if( USE_ITRACE )
+     Trace::trace(".WRK", "INOP", this, worker);
 
    delete this;
 }
@@ -244,64 +306,7 @@ void
 
 //----------------------------------------------------------------------------
 //
-// Method-
-//       WorkerPool::getMaxThreads
-//       WorkerPool::setMaxThreads
-//
-// Purpose-
-//       Accessors: size
-//
-//----------------------------------------------------------------------------
-#if 0 // DEPRECATED ==========================================================
-unsigned                            // The maximum number of pooled threads
-   WorkerPool::getMaxThreads( void ) // Get maximum number of pooled threads
-{  return size; }
-
-void
-   WorkerPool::setMaxThreads(        // Get maximum number of pooled threads
-     unsigned          new_size)     // The maximum number of pooled threads
-{  std::lock_guard<decltype(pool_mutex)> lock(pool_mutex);
-
-   if( new_size < used ) {
-     for(int i= new_size; i<used; i++) {
-       WorkerThread* thread= pool[i];
-       thread->detach();
-       thread->stop();
-     }
-
-     used= new_size;
-   }
-
-   if( new_size > MAX_THREADS ) {
-     WorkerThread** thread= new WorkerThread*[new_size];
-     if( new_size > max_size )
-       max_size= new_size;
-
-     for(int i= 0; i<used; i++)
-       thread[i]= pool[i];
-
-     if( size > MAX_THREADS )
-       delete[] pool;
-
-     pool= thread;                   // Replace the pool
-   } else {
-     if( size > MAX_THREADS ) {
-       for(int i= 0; i<used; i++)
-         static_pool[i]= pool[i];
-
-       delete[] pool;
-     }
-
-     pool= static_pool;
-   }
-
-   size= new_size;
-}
-#endif // DEPRECATED =========================================================
-
-//----------------------------------------------------------------------------
-//
-// Method-
+// (Static) method-
 //       WorkerPool::get_running
 //
 // Purpose-
@@ -311,6 +316,52 @@ void
 unsigned                            // The number of running threads
    WorkerPool::get_running( void )  // Get number of running threads
 {  return running; }
+
+//----------------------------------------------------------------------------
+//
+// (Static) method-
+//       WorkerPool::get_poolsize
+//
+// Purpose-
+//       Accessor: pool_size
+//
+//----------------------------------------------------------------------------
+unsigned                            // The WorkerPool size
+   WorkerPool::get_size( void )     // Get WorkerPool size
+{  return pool_size; }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       WorkerPool::set_size
+//
+// Purpose-
+//       Accessor: Set the pool_size
+//
+//----------------------------------------------------------------------------
+void
+   WorkerPool::set_size(            // Set the thread pool size
+     unsigned          _size)       // The updated thread pool_size
+{  std::lock_guard<decltype(pool_mutex)> lock(pool_mutex);
+
+   for(unsigned i= 0; i<pool_used; i++) {
+     WorkerThread* thread= pool[i];
+     thread->stop();
+     pool[i]= nullptr;              // (Not strictly necessary)
+   }
+   running.store(0);
+   pool_used= 0;
+
+   if( pool != (WorkerThread**)&static_pool )
+     free(pool);
+
+   pool_size= _size;
+   if( pool_size <= MAX_THREADS )
+     pool= (WorkerThread**)&static_pool;
+   else {
+     pool= (WorkerThread**)malloc(pool_size * sizeof(WorkerThread*));
+   }
+}
 
 //----------------------------------------------------------------------------
 //
@@ -328,18 +379,21 @@ void
    debugf("WorkerPool::debug(%s)\n", info ? info : "");
 
    debugf("%'16zd max_running\n", max_running.load());
-// debugf("%'16d max_size\n",     max_size);
    debugf("%'16d max_pooled\n",   max_used.load());
    debugf("%'16zd running\n",     running.load());
-// debugf("%'16d size\n",         size);
-   debugf("%'16d pooled\n",       used);
+   debugf("%'16d pool_size\n",    pool_size);
+   debugf("%'16zd new_workers\n", new_workers.load());
+   debugf("%'16zd del_workers\n", del_workers.load());
+   debugf("%'16d pooled\n",       pool_used);
    debugf("%'16zd workers\n",     workers.load());
 
    if( info ) {
      std::lock_guard<decltype(pool_mutex)> lock(pool_mutex);
-     for(unsigned i= 0; i<used; i++) {
+     for(unsigned i= 0; i<pool_used; i++) {
        WorkerThread* thread= pool[i];
+       debugf("\n");
        debugf("[%4d] %#.14zx\n", i, intptr_t(thread));
+       thread->debug("(idle) WorkerThread");
      }
    }
 }
@@ -357,9 +411,8 @@ void
    WorkerPool::reset( void )        // Reset (Empty) the WorkerThread pool
 {  std::lock_guard<decltype(pool_mutex)> lock(pool_mutex);
 
-   for(unsigned i= 0; i<used; i++) {
+   for(unsigned i= 0; i<pool_used; i++) {
      WorkerThread* thread= pool[i];
-     thread->detach();
      thread->stop();
    }
 
@@ -367,23 +420,27 @@ void
    max_running.store(0);
    max_used.store(0);
    running.store(0);
-   used= 0;
+   pool_used= 0;
    workers.store(0);
 }
 
 //----------------------------------------------------------------------------
 //
-// Method-
+// Static method-
 //       WorkerPool::work
 //
 // Purpose-
-//       Drive the Worker
+//       Drive the Worker, either reusing a pool Thread or creating a new one.
 //
 //----------------------------------------------------------------------------
 void
    WorkerPool::work(                 // Process work
      Worker*           worker)       // Using this Worker
-{
+{  if( HCDM )
+     traceh("WorkerPool.work(%p) running(%zd)\n", worker, running.load());
+   else if( USE_ITRACE )
+     Trace::trace(".WRK", "WORK", worker, i2v(running.load()));
+
    ++workers;
    size_t was_running= ++running;
    size_t was_maximum= max_running.load();
@@ -397,12 +454,12 @@ void
    {{{{ // PERFORMANCE CRITICAL ==============================================
      std::lock_guard<decltype(pool_mutex)> lock(pool_mutex);
 
-     if( used > 0 )
-       thread= pool[--used];
+     if( pool_used > 0 )
+       thread= pool[--pool_used];
    }}}} // PERFORMANCE CRITICAL ==============================================
 
    if( thread )
-     thread->drive(worker);
+     thread->reuse(worker);
    else
      new WorkerThread(worker);
 }
