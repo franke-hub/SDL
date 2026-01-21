@@ -50,7 +50,7 @@
 #include "pub/Dispatch.h"           // For pub::dispatch objects, tested
 #include <pub/Event.h>              // For pub::Event
 #include <pub/Interval.h>           // For pub::Interval
-#include <pub/Thread.h>             // For pub::Thread
+#include "pub/Thread.h"             // For pub::Thread
 #include <pub/Trace.h>              // For pub::Trace
 #include "pub/Wrapper.h"            // For class Wrapper
 

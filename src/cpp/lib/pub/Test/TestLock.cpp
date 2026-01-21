@@ -37,7 +37,7 @@
 #include <pub/Debug.h>              // For debugging functions
 #include <pub/Exception.h>          // For pub::Exception, std::exception
 #include "pub/Lock.h"               // The pub::Lock, Tested
-#include <pub/Thread.h>             // For pub::Thread::sleep
+#include "pub/Thread.h"             // For pub::Thread::sleep
 #include <pub/Wrapper.h>            // For class Wrapper
 
 #define PUB _LIBPUB_NAMESPACE

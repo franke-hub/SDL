@@ -441,7 +441,7 @@ static inline int
      error_count += MUST_NOT(Fail to throw an exception);
    } catch(std::runtime_error& X) {
      if( opt_verbose )
-       debugf("....Expected: %s\n", X.what());
+       debugf("....As expected: %s\n", X.what());
    }
 
    //-------------------------------------------------------------------------
@@ -476,7 +476,7 @@ static inline int
      error_count += MUST_NOT(Fail to throw an exception);
    } catch(std::runtime_error& X) {
      if( opt_verbose )
-       debugf("....Expected: %s\n", X.what());
+       debugf("....As expected: %s\n", X.what());
    }
 
    //-------------------------------------------------------------------------
@@ -488,7 +488,7 @@ static inline int
    error_count += MUST_EQ(false, xcl.is_held());
 
    {{{{ std::lock_guard<decltype(shr)> lock1(shr);
-     error_count += MUST_EQ(shr.count, 1);
+     error_count += MUST_EQ(shr.count.load(), 1);
      error_count += MUST_EQ(true,  shr.is_held());
      error_count += MUST_EQ(false, xcl.is_held());
 //   if( xcl.try_lock() )             // (Deadlock if SHR+XCL on same thread)
@@ -532,7 +532,7 @@ static inline int
      error_count += MUST_NOT(Fail to throw an exception);
    } catch(std::runtime_error& X) {
      if( opt_verbose )
-       debugf("....Expected: %s\n", X.what());
+       debugf("....As expected: %s\n", X.what());
    }
    error_count += MUST_EQ(shr.count, 0);
 
@@ -550,7 +550,7 @@ static inline int
      error_count += MUST_NOT(Fail to throw an exception);
    } catch(std::runtime_error& X) {
      if( opt_verbose )
-       debugf("....Expected: %s\n", X.what());
+       debugf("....As expected: %s\n", X.what());
    }
    error_count += MUST_EQ(shr.count, 1);
    shr.unlock();

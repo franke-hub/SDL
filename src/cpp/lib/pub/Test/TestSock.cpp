@@ -41,7 +41,7 @@
 #include <pub/Semaphore.h>          // For pub::Semaphore
 #include "pub/Select.h"             // For pub::Select, minimally tested
 #include "pub/Socket.h"             // For pub::Socket, tested
-#include <pub/Thread.h>             // For pub::Thread
+#include "pub/Thread.h"             // For pub::Thread
 #include "pub/utility.i"            // For pub::b2c
 #include <pub/Worker.h>             // For pub::Worker, pub::WorkerPool, ...
 #include "pub/Wrapper.h"            // For pub::Wrapper
@@ -1354,7 +1354,7 @@ void
        TRACE("StreamWorker %zd= write(%s)\n", L, visify(mess).c_str());
    }
 
-   // Client closed or in error state. Allow immediate port re-use
+   // Client closed or in error state. Allow immediate port reuse
    // When used, this code avoids a client "Connection refused" problem.
    if( USE_LINGER ) {               // (Recommended)
      struct linger optval;
