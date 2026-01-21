@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2022 Frank Eskesen.
+//       Copyright (c) 2018-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -14,10 +14,10 @@
 //       Semaphore.h
 //
 // Purpose-
-//       Semaphore implemenentation using condition variable.
+//       Semaphore implementation using condition variable.
 //
 // Last change date-
-//       2022/09/02
+//       2026/01/12
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_SEMAPHORE_H_INCLUDED
@@ -56,12 +56,9 @@ std::condition_variable
 std::mutex             mutex;       // Protects cv
 
 //----------------------------------------------------------------------------
-// Semaphore::Destructor/Constructor/Assignment
+// Semaphore::Constructor/asssignment/destructor
 //----------------------------------------------------------------------------
 public:
-inline
-   ~Semaphore( void ) {}            // Destructor
-
    Semaphore(                       // Default constructor
      unsigned          count= 0)    // Default, count= 0
 :  count(count), cv(), mutex() {}
@@ -70,10 +67,18 @@ inline
    Semaphore(const Semaphore&) = delete;
 Semaphore& operator=(const Semaphore&) = delete;
 
+inline
+   ~Semaphore( void ) {}            // Destructor
+
+//----------------------------------------------------------------------------
+// Semaphore::debug
+//----------------------------------------------------------------------------
+void
+   debug(const char* info= nullptr) const; // Debugging display
+
 //----------------------------------------------------------------------------
 // Semaphore::Methods
 //----------------------------------------------------------------------------
-public:
 unsigned
    get_count( void ) const          // Get current count
 {  return count; }
