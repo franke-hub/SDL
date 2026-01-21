@@ -166,7 +166,7 @@ static void
 static void
    logf(                            // Write log message
      const char*       fmt,         // PRINTF format descriptor
-                       ...)         // PRINTF argruments
+                       ...)         // PRINTF arguments
 {
    va_list             argptr;      // Argument list pointer
 
@@ -188,7 +188,7 @@ static void
    shouldNotOccur(                  // Write log message and exit
      int               lineno,      // Line number
      const char*       fmt,         // PRINTF format descriptor
-                       ...)         // PRINTF argruments
+                       ...)         // PRINTF arguments
 {
    va_list             argptr;      // Argument list pointer
    char                buffer[512]; // Accumulator buffer

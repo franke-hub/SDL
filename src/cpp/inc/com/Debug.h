@@ -325,25 +325,25 @@ void
 void
    traceh(                          /* Write to trace, with heading         */
      const char*       fmt,         /* The PRINTF format string             */
-                       ...)         /* PRINTF argruments                    */
+                       ...)         /* PRINTF arguments                     */
    _ATTRIBUTE_PRINTF(1, 2);
 
 void
    tracef(                          /* Write to trace                       */
      const char*       fmt,         /* The PRINTF format string             */
-                       ...)         /* PRINTF argruments                    */
+                       ...)         /* PRINTF arguments                     */
    _ATTRIBUTE_PRINTF(1, 2);
 
 void
    debugf(                          /* Write to trace and stdout            */
      const char*       fmt,         /* The PRINTF format string             */
-                       ...)         /* PRINTF argruments                    */
+                       ...)         /* PRINTF arguments                     */
    _ATTRIBUTE_PRINTF(1, 2);
 
 void
    errorf(                          /* Write to trace and stderr            */
      const char*       fmt,         /* The PRINTF format string             */
-                       ...)         /* PRINTF argruments                    */
+                       ...)         /* PRINTF arguments                     */
    _ATTRIBUTE_PRINTF(1, 2);
 
 void

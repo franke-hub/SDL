@@ -175,7 +175,7 @@ static void
 static void
    logf(                            // Write log message
      const char*       fmt,         // PRINTF format descriptor
-                       ...)         // PRINTF argruments
+                       ...)         // PRINTF arguments
 {
    va_list             argptr;      // Argument list pointer
 
