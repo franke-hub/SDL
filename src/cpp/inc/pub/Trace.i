@@ -97,7 +97,7 @@ inline void
      const void*       W1)          // Word[1]
 {
    *vx2v(value,0)= i2v(htobe64(v2i(W0)));
-   *vx2v(value,1)= i2v(htobe64(v2i(W1))); ;
+   *vx2v(value,1)= i2v(htobe64(v2i(W1)));
 
    trace(ident, unit);
 }

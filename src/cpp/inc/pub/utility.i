@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2024 Frank Eskesen.
+//       Copyright (c) 2024-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,10 +17,7 @@
 //       Utility inline functions.
 //
 // Last change date-
-//       2024/12/20
-//
-// Implementation notes-
-//       While utility.h includes this file, it may be included separately.
+//       2026/01/12
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_UTILITY_I_INCLUDED
@@ -28,6 +25,7 @@
 
 #include <string>                   // For std::string
 #include <cstdint>                  // For intptr_t
+#include <cstdio>                   // For sprintf
 #include <cstring>                  // For strlen, strcpy, memcpy, ...
 
 #include <endian.h>                 // For be64toh
@@ -43,6 +41,7 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //       pub::i2v      integer to void*
 //       pub::s2c      std::string to C-string
 //       pub::v2i      void* to intptr_t
+//       pub::v2s      void* to std::string
 //       pub::c2v      C-string to void*
 //
 // Purpose-
@@ -51,6 +50,7 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //       Convert integer to void*
 //       Convert std::string to C-string
 //       Convert void* to intptr_t
+//       Convert void* to std::string
 //       Convert C-string to void*
 //
 // Implementation notes-
@@ -68,6 +68,8 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //         // into your namespace so it's only useful if you use them a lot.)
 //
 //----------------------------------------------------------------------------
+
+//- - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - - - - - - - - -
 static inline const char*           // "true" or "false"
    b2c(bool b)
 {  return b ? "true" : "false"; }
@@ -95,6 +97,21 @@ static inline intptr_t
 static inline intptr_t
    v2i(const void* v)
 {  return v2i(const_cast<void*>(v)); }
+
+//- - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - - - - - - - - -
+static inline std::string
+   v2s(void* v)
+{
+   intptr_t i= intptr_t(v);
+
+   char buffer[32];
+   sprintf(buffer, "0x%.6zx'%.8zx", i >> 32, i & intptr_t(0x00'ffff'ffff));
+   return std::string(buffer);
+}
+
+static inline std::string
+   v2s(const void* v)
+{  return v2s(const_cast<void*>(v)); }
 
 //- - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - - - - - - - - -
 static inline void*
