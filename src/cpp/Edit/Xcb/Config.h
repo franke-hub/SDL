@@ -93,7 +93,7 @@ ATTRIB_PRINTF(1, 2);
 static void
    errorf(                          // Write to stderr, trace iff opt_hcdm
      const char*       fmt,         // The PRINTF format string
-                       ...);        // PRINTF argruments
+                       ...);        // PRINTF arguments
 
 //----------------------------------------------------------------------------
 //
@@ -108,7 +108,7 @@ ATTRIB_PRINTF(1, 2);
 static void
    failure(                         // Write error message and exit
      const char*       fmt,         // The PRINTF format string
-                       ...);        // PRINTF argruments
+                       ...);        // PRINTF arguments
 }; // class Config
 
 //----------------------------------------------------------------------------

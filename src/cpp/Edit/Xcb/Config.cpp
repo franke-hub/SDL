@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2025 Frank Eskesen.
+//       Copyright (C) 2020-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2025/09/15
+//       2026/01/17
 //
 //----------------------------------------------------------------------------
 #include <cctype>                   // For isspace
@@ -396,13 +396,17 @@ static void
        debug_set_mode(Debug::MODE_INTENSIVE);
        EdOpts::at_exit();           // Abnormal termination
        debug_backtrace();           // Attempt diagnosis (recursion aborts)
-       Config::debug("SIGSEGV");
+       Config::debug(text);
        debugf("..terminated..\n");
        exit(EXIT_FAILURE);
        break;
 
      default:                       // (SIGUSR1 || SIGUSR2)
        Trace::trace(".SIG", __LINE__, text);
+       Debug::Mode mode= debug_get_mode();
+       debug_set_mode(Debug::MODE_INTENSIVE);
+       Config::debug(text);
+       debug_set_mode(mode);
        break;                       // (No configured action)
    }
 
@@ -470,14 +474,14 @@ static void
    parse_error(                     // Handle parse error
      std::string       file,        // The parse file name
      const char*       fmt,         // The PRINTF format string
-                       ...);        // PRINTF argruments
+                       ...);        // PRINTF arguments
 
 ATTRIB_PRINTF(2, 3)
 static void
    parse_error(                     // Handle parse error
      std::string       file,        // The parse file name
      const char*       fmt,         // The PRINTF format string
-                       ...)         // PRINTF argruments
+                       ...)         // PRINTF arguments
 {
    static int error_count= 0;       // Error counter
 
