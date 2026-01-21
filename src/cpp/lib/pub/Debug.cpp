@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2007-2025 Frank Eskesen.
+//       Copyright (C) 2007-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Debug object methods.
 //
 // Last change date-
-//       2025/10/25
+//       2026/01/20
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard, ...
@@ -42,7 +42,7 @@
 #include <pub/Exception.h>          // For pub::Exception
 #include "pub/Latch.h"              // For pub::Latch objects
 #include <pub/Named.h>              // For pub::Named Threads
-#include <pub/Thread.h>             // For pub::Threads
+#include "pub/Thread.h"             // For pub::Threads
 #include <pub/utility.h>            // For utility::to_string
 
 #ifdef _OS_WIN
@@ -151,6 +151,20 @@ static bool                         // true iff STDIO
 
    return false;
 }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       should_not_occur
+//
+// Purpose-
+//       Throw "should not occur" after another throw
+//
+//----------------------------------------------------------------------------
+[[noreturn]]
+static void
+   should_not_occur( void )         // (Should never be called)
+{  throw "should not occur"; }
 
 //----------------------------------------------------------------------------
 //
@@ -535,7 +549,7 @@ void
    vabortf(fmt, argptr);            // ALWAYS THROWS EXCEPTION
    va_end(argptr);                  // Close va_ functions
 
-   throw "ShouldNotOccur";
+   should_not_occur();
 }
 
 //----------------------------------------------------------------------------
@@ -648,7 +662,7 @@ void
    vthrowf(fmt, argptr);            // ALWAYS THROWS EXCEPTION
    va_end(argptr);                  // Close va_ functions
 
-   throw "ShouldNotOccur";          // Should not occur
+   should_not_occur();
 }
 
 //----------------------------------------------------------------------------
@@ -738,6 +752,7 @@ void
      flush();                       // Intensive buffer flush
    }}}}
 
+   backtrace();
    abort();
 }
 
@@ -932,6 +947,7 @@ void
    if( L < 0 || size_t(L) >= sizeof(buffer) ) // If cannot properly format
      throw std::runtime_error(fmt); // Just use the format string
 
+   backtrace();
    throw std::runtime_error(buffer);
 }
 
@@ -1180,7 +1196,8 @@ void
      va_list           argptr)      // VALIST
 {  std::lock_guard<decltype(mutex)> lock(mutex);
    Debug::get()->vabortf(fmt, argptr);
-   throw "ShouldNotOccur";
+
+   should_not_occur();
 }
 
 _LIBPUB_PRINTF(1, 0)
@@ -1227,7 +1244,8 @@ void
      va_list           argptr)      // VALIST
 {  std::lock_guard<decltype(mutex)> lock(mutex);
    Debug::get()->vthrowf(fmt, argptr);
-   throw "ShouldNotOccur";
+
+   should_not_occur();
 }
 
 _LIBPUB_PRINTF(1, 0)

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2025 Frank Eskesen.
+//       Copyright (C) 2018-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,10 +17,12 @@
 //       Implement Dispatch object methods
 //
 // Last change date-
-//       2025/01/19
+//       2026/01/12
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
+#include <string>                   // For std::string
+#include <cstdio>                   // For sprintf
 
 #include <pub/Clock.h>              // DispatchTTL completion time
 #include <pub/Debug.h>              // For debugging
@@ -30,12 +32,12 @@
 #include <pub/Named.h>              // For pub::Named, Timers is a Named Thread
 #include <pub/Semaphore.h>          // For pub::Semaphore, Timers event
 #include <pub/Statistic.h>          // For pub::Active_record
-#include <pub/Thread.h>             // For pub::Thread, Timers is a Named Thread
+#include "pub/Thread.h"             // For pub::Thread, Timers is a Named Thread
 #include <pub/Trace.h>              // For pub::Trace
+#include <pub/utility.i>            // For pub::v2c
 #include <pub/Worker.h>             // For pub::Worker
 
 // DEBUGGING: TODO REMOVE- - - - - - - - - - - - - - - - - - - - - - - - - - -
-#include <cstdio>                   // For sprintf
 #include <pub/Reporter.h>           // For pub::Reporter
 // DEBUGGING: TODO REMOVE- - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -330,17 +332,24 @@ void
 void
    Task::debug(const char* info) const        // Debugging display
 {
-   debugf("Task(%p)::debug(%s)\n", this, info);
+   using pub::v2s;                  // From utility.i
+   using pub::s2c;
+
+   debugf("Task(%s)::debug(%s)\n", s2c(v2s(this)), info);
    Item* item= itemList.get_tail();
-   debugf("..itemList tail(%p)\n", item);
+   debugf("..itemList tail(%s)\n", s2c(v2s(item)));
    while( item ) {
      if( (void*)item == (void*)&__detail::__end ) {
-       debugf(">>%p (dummy head item)\n", item);
+       debugf(">>%s (dummy head item)\n", s2c(v2s(item)));
        break;
      }
 
-     debugf(">>%p -> %p %d %d %p\n", item, item->get_prev()
-           , item->fc, item->cc, item->done);
+     // (You can't use multiple s2c(v2s(ptr)) in one printf operation)
+     std::string s_item= v2s(item);
+     std::string s_done= v2s(item->done);
+     std::string s_prev= v2s(item->get_prev());
+     debugf(">>fc(%d) cc(%d) done*(%s): %s -> %s\n", item->fc, item->cc
+           , s2c(s_done), s2c(s_item), s2c(s_prev));
      item= item->get_prev();
    }
 }
@@ -382,9 +391,9 @@ void
 //----------------------------------------------------------------------------
 void
    Task::work( void )               // Worker interface
-{  if( HCDM ) traceh("Task(%p)::work()\n", this);
-
-   if( USE_ITRACE )
+{  if( HCDM )
+     traceh("Task(%p)::work(%p)\n", this, itemList.get_tail());
+   else if( USE_ITRACE )
      Trace::trace(".DSP", "WORK", this, itemList.get_tail());
 
    Item* chase= nullptr;            // The last detected FC_CHASE work item
@@ -428,7 +437,7 @@ void
    Task::work(                      // Process
      Item*             item)        // This work Item
 {  if( HCDM )
-     debugh("%4d dispatch::Task(%p)::work(%p) PVM\n", __LINE__, this, item);
+     debugh("dispatch::Task(%p)::work(%p) PVM\n", this, item);
 
    item->post();
 }

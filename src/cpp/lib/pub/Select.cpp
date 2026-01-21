@@ -52,7 +52,7 @@
 #include "pub/List.h"               // For pub::AI_list<>
 #include "pub/Select.h"             // For pub::Select, implemented
 #include "pub/Socket.h"             // For pub::Socket
-#include <pub/Thread.h>             // For pub::Thread
+#include "pub/Thread.h"             // For pub::Thread
 #include <pub/Trace.h>              // For pub::Trace
 #include "pub/utility.i"            // For conversion routines, ...
 

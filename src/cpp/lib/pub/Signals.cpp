@@ -28,7 +28,6 @@
 #include "pub/List.h"               // For pub::List
 #include "pub/Latch.h"              // For pub::XCL_latch, SHR_latch
 #include "pub/Signals.h"            // For pub::Signals interface, implemented
-#include "pub/Trace.h"              // For pub::Trace
 #include "pub/utility.h"            // For pub::demangle
 #include "pub/utility.i"            // For conversion subroutines
 
@@ -44,8 +43,6 @@ namespace signals {
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
-
-,  USE_ITRACE= true                 // Use internal trace?
 }; // generic enum
 
 //----------------------------------------------------------------------------
