@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2026/01/08
+//       2026/01/21
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -844,10 +844,43 @@ using GCC version 15.)
 - Updated ~/src/cpp/lib/obj/Test/Thing.cpp for gcc version 15<br/>
 Added _GLIBCXX_* modifiers copied from c++/new.
 
-### <a id="last-change">2026/01/08 maint/trunk</a>
+### 2026/01/08 maint/trunk
 - ~/src/cpp/Scanner/Scanner.cpp: Added additional binary file types
 - Fixed Xcb/Term Editor problem: Possible incorrect locate column in UTF8 files
   - ~/src/cpp/inc/pub/Utf.h: Define utf8_decoder::set_buffer_offset
   - ~/src/cpp/lib/pub/Utf.cpp: Implement utf8_decoder::set_buffer_offset
   - ~/src/cpp/lib/pub/Test/Test_utf.cpp: Test utf8_decoder::set_buffer_offset
   - ~/src/cpp/Edit/Xcb/Editor.cpp: Use utf8_decoder::set_buffer_offset
+
+### <a id="last-change">2026/01/21 maint</a>
+- Fixed misspelled "argruments" to "arguments" in comments
+  - There were quite a few of these.
+- ~/src/cpp/inc/pub/Object.h:
+  - Global comparison operators now use *const* parameter references.
+- ~/src/cpp/inc/pub/Semaphore.h:
+  - Added debug() method, implemented in ~/src/cpp/lib/pub/Semaphore.cpp
+- ~/src/cpp/inc/pub/utility.i: Added v2s method void* to string conversion
+- ~/src/cpp/lib/pub/Test/Test_thr.cpp: Added --trace option
+- Fixed bug in ~/src/cpp/lib/pub/Thread.cpp<br>
+Under unusual multithreading conditions, method start() could access deleted
+storage.
+  - ~/src/cpp/lib/pub/Thread.cpp: Added additional synchronization logic
+    - Added lots of internal trace event recording
+  - ~/src/cpp/inc/pub/Thread.h: Added start_completed synchronization Event
+    - The Thread::mutex and Thread::tlss::mutex types were changed from
+RecursiveLatch to Latch. (Neither should have been Recursive.)
+  - ~/src/cpp/lib/pub/Latch.cpp: Added diagnostic internal tracing
+  - ~/src/cpp/lib/pub/Latch.h (and ~/src/cpp/lib/pub/Latch.cpp):
+    - (Slightly) reduced try_lock() overhead
+    - All Latch lock() methods now use the same try_lock() retry sequence
+  - ~/src/cpp/lib/pub/Worker.h (and ~/src/cpp/lib/pub/Worker.cpp):
+    - Added get_size() and set_size() methods.<br>
+Using small set_size values led to the Thread.cpp bug discovery.
+  - ~/src/cpp/lib/pub/Test/TimeDisp.cpp:
+    - Added options to control the Item count, Task count, and WorkerPool
+pool_size.
+    - Added internal traces (activated at compile-time)
+  - ~/src/cpp/lib/pub/Test/script/regression.d/test_time.sh: Added regression
+tests for TimeDisp parameters that resulted in failure.
+- Addendum: gitk code inspection: Fixed and added comments
+  - ~/src/cpp/inc/pub/Thread.h: Use inline tlss construtor/destructor

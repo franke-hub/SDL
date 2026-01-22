@@ -17,7 +17,7 @@
 //       Thread method implementations.
 //
 // Last change date-
-//       2026/01/20
+//       2026/01/21
 //
 // Implementation note-
 //       We use Thread Local Storage to maintain the Thread::tlss state.
@@ -72,8 +72,8 @@ enum
 ,  USE_TIMING= false                // Use timing code?
 }; // generic enum
 
-enum FSM                            // Finite State Machine states
-{  FSM_START= 0                     // START, initial state (in Thread::start)
+enum FSM                            // The tlss Finite State Machine states
+{  FSM_RESET= 0                     // 0 RESET, initial state
 ,  FSM_DRIVE                        // 1 DRIVE, "Owned" by Thread::drive
 ,  FSM_OWNER                        // 2 OWNER, "Owned" by Thread's owner
 ,  FSM_DETACHED                     // 3 DETACHED, "Owned" by Thread::drive
@@ -127,8 +127,8 @@ static const char*                  // The FSM name
 {
    const char* name= "UNDEF";       // Default, undefined
    switch( fsm ) {
-     case FSM_START:                // Thread::start running
-       name= "START";
+     case FSM_RESET:                // Thread::start running
+       name= "RESET";
        break;
 
      case FSM_DRIVE:                // Thread::drive running
@@ -631,18 +631,32 @@ void
 //       Start the Thread
 //
 // Implementation notes-
-//       Initialization synchronization is tricky:
+//       Synchronization between start() and drive() is tricky:
 //
-//       We need Thread->_tlss initialized in start(), because we're using
-//       _tlss->drive_initialized and _tlss->start_completed there.
-//       We can't set (thread local) tl_tlss until drive(), when we are
-//       actually running under the thread.
+//       We need Thread->_tlss initialized in start() because we're using
+//       _tlss->drive_initialized and (now) _tlss->start_completed there.
+//
+//       We can't set (thread local) tl_tlss until drive() since before that
+//       we aren't actually running under the thread.
+//
 //       We can't let start() exit until the tl_tlss is set, because current()
-//       won't work. Method start() must wait for drive_initialized.
-//       We can't let drive() continue after it posts for drive_initialized,
-//       because the task can run to completion (deleting the tlss) before
-//       start()'s drive_initialized.wait() completes.
-//       THIS CAN AND HAS OCCURED. (That's why it's super-documented here.)
+//       won't work. Ergo, method start() must wait for drive_initialized.
+//       We discovered that this wasn't enough.
+//
+//       We can't let start() continue after drive() posts drive_initialized,
+//       because the Thread can run to completion (deleting the tlss) before
+//       start()'s drive_initialized.wait() completes. If this should occur,
+//       _tlss->drive_initialized.wait() refers to undefined storage. Bad!
+//       >>>>>>>>>>>>>>>>>>>>>>>>>> THIS WAS A BUG. <<<<<<<<<<<<<<<<<<<<<<<<<<
+//       (It happened. This explains the fix and why fixing it was necessary.)
+//
+//       To prevent this, we added another Event in the tlss, start_completed.
+//       In start_completed.post(), once the post() action is performed the
+//       start() method won't access the tlss again. It doesn't matter how
+//       many instructions remain before start() exits or how long they take.
+//       The last tlss reference in start() is `_tlss->start_completed(post)`.
+//
+//       Method drive() waits for this Event before invoking run().
 //
 //----------------------------------------------------------------------------
 void
@@ -654,7 +668,7 @@ void
      throwf("USER ERROR: Duplicate Thread::start");
    }
 
-   this->_tlss= new tlss(this);     // Allocate a new tlss
+   this->_tlss= new tlss(this);     // Allocate a new tlss, fsm==FSM_RESET
 
    unsigned count= 0;               // Retry counter
    for(;;) {                        // (Retry if resource unavailable)
@@ -677,8 +691,8 @@ void
      start_failure();
    }
 
-   _tlss->drive_initialized.wait();  // Wait for tl_tlss= _tlss
-   _tlss->start_completed.post();    // We are exiting now
+   _tlss->drive_initialized.wait(); // Wait for tl_tlss= _tlss
+   _tlss->start_completed.post();   // We are exiting now
    if( USE_ITRACE )                 // (This can occur after thread deletion)
      Trace::trace(".THR", "INIT", this, _tlss); // (OK to use addresses)
 }
@@ -706,8 +720,8 @@ void*                               // (Always nullptr)
    tl_tlss= _tlss;
    if( USE_ITRACE )
      Trace::trace(".THR", "+LCL", thread, _tlss);
-   _tlss->set_fsm(FSM_DRIVE);       // FSM_START => FSM_DRIVE (no locking)
 
+   _tlss->set_fsm(FSM_DRIVE);       // FSM_RESET => FSM_DRIVE (no locking)
    _tlss->drive_initialized.post(); // We've initialized tl_tlss= _tlss
    _tlss->start_completed.wait();   // We can't continue until start completes
    // At this point start() is done with *_tlss

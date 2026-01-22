@@ -17,7 +17,7 @@
 //       Dispatcher timing test.
 //
 // Last change date-
-//       2026/01/20
+//       2026/01/21
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic
@@ -80,16 +80,16 @@ static TimerItem**     item_array= nullptr; // The Timer Item array
 static TimerTask**     task_array= nullptr; // The Timer Task array
 
 // Extended options
-static int             opt_runtime= OPT_RUNTIME; // --runtime= milliseconds
-static int             opt_items= OPT_ITEMS; // --items=
-static unsigned        opt_size= WorkerPool::get_size(); // --size=
-static int             opt_tasks= OPT_TASKS; // --tasks=
+static int             opt_runtime= OPT_RUNTIME; // --runtime
+static int             opt_items= OPT_ITEMS; // --items
+static unsigned        opt_size= WorkerPool::get_size(); // --size
+static int             opt_tasks= OPT_TASKS; // --tasks
 static int             opt_trace= 0; // --trace
 static struct option   opts[]=      // The getopt_long parameter: longopts
-{  {"runtime",  required_argument, nullptr,    0} // --runtime
-,  {"items",    required_argument, nullptr,    0} // --items
-,  {"size",     required_argument, nullptr,    0} // --size
-,  {"tasks",    required_argument, nullptr,    0} // --tasks
+{  {"runtime",  required_argument, nullptr,    0} // --runtime=milliseconds
+,  {"items",    required_argument, nullptr,    0} // --items=count
+,  {"size",     required_argument, nullptr,    0} // --size=count
+,  {"tasks",    required_argument, nullptr,    0} // --tasks=count
 ,  {"trace",    optional_argument, &opt_trace, 0x0800'0000} // --trace
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
@@ -210,12 +210,13 @@ virtual void
 // then= PUB::Clock::now();         // Set in main task, test_timing()
 
    Thread::sleep((double)opt_runtime/1000.0); // (Run the test)
-   running= false;
 
-   if( opt_hcdm || opt_verbose > 1 ) {
+   if( opt_hcdm || opt_verbose > 1 ) { // WorkerPool debug while still running
      debugf("\n");
      PUB::WorkerPool::debug();
    }
+
+   running= false;
 
    test_start.reset();
 }
@@ -416,7 +417,7 @@ static int
    if( opt_hcdm || opt_verbose ) {
      debugf("%s\n", "test_timing");
 
-     debugf("%'16.2f Runtime\n", (double)opt_runtime/1000.0);
+     debugf("%'16.3f Runtime\n", (double)opt_runtime/1000.0);
      debugf("%'16d Items\n", opt_items);
      debugf("%'16d Tasks\n", opt_tasks);
    }
@@ -506,7 +507,7 @@ static int
    debugf("%'16.0f Operations/second (elapsed)\n", (double)item_count/elapsed);
 
    // Diagnostics
-   if( opt_hcdm || opt_verbose ) {
+   if( opt_hcdm || opt_verbose ) { // WorkerPool debug after test completes
      debugf("\n");
      PUB::WorkerPool::debug();
    }

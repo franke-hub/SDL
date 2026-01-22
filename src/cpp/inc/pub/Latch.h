@@ -17,7 +17,7 @@
 //       Primitive mechanisms for granting access to a resource.
 //
 // Last change date-
-//       2026/01/18
+//       2026/01/21
 //
 // Implementation notes-
 //       All Latch methods are duplicated in ~/src/cpp/lib/pub/Latch.cpp.
@@ -59,7 +59,7 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 // MACRO _IF_PUBLIB_LATCH_INLINE, controlled by _PUBLIB_LATCH_DEBUG
 //----------------------------------------------------------------------------
 #ifndef   _PUBLIB_LATCH_DEBUG       // For production, use INLINE compilation
-#  define _PUBLIB_LATCH_DEBUG       // (Last for OUTLINE compilation)
+#  define _PUBLIB_LATCH_DEBUG       // (Last for Latch.cpp compilation)
 #  undef  _PUBLIB_LATCH_DEBUG       // (Last for INLINE compilation)
 #endif
 

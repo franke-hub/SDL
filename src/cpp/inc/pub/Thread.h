@@ -17,7 +17,7 @@
 //       Define the Thread control object.
 //
 // Last change date-
-//       2026/01/20
+//       2026/01/21
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_THREAD_H_INCLUDED
@@ -29,15 +29,15 @@
 #include <pthread.h>                // For pthread
 
 #include "pub/Event.h"              // For pub::Event
-#include "pub/Latch.h"              // For pub::RecursiveLatch
+#include "pub/Latch.h"              // For pub::Latch
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 // MACRO _IF_PUBLIB_THREAD_INLINE, controlled by _PUBLIB_THREAD_DEBUG
 //----------------------------------------------------------------------------
 #ifndef   _PUBLIB_THREAD_DEBUG
+#  define _PUBLIB_THREAD_DEBUG      // (Last for Thread.cpp debugging)
 #  undef  _PUBLIB_THREAD_DEBUG      // (Last for INLINE compilation)
-#  define _PUBLIB_THREAD_DEBUG      // (Last for OUTLINE compilation)
 #endif
 
 #ifndef _PUBLIB_THREAD_DEBUG
@@ -104,7 +104,7 @@ void
 // Thread::Attributes
 //----------------------------------------------------------------------------
 private:
-mutable Latch          mutex;       // Mutex, protects _tlss ONLY)
+mutable Latch          mutex;       // Mutex, protects _tlss ONLY
 tlss*                  _tlss= nullptr; // (Internal, valid only while running)
 
 public:
@@ -174,6 +174,8 @@ virtual void
    run( void ) = 0;                 // Operate this thread
 
 // Thread::start creates the system thread that drives the run method.
+// Note: under unusual circumstances a run method may complete even before the
+// start method returns.
 void
    start( void );                   // Start this Thread
 
