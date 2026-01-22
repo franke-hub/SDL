@@ -17,7 +17,7 @@
 //       Thread method implementations.
 //
 // Last change date-
-//       2026/01/21
+//       2026/01/22
 //
 // Implementation note-
 //       We use Thread Local Storage to maintain the Thread::tlss state.
@@ -611,15 +611,20 @@ int                                 // Return code, 0 or errno
 // Purpose-
 //       Delay the current thread
 //
+// Implementation notes-
+//       Delays greater than LONG_LONG_MAX / 1'000'000 won't work properly.
+//
 //----------------------------------------------------------------------------
 void
    Thread::sleep(                   // Delay the current Thread
      double            seconds)     // For this many seconds
 {
-   // (Using microsecond resolution)
-   int64_t us= int64_t(seconds * 1'000'000 + 500'000); // (Rounded up)
-   if( us > 0 && double(us) >= seconds ) // If a positive and valid delay
-     std::this_thread::sleep_for(std::chrono::microseconds(us));
+   if( seconds <= 0.0000005 )       // If very short delay
+     return;                        // Don't bother
+
+   // (Using microsecond resolution, rounded up)
+   int64_t us= int64_t((seconds+0.0000005) * 1'000'000); // (Rounded up)
+   std::this_thread::sleep_for(std::chrono::microseconds(us));
 }
 
 //----------------------------------------------------------------------------
