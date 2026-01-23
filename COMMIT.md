@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2026/01/21
+//       2026/01/22
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -852,7 +852,7 @@ Added _GLIBCXX_* modifiers copied from c++/new.
   - ~/src/cpp/lib/pub/Test/Test_utf.cpp: Test utf8_decoder::set_buffer_offset
   - ~/src/cpp/Edit/Xcb/Editor.cpp: Use utf8_decoder::set_buffer_offset
 
-### <a id="last-change">2026/01/21 maint</a>
+### 2026/01/21 maint
 - Fixed misspelled "argruments" to "arguments" in comments
   - There were quite a few of these.
 - ~/src/cpp/inc/pub/Object.h:
@@ -884,3 +884,24 @@ pool_size.
 tests for TimeDisp parameters that resulted in failure.
 - Addendum: gitk code inspection: Fixed and added comments
   - ~/src/cpp/inc/pub/Thread.h: Use inline tlss construtor/destructor
+
+### <a id="last-change">2026/01/22 maint/trunk</a>
+- DEV library regression test failed on test virtual machine
+  - (OS maintenance was done at the same time.)
+  - The problem appeared to be a double free in std::string<br>
+A reboot and full library recompile fixed it.
+    - Updated ~/bat/sys/.want-version to force full library recompiles.
+
+<!-- IN PROGRESS --------------------------------------------------------- ---
+### <a id="last-change">2026/01/23 maint/trunk</a>
+- ~/src/cpp/inc/pub/Worker.h, ~/src/cpp/lib/pub/Worker.cpp
+  - All internal variables exposed (pool_size is R/W, all others are R/O.)
+- ~/src/cpp/inc/pub/Wrapper.h, ~/src/cpp/lib/pub/Wrapper.cpp
+  - Now provides double value parmeters.
+- ~/src/cpp/lib/pub/Test/TimeDisp.cpp
+  - Rearranged (and improved) output formatting
+- ~/src/cpp/lib/pub/Test/script/regression.d/TimeDisp.cpp
+  - Rearranged (and improved) output formatting
+- ~/src/cpp/lib/pub/Test/script/regression.d/test_time.sh
+  - Combines and writes output to test_time.out (for recording)
+---- --------------------------------------------------------------------- -->

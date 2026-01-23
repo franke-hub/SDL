@@ -17,7 +17,7 @@
 //       Worker object methods.
 //
 // Last change date-
-//       2026/01/21
+//       2026/01/22
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<>
@@ -37,7 +37,6 @@
 using namespace PUB::debugging;     // For debugging methods
 using pub::Trace;                   // For tracing methods
 using std::atomic_size_t;
-using std::atomic_uint;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -47,33 +46,29 @@ enum                                // Generic enum
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 // Production mode settings: USE_ITRACE= false;
+,  USE_IDEBUG= true                 // Use internal debugging?
 ,  USE_ITRACE= false                // Use internal trace?
 }; // (Generic) enum
 
 namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
-// Forward references
-//----------------------------------------------------------------------------
-class WorkerThread;                 // The Worker thread
-
-//----------------------------------------------------------------------------
 // Static attributes
 //----------------------------------------------------------------------------
 enum { MAX_THREADS= 16 };           // The default pool_size
 
-static Latch           pool_mutex;  // Pool access mutex
+static Latch           pool_mutex;  // Pool static attribute access mutex
 static WorkerThread*   static_pool[MAX_THREADS]; // The built-in thread pool
-static WorkerThread**  pool= (WorkerThread**)&static_pool; // The current thread pool
+static WorkerThread**  pool= (WorkerThread**)&static_pool; // The current pool
+static size_t          pool_size= MAX_THREADS; // Size of thread pool
+static size_t          pool_used= 0; // Current number of pooled WorkerThreads
 
 // Statistical counters
-static atomic_size_t   del_workers(0); // The number of deleted workers
-static atomic_size_t   new_workers(0); // The number of allocated workers
-static atomic_size_t   max_running(0); // Maximum number of running threads
-static atomic_uint     max_used(0); // Maximum number of pool threads
-static atomic_size_t   running(0);  // Current number of running threads
-static unsigned        pool_size= MAX_THREADS; // Size of thread pool
-static unsigned        pool_used= 0;     // Current number of pool threads
-static atomic_size_t   workers(0);  // Number of WorkerPool::work() invocations
+atomic_size_t          WorkerPool::del_workers(0); // WorkerThread delete count
+atomic_size_t          WorkerPool::new_workers(0); // WorkerThread new count
+atomic_size_t          WorkerPool::max_running(0); // Maximum running
+atomic_size_t          WorkerPool::max_used(0); // Maximum pool Thread count
+atomic_size_t          WorkerPool::running(0);  // Running Thread count
+atomic_size_t          WorkerPool::workers(0); // WorkerPool::work() invocations
 
 //----------------------------------------------------------------------------
 // Global constructor/destructor
@@ -122,7 +117,7 @@ public:
    else if( USE_ITRACE )
      Trace::trace(".WRK", "=NEW", this, worker);
 
-   ++new_workers;
+   ++WorkerPool::new_workers;
    start();
 }
 
@@ -133,7 +128,7 @@ virtual
    else if( USE_ITRACE )
      Trace::trace(".WRK", "=DEL", this, worker);
 
-   ++del_workers;
+   ++WorkerPool::del_workers;
 }
 
 //----------------------------------------------------------------------------
@@ -168,7 +163,7 @@ inline void
    else if( USE_ITRACE )
      Trace::trace(".WRK", "DONE", this, worker);
 
-   --running;
+   --WorkerPool::running;
    WorkerThread* thread= this;
    unsigned now_used= 0;
 
@@ -188,9 +183,9 @@ inline void
    else if( USE_ITRACE )
      Trace::trace(".WRK", "POOL", this);
 
-   unsigned was_maxi= 0;            // (Avoids load if pool_size unchanged)
+   size_t was_maxi= 0;              // (Avoids load if pool_size unchanged)
    while( now_used > was_maxi ) {
-     if( max_used.compare_exchange_weak(was_maxi, now_used) )
+     if( WorkerPool::max_used.compare_exchange_weak(was_maxi, now_used) )
        break;
    }
 }
@@ -242,7 +237,10 @@ void
      Trace::trace(".WRK", "=RUN", this, worker);
 
    while( operational ) {
-     if( worker ) {
+     if( worker == nullptr ) {      // (Should not occur, but ignorable)
+       if( USE_IDEBUG )
+         debugh("%4d %s operational but NO WORKER\n", __LINE__, __FILE__);
+     } else {
        try {
          worker->work();
        } catch(Exception& X) {
@@ -256,7 +254,6 @@ void
          utility::report_exception("...");
        }
      }
-       else debugh("%4d %s operational but NO WORKER\n", __LINE__, __FILE__); // TODO: REMOVE
 
      worker= nullptr;
      done();
@@ -280,42 +277,35 @@ void
 
 //----------------------------------------------------------------------------
 //
-// (Static) method-
-//       WorkerPool::get_running
+// Method-
+//       WorkerPool::get_size (static attribute)
+//       WorkerPool::get_used (static attribute)
 //
 // Purpose-
-//       Accessor: running
+//       Getter: Get pool_size
+//       Getter: Get pool_used
 //
 //----------------------------------------------------------------------------
-unsigned                            // The number of running threads
-   WorkerPool::get_running( void )  // Get number of running threads
-{  return running; }
-
-//----------------------------------------------------------------------------
-//
-// (Static) method-
-//       WorkerPool::get_size
-//
-// Purpose-
-//       Accessor: pool_size
-//
-//----------------------------------------------------------------------------
-unsigned                            // The WorkerPool size
-   WorkerPool::get_size( void )     // Get WorkerPool size
+size_t                              // The current thread pool size
+   WorkerPool::get_size( void )     // Get current thread pool size
 {  return pool_size; }
+
+size_t                              // The current thread pool used count
+   WorkerPool::get_used( void )     // Get current thread pool used count
+{  return pool_used; }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       WorkerPool::set_size
+//       WorkerPool::set_size (static attribute)
 //
 // Purpose-
-//       Accessor: Set the pool_size
+//       Setter: Set the pool_size
 //
 //----------------------------------------------------------------------------
 void
    WorkerPool::set_size(            // Set the thread pool size
-     unsigned          _size)       // The updated thread pool_size
+     size_t            _size)       // The updated thread pool_size
 {  std::lock_guard<decltype(pool_mutex)> lock(pool_mutex);
 
    for(unsigned i= 0; i<pool_used; i++) {
@@ -348,20 +338,23 @@ void
 //----------------------------------------------------------------------------
 void
    WorkerPool::debug(             // Debugging display
-     const char*       info)      // Caller information (adds thread list)
+     const char*       info,      // Caller information
+     bool              detail)    // Add pooled thread information?
 {
    debugf("WorkerPool::debug(%s)\n", info ? info : "");
 
    debugf("%'16zd max_running\n", max_running.load());
-   debugf("%'16d max_pooled\n",   max_used.load());
+   debugf("%'16zd max_pooled\n",  max_used.load());
    debugf("%'16zd running\n",     running.load());
-   debugf("%'16d pool_size\n",    pool_size);
    debugf("%'16zd new_workers\n", new_workers.load());
    debugf("%'16zd del_workers\n", del_workers.load());
-   debugf("%'16d pooled\n",       pool_used);
    debugf("%'16zd workers\n",     workers.load());
 
-   if( info ) {
+   // Static local, protected by mutex
+   debugf("%'16zd pool_size\n",   pool_size);
+   debugf("%'16zd pool_used\n",   pool_used);
+
+   if( detail ) {
      std::lock_guard<decltype(pool_mutex)> lock(pool_mutex);
      for(unsigned i= 0; i<pool_used; i++) {
        WorkerThread* thread= pool[i];
@@ -389,12 +382,14 @@ void
      WorkerThread* thread= pool[i];
      thread->stop();
    }
+   pool_used= 0;
 
    // Reset the statistics
+   del_workers.store(0);
+   new_workers.store(0);
    max_running.store(0);
    max_used.store(0);
    running.store(0);
-   pool_used= 0;
    workers.store(0);
 }
 

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2024 Frank Eskesen.
+//       Copyright (C) 2022-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -14,10 +14,10 @@
 //       Wrapper.cpp
 //
 // Purpose-
-//       Implement Wrapper.h generic program wrapper.
+//       Implement Wrapper.h, generic program wrapper.
 //
 // Last change date-
-//       2024/03/04
+//       2026/01/23
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -247,6 +247,31 @@ void
      string S= debug_opt(opt);
      debugf("[%2zd] %s\n", i, S.c_str());
    }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Wrapper::atod
+//
+// Purpose-
+//       Convert string to double, *always* setting errno.
+//
+// Implementation note-
+//       Leading or trailing blanks are NOT allowed.
+//
+//----------------------------------------------------------------------------
+double                              // The double value
+   Wrapper::atod(                   // Extract and verify double value
+     const char*       inp)         // From this string
+{
+   errno= 0;
+   char* strend;                    // Ending character
+   double value= strtod(inp, &strend);
+   if( strend == inp || *inp == ' ' || *strend != '\0' )
+     errno= EINVAL;
+
+   return value;
 }
 
 //----------------------------------------------------------------------------
@@ -578,6 +603,39 @@ void
 
    if( opt_help )
      info();
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Wrapper::ptod
+//
+// Purpose-
+//       Convert parameter to double, handling error cases
+//
+// Implementation note-
+//       optarg: The argument string
+//       opt_index: The argument index
+//
+//----------------------------------------------------------------------------
+double                              // The double value
+   Wrapper::ptod(const char* V, const char* N) // Extract/verify parameter
+{
+   double value= atod(V);
+   if( errno ) {
+     opt_help= 2;
+     if( N == nullptr )
+       N= "parameter";
+
+     if( errno == ERANGE )
+       debugf("--%s, range error: '%s'\n", N, V);
+     else if( *optarg == '\0' )
+       debugf("--%s, no value specified\n", N);
+     else
+       debugf("--%s, format error: '%s'\n", N, V);
+   }
+
+   return value;
 }
 
 //----------------------------------------------------------------------------

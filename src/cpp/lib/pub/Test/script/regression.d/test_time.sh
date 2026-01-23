@@ -17,9 +17,13 @@
 ##       Run timing tests
 ##
 ## Last change date-
-##       2026/01/20
+##       2026/01/23
 ##
 ##############################################################################
+
+##############################################################################
+## Definitions
+logfile="test_time.out"
 
 ##############################################################################
 ## Function cmd: Run test, success expected
@@ -38,15 +42,26 @@ function cmd
 }
 
 ##############################################################################
+## Function log: Display command, run logging output
+function log
+{
+  echo "$@"
+  echo -e "\n$@" >>$logfile
+  "$@" >>$logfile
+}
+
+##############################################################################
 ## Test started
-echo "TEST: test_time.sh Timing tests (started)"
+echo "TEST: test_time.sh (started)"
+echo "`date` TEST: test_time.sh (started) on $HOST" >$logfile
 
 ##############################################################################
 ## Run timing tests
-cmd TimeDisp --verbose
-cmd TimeDisp --verbose --items=4096 --tasks=32
-cmd TimeDisp --verbose --size=2
+log TimeDisp --verbose
+log TimeDisp --verbose --items=4096 --tasks=32
+log TimeDisp --verbose --size=2 --retest ## Regression test
 
-cmd TestDisp --timing
-cmd TestSock --runtime=30 --verbose --packet --stream --thread --worker
-cmd TestSock --runtime=30 --verbose --stream --thread --worker --ssl
+log TestDisp --timing
+log TestSock --runtime=30 --verbose --packet --stream --thread --worker
+log TestSock --runtime=30 --verbose --stream --thread --worker --ssl
+echo "PASS: test_time.sh" >>$logfile

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2022-2024 Frank Eskesen.
+//       Copyright (c) 2022-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Generic program wrapper.
 //
 // Last change date-
-//       2024/03/04
+//       2026/01/23
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_WRAPPER_H_INCLUDED
@@ -180,6 +180,17 @@ class Wrapper                       // Generic program wrapper
      //-----------------------------------------------------------------------
      // Utilities
      /************************************************************************
+       @brief Convert string to double
+       @param V The string to convert. Non-numeric characters are invalid.
+       @returns The integer representation of `V`
+       @retval errno\
+                0: Normal, no error detected.\
+           EINVAL: Invalid character or empty string.\
+           ERANGE: Value outside of integer range.
+     ************************************************************************/
+     static double atod(const char* V); // Convert V to double
+
+     /************************************************************************
        @brief Convert string to integer.
        @param V The string to convert. Non-numeric characters are invalid.
        @returns The integer representation of `V`
@@ -224,6 +235,17 @@ class Wrapper                       // Generic program wrapper
          be slightly different than Trace::table.
      ************************************************************************/
      static void* init_trace(const char* name, int size);
+
+     /************************************************************************
+       @brief Convert parameter to double
+       @param N The parameter name.
+       @param V The string to convert. Non-numeric characters are invalid.
+       @return The double representation of `V`
+
+       Invokes atod(V). If an error occurs an error message is written to
+       stderr and and the program exits, invoking on_info().
+     ************************************************************************/
+     double ptod(const char* V, const char* N= nullptr);
 
      /************************************************************************
        @brief Convert parameter to integer.

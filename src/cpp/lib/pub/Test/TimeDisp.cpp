@@ -17,7 +17,7 @@
 //       Dispatcher timing test.
 //
 // Last change date-
-//       2026/01/21
+//       2026/01/23
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic
@@ -47,11 +47,12 @@ using PUB::Wrapper;
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
+static constexpr double OPT_RUNTIME= 10.0; // Default runtime
+
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
-,  OPT_RUNTIME= 10'000              // Default, 10.0 second test
 ,  OPT_ITEMS= 512                   // Default number of Items
 ,  OPT_TASKS= 8                     // Default number of Tasks
 
@@ -72,25 +73,27 @@ class TimerTask;                    // For TimerTask*
 static int             error_count= 0; // Error counter
 static int             running= 0;  // Test running indicator
 
-static Event           test_start;  // The test start Event
 static double          then= 0.0;   // The test start time
+static double          done= 0.0;   // The test completion time
 
 static void*           table= nullptr; // The Trace table
 static TimerItem**     item_array= nullptr; // The Timer Item array
 static TimerTask**     task_array= nullptr; // The Timer Task array
 
 // Extended options
-static int             opt_runtime= OPT_RUNTIME; // --runtime
+static double          opt_runtime= OPT_RUNTIME; // --runtime
 static int             opt_items= OPT_ITEMS; // --items
-static unsigned        opt_size= WorkerPool::get_size(); // --size
+static int             opt_retest= false; // --retest
+static int             opt_size= WorkerPool::get_size(); // --size
 static int             opt_tasks= OPT_TASKS; // --tasks
 static int             opt_trace= 0; // --trace
 static struct option   opts[]=      // The getopt_long parameter: longopts
-{  {"runtime",  required_argument, nullptr,    0} // --runtime=milliseconds
-,  {"items",    required_argument, nullptr,    0} // --items=count
-,  {"size",     required_argument, nullptr,    0} // --size=count
-,  {"tasks",    required_argument, nullptr,    0} // --tasks=count
-,  {"trace",    optional_argument, &opt_trace, 0x0800'0000} // --trace
+{  {"runtime",  required_argument, nullptr,        0} // --runtime=double
+,  {"retest",   no_argument,       &opt_retest, true} // --retest
+,  {"items",    required_argument, nullptr,        0} // --items=count
+,  {"size",     required_argument, nullptr,        0} // --size=count
+,  {"tasks",    required_argument, nullptr,        0} // --tasks=count
+,  {"trace",    optional_argument, &opt_trace,  0x0800'0000} // --trace{=size}
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
 
@@ -187,41 +190,6 @@ static void
      (void)record;
    }
 }
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       TimerThread
-//
-// Purpose-
-//       Background Thread that sets and clears `running`
-//
-//----------------------------------------------------------------------------
-class TimerThread : public PUB::Thread {
-public:
-   TimerThread( void ) = default;
-   ~TimerThread( void ) = default;
-
-virtual void
-   run( void )
-{
-   test_start.post();
-// running= true;                   // Set in main task, test_timing()
-// then= PUB::Clock::now();         // Set in main task, test_timing()
-
-   Thread::sleep((double)opt_runtime/1000.0); // (Run the test)
-
-   if( opt_hcdm || opt_verbose > 1 ) { // WorkerPool debug while still running
-     debugf("\n");
-     PUB::WorkerPool::debug();
-   }
-
-   running= false;
-
-   test_start.reset();
-}
-}; // class TimerThread
-static TimerThread timer_thread;    // *THE* TimerThread
 
 //----------------------------------------------------------------------------
 //
@@ -404,6 +372,59 @@ const char*                         // Return something
 
 //----------------------------------------------------------------------------
 //
+// Class-
+//       TimerThread
+//
+// Purpose-
+//       Run the timing test
+//
+//----------------------------------------------------------------------------
+class TimerThread : public PUB::Thread {
+public:
+   TimerThread( void ) = default;
+   ~TimerThread( void ) = default;
+
+virtual void
+   run( void )
+{
+   // Start the test
+   running= true;                   // Indicate running
+   then= PUB::Clock::now();         // Test start time
+   if( opt_hcdm || opt_verbose > 1 )
+     debugh("running= true\n");
+
+   // Distribute the TimerItems
+   // We can't distribute Items before the test is running since they will
+   // simply get posted and discarded.
+   int item_ix= 0;
+   int task_ix= 0;
+   while( item_ix < opt_items ) {
+     if( task_ix >= opt_tasks )
+       task_ix= 0;
+
+     trace(".TST", __LINE__, "QUEUE", item_ix, task_ix);
+     item_array[item_ix]->next_task= task_ix;
+     task_array[task_ix++]->enqueue(item_array[item_ix++]);
+   }
+   if( opt_hcdm || opt_verbose > 2 ) // (Distribution doesn't take much time)
+     debugh("%'10.4f All Items distributed\n", PUB::Clock::now() - then);
+
+   Thread::sleep(opt_runtime);      // (Run the test)
+
+   if( opt_hcdm || opt_verbose > 1 ) { // WorkerPool debug while still running
+     debugh("TimerThread\n");
+     PUB::WorkerPool::debug("while running==true");
+   }
+
+   running= false;
+   if( opt_hcdm || opt_verbose > 1 )
+     debugh("%'10.4f running= false\n", PUB::Clock::now() - then);
+}
+}; // class TimerThread
+static TimerThread timer_thread;    // *THE* TimerThread
+
+//----------------------------------------------------------------------------
+//
 // Subroutine-
 //       test_timing
 //
@@ -414,15 +435,26 @@ const char*                         // Return something
 static int
    test_timing( void )              // Timing test
 {
-   if( opt_hcdm || opt_verbose ) {
-     debugf("%s\n", "test_timing");
+   error_count= 0;                  // (No errors yet)
 
-     debugf("%'16.3f Runtime\n", (double)opt_runtime/1000.0);
-     debugf("%'16d Items\n", opt_items);
-     debugf("%'16d Tasks\n", opt_tasks);
+   // Display the options
+   if( opt_retest )
+      debugf("**************** REGRESSION TEST\n");
+
+   if( opt_hcdm || opt_verbose > 1 ) {
+     debugf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
+     debugf("%16d opt_hcdm\n", opt_hcdm);
+     debugf("%16d opt_verbose\n", opt_verbose);
+     debugf("%6s0x%.8x opt_trace\n", "", opt_trace);
+     debugf("\n");
    }
 
-   error_count= 0;                  // (No errors yet)
+   if( opt_hcdm || opt_verbose ) {
+     debugf("%'16.3f Runtime\n", opt_runtime);
+     debugf("%'16d Items\n", opt_items);
+     debugf("%'16d Tasks\n", opt_tasks);
+     debugf("%'16d Size\n",  opt_size);
+   }
 
    // Initialize the Item array
    item_array= (TimerItem**)malloc(sizeof(TimerItem*) * opt_items);
@@ -440,34 +472,16 @@ static int
      task_array[i]= new TimerTask(i);
    }
 
-   // Start the TimerThread; Start the timing test
-   int item_ix= 0;
-   int task_ix= 0;
-
+   // Start the TimerThread (running the timing test)
    timer_thread.start();
-   test_start.wait();               // Wait for running state
-   running= true;                   // Indicate running
-   then= PUB::Clock::now();         // Test start time
-
-   // Distribute the TimerItems
-   // Note: We can't distribute these Items until the test is running, or the
-   // Items will simply get posted and discarded.
-   // While initializing, the test runs with fewer active items.
-   while( item_ix < opt_items ) {
-     if( task_ix >= opt_tasks )
-       task_ix= 0;
-
-     trace(".TST", __LINE__, "QUEUE", item_ix, task_ix);
-     item_array[item_ix]->next_task= task_ix;
-     task_array[task_ix++]->enqueue(item_array[item_ix++]);
-   }
 
    // Wait for the TimerThread to complete
    timer_thread.join();
-   double now= PUB::Clock::now();
+   if( opt_hcdm || opt_verbose > 1 )
+     debugh("%'10.4f joined\n", PUB::Clock::now() - then);
 
    // Wait for all TimerItem completions
-   for(item_ix= 0; item_ix<opt_items; ++item_ix) {
+   for(int item_ix= 0; item_ix<opt_items; ++item_ix) {
      if( opt_hcdm )
        tracef("%4d Task[%3d] Item[%3d] WAIT\n", __LINE__, -1, item_ix);
      else
@@ -475,23 +489,26 @@ static int
      item_array[item_ix]->wait.wait();
    }
 
-   // Completion analysis
-   debugf("\n");
-// double nominal= (double)opt_runtime/1000.0;
-   double elapsed= now - then;
-// debugf("%'16.2f Nominal\n", nominal);
-   debugf("%'16.2f Elapsed\n", elapsed);
+   // Testing is complete
+   done= PUB::Clock::now();
+   if( opt_hcdm || opt_verbose > 1 ) {
+     debugh("%'10.4f testing complete\n", done - then);
 
-   size_t item_count= 0;
+     debugf("\n");
+     PUB::WorkerPool::debug("Test complete");
+   }
+
+   // Count the operations (cross-checking the item_count and task_count)
    size_t task_count= 0;
-   for(item_ix= 0; item_ix<opt_items; ++item_ix) {
-     for(task_ix= 0; task_ix<opt_tasks; ++task_ix) {
+   for(int item_ix= 0; item_ix<opt_items; ++item_ix) {
+     for(int task_ix= 0; task_ix<opt_tasks; ++task_ix) {
        task_count += item_array[item_ix]->task_count[task_ix];
      }
    }
 
-   for(task_ix= 0; task_ix<opt_tasks; ++task_ix) {
-     for(item_ix= 0; item_ix<opt_items; ++item_ix) {
+   size_t item_count= 0;
+   for(int task_ix= 0; task_ix<opt_tasks; ++task_ix) {
+     for(int item_ix= 0; item_ix<opt_items; ++item_ix) {
        item_count += task_array[task_ix]->item_count[item_ix];
      }
    }
@@ -502,25 +519,30 @@ static int
      debugf("%'16zd Task count\n", task_count);
    }
 
-   // (Enqueue + Dequeue) Operations/second, includes possible task scheduling
-// debugf("%'16.0f Operations/second (nominal)\n", (double)item_count/nominal);
-   debugf("%'16.0f Operations/second (elapsed)\n", (double)item_count/elapsed);
+   // Report the results
+   // Note: Operations added to a task while a task is running are processed
+   // use the same Worker. While this increases the reported average queue
+   // length, we don't have enough instrumentation to quantify this effect.
+   debugf("\n");
+   double elapsed= done - then;
+   double per_sec= double(item_count)/elapsed;
+   double workers= PUB::WorkerPool::get_workers();
 
-   // Diagnostics
-   if( opt_hcdm || opt_verbose ) { // WorkerPool debug after test completes
-     debugf("\n");
-     PUB::WorkerPool::debug();
-   }
+   debugf("%'16.2f Elapsed\n", elapsed);
+   debugf("%'16.0f Operations/second (Elapsed)\n", per_sec);
+   debugf("%'16.0f Workers\n", workers);
+   debugf("%'16.2f Operations/worker (Average queue length)\n"
+         , per_sec / workers);
 
    // Cleanup
-   for(item_ix= 0; item_ix<opt_items; ++item_ix) {
+   for(int item_ix= 0; item_ix<opt_items; ++item_ix) {
      delete item_array[item_ix];
      item_array[item_ix]= nullptr;
    }
    free(item_array);
    item_array= nullptr;
 
-   for(task_ix= 0; task_ix<opt_tasks; ++task_ix) {
+   for(int task_ix= 0; task_ix<opt_tasks; ++task_ix) {
      delete task_array[task_ix];
      task_array[task_ix]= nullptr;
    }
@@ -551,7 +573,7 @@ extern int
    {
      // Options:, --help, --hcdm, and --verbose are displayed by Wrappper
      fprintf(stderr,
-            "  --runtime\t=time In milliseconds\n"
+            "  --runtime\t=time In seconds (double)\n"
             "  --items\t=count Number of Items\n"
             "  --size\t=count WorkerThread pool size\n"
             "  --tasks\t=count Number of Tasks\n"
@@ -565,9 +587,11 @@ extern int
        if( V )
          opt_trace= tr->ptoi(V);
      } else if( P == "runtime" ) {
-       opt_runtime= tr->ptoi(V);
-       if( opt_runtime < 100 )
-         opt_runtime= 100;
+       opt_runtime= tr->ptod(V);
+       if( opt_runtime < 1.0 ) {
+         opt_runtime= 1.0;
+         errorf("--runtime: Minimum value %.1f used\n", opt_runtime);
+       }
      } else if( P == "items" ) {
        opt_items= tr->ptoi(V);
        if( opt_items < 1 )
@@ -620,19 +644,6 @@ extern int
      }
 
      try {
-       if( opt_hcdm || opt_verbose ) {
-         debugf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
-
-         debugf("%16d opt_hcdm\n", opt_hcdm);
-         debugf("%16d opt_verbose\n", opt_verbose);
-
-         debugf("%'16d opt_runtime\n", opt_runtime);
-         debugf("%'16d opt_items\n", opt_items);
-         debugf("%'16u opt_size\n", opt_size);
-         debugf("%'16d opt_tasks\n", opt_tasks);
-         debugf("%6s0x%.8x opt_trace\n", "", opt_trace);
-       }
-
        error_count += test_timing();
      } catch(std::exception& x) {
        debugf("FAILED: Exception: exception(%s)\n", x.what());
