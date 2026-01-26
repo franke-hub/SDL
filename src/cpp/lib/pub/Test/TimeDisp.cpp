@@ -17,7 +17,7 @@
 //       Dispatcher timing test.
 //
 // Last change date-
-//       2026/01/23
+//       2026/01/26
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic
@@ -384,6 +384,7 @@ public:
    TimerThread( void ) = default;
    ~TimerThread( void ) = default;
 
+//----------------------------------------------------------------------------
 virtual void
    run( void )
 {
@@ -416,7 +417,7 @@ virtual void
      PUB::WorkerPool::debug("while running==true");
    }
 
-   running= false;
+   running= false;                  // (But the test isn't 100% complete)
    if( opt_hcdm || opt_verbose > 1 )
      debugh("%'10.4f running= false\n", PUB::Clock::now() - then);
 }
@@ -472,14 +473,17 @@ static int
      task_array[i]= new TimerTask(i);
    }
 
+   //*************************************************************************
    // Start the TimerThread (running the timing test)
    timer_thread.start();
 
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    // Wait for the TimerThread to complete
    timer_thread.join();
    if( opt_hcdm || opt_verbose > 1 )
-     debugh("%'10.4f joined\n", PUB::Clock::now() - then);
+     debugh("%'10.4f Join complete\n", PUB::Clock::now() - then);
 
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    // Wait for all TimerItem completions
    for(int item_ix= 0; item_ix<opt_items; ++item_ix) {
      if( opt_hcdm )
@@ -489,14 +493,22 @@ static int
      item_array[item_ix]->wait.wait();
    }
 
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    // Testing is complete
    done= PUB::Clock::now();
    if( opt_hcdm || opt_verbose > 1 ) {
-     debugh("%'10.4f testing complete\n", done - then);
+     debugh("%'10.4f Test complete\n", done - then);
 
+     // We've waited for all TimerItems, but some TimerTasks (which run under
+     // WorkerThreads) might have been stopped in that process. Stopping
+     // schedules the Thread delete doesn't wait for completion. This normally
+     // isn't a problem because Worker.cpp termination has a built-in delay.
+     // We delay at this point in order to get coherent WorkerPool status.
+     Thread::sleep(0.25);           // (Allows pending deletes to complete)
      debugf("\n");
      PUB::WorkerPool::debug("Test complete");
    }
+   //*************************************************************************
 
    // Count the operations (cross-checking the item_count and task_count)
    size_t task_count= 0;
@@ -529,10 +541,11 @@ static int
    double workers= PUB::WorkerPool::get_workers();
 
    debugf("%'16.2f Elapsed\n", elapsed);
-   debugf("%'16.0f Operations/second (Elapsed)\n", per_sec);
+   debugf("%'16zd Operations\n", item_count);
    debugf("%'16.0f Workers\n", workers);
+   debugf("%'16.0f Operations/second (Elapsed)\n", per_sec);
    debugf("%'16.2f Operations/worker (Average queue length)\n"
-         , per_sec / workers);
+         , double(item_count) / workers);
 
    // Cleanup
    for(int item_ix= 0; item_ix<opt_items; ++item_ix) {
@@ -614,7 +627,7 @@ extern int
    tc.on_init([tr](int, char**)
    {
      debug_set_head(Debug::HEAD_THREAD | Debug::HEAD_TIME);
-     if( opt_hcdm )
+     if( opt_hcdm || opt_verbose > 1 )
        debug_set_mode(Debug::MODE_INTENSIVE);
 
      if( opt_trace )

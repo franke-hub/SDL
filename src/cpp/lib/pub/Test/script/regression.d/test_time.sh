@@ -14,10 +14,10 @@
 ##       test_time.sh
 ##
 ## Function-
-##       Run timing tests
+##       Run timing tests, logging to test_time.out
 ##
 ## Last change date-
-##       2026/01/23
+##       2026/01/26
 ##
 ##############################################################################
 
@@ -61,7 +61,14 @@ log TimeDisp --verbose
 log TimeDisp --verbose --items=4096 --tasks=32
 log TimeDisp --verbose --size=2 --retest ## Regression test
 
+log TestDisp --timing               ## Repeat to get MIN/AVG/MAX
 log TestDisp --timing
+log TestDisp --timing
+
 log TestSock --runtime=30 --verbose --packet --stream --thread --worker
 log TestSock --runtime=30 --verbose --stream --thread --worker --ssl
+
+log Test_thr --verbose
+
+##############################################################################
 echo "PASS: test_time.sh" >>$logfile

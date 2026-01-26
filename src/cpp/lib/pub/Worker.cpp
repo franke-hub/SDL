@@ -17,7 +17,7 @@
 //       Worker object methods.
 //
 // Last change date-
-//       2026/01/22
+//       2026/01/26
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<>
@@ -97,6 +97,8 @@ static struct Global_init_term {
 //
 //----------------------------------------------------------------------------
 class WorkerThread : public Thread { // The WorkerThread Thread
+friend class WorkerPool;
+
 //----------------------------------------------------------------------------
 // WorkerThread::Attributes
 //----------------------------------------------------------------------------
@@ -112,23 +114,24 @@ public:
    WorkerThread(                    // Constructor
      Worker*           worker= nullptr) // Associated Worker
 :  Thread(), operational(true), sem(), worker(worker)
-{  if( HCDM )
+{  ++WorkerPool::new_workers;
+
+   if( HCDM )
      traceh("WorkerThread(%p)!(%p)\n", this, worker);
    else if( USE_ITRACE )
      Trace::trace(".WRK", "=NEW", this, worker);
 
-   ++WorkerPool::new_workers;
    start();
 }
 
 virtual
    ~WorkerThread( void )            // Destructor
-{  if( HCDM )
+{  ++WorkerPool::del_workers;
+
+   if( HCDM )
      traceh("WorkerThread(%p)~(%p)\n", this, worker);
    else if( USE_ITRACE )
      Trace::trace(".WRK", "=DEL", this, worker);
-
-   ++WorkerPool::del_workers;
 }
 
 //----------------------------------------------------------------------------
@@ -158,16 +161,22 @@ inline bool
 //----------------------------------------------------------------------------
 inline void
    done( void )                      // Work complete
-{  if( HCDM )
+{  --WorkerPool::running;
+
+   if( HCDM )
      traceh("WorkerThread(%p).done(%p)\n", this, worker);
    else if( USE_ITRACE )
      Trace::trace(".WRK", "DONE", this, worker);
 
-   --WorkerPool::running;
    WorkerThread* thread= this;
    unsigned now_used= 0;
 
-   if( operational )
+   if( USE_IDEBUG && !operational ) { // This condition should never occur
+     // This is an internal logic error. A non-operational thread is going to
+     // or already has deleted itself. If this occurs, debugging is needed.
+     debugh("%4d %s !operational: invalid state\n", __LINE__, __FILE__);
+     throwf("Invalid state");
+   } else
    {{{{ // PERFORMANCE CRITICAL ==============================================
      std::lock_guard<decltype(pool_mutex)> lock(pool_mutex);
 
@@ -204,22 +213,6 @@ void
      Trace::trace(".WRK", "=USE", this, worker);
 
    this->worker= worker;
-   sem.post();
-}
-
-//----------------------------------------------------------------------------
-// WorkerThread::stop()
-//
-// Terminate Thread processing.
-//----------------------------------------------------------------------------
-virtual void
-   stop( void )                     // Terminate processing
-{  if( HCDM )
-     traceh("WorkerThread(%p).stop(%p)\n", this, worker);
-   else if( USE_ITRACE )
-     Trace::trace(".WRK", "STOP", this, worker);
-
-   operational= false;
    sem.post();
 }
 
@@ -272,6 +265,22 @@ void
      Trace::trace(".WRK", "INOP", this, worker);
 
    delete this;
+}
+
+//----------------------------------------------------------------------------
+// (protected:) WorkerThread::stop()
+//
+// Terminate Thread processing. [Only invoked from done().]
+//----------------------------------------------------------------------------
+virtual void
+   stop( void )                     // Terminate processing
+{  if( HCDM )
+     traceh("WorkerThread(%p).stop(%p)\n", this, worker);
+   else if( USE_ITRACE )
+     Trace::trace(".WRK", "STOP", this, worker);
+
+   operational= false;
+   sem.post();
 }
 }; // class WorkerThread
 
@@ -405,18 +414,12 @@ void
 void
    WorkerPool::work(                 // Process work
      Worker*           worker)       // Using this Worker
-{  if( HCDM )
+{  ++workers;
+
+   if( HCDM )
      traceh("WorkerPool.work(%p) running(%zd)\n", worker, running.load());
    else if( USE_ITRACE )
      Trace::trace(".WRK", "WORK", worker, i2v(running.load()));
-
-   ++workers;
-   size_t was_running= ++running;
-   size_t was_maximum= max_running.load();
-   while( was_running > was_maximum ) {
-     if( max_running.compare_exchange_weak(was_maximum, was_running) )
-       break;
-   }
 
    WorkerThread* thread= nullptr;
 
@@ -426,6 +429,13 @@ void
      if( pool_used > 0 )
        thread= pool[--pool_used];
    }}}} // PERFORMANCE CRITICAL ==============================================
+
+   size_t was_running= ++running;
+   size_t was_maximum= max_running.load();
+   while( was_running > was_maximum ) {
+     if( max_running.compare_exchange_weak(was_maximum, was_running) )
+       break;
+   }
 
    if( thread )
      thread->reuse(worker);

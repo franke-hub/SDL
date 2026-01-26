@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2022-2025 Frank Eskesen.
+##       Copyright (C) 2022-2026 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -17,7 +17,7 @@
 ##       Run executables with default options
 ##
 ## Last change date-
-##       2025/03/30
+##       2026/01/26
 ##
 ##############################################################################
 
@@ -40,12 +40,12 @@ do
   fi
 done
 
+## Removed Test_thr, now in test_time.sh
 test_set="TestIoda TestList TestLock TestMisc"
-test_set="$test_set Test_num Test_thr Test_utf"
+test_set="$test_set Test_num Test_utf"
 for test in $test_set
 do
   [[ "$test" == "Test_num" ]] && echo "TEST: ./$test (started)"
-  [[ "$test" == "Test_thr" ]] && echo "TEST: ./$test (started)"
   ./$test
   rc=$?
   if [[ $rc == 0 ]] ; then
