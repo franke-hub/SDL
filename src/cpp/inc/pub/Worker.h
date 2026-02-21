@@ -17,7 +17,7 @@
 //       Define a Worker used to handle discrete units of work.
 //
 // Last change date-
-//       2026/01/22
+//       2026/02/09
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_WORKER_H_INCLUDED
@@ -141,7 +141,7 @@ static void
 //----------------------------------------------------------------------------
 static void
    debug(                           // Debugging display (statistics)
-     const char*       info= nullptr, // Caller info
+     const char*       info= "",    // Caller info
      bool              detail= false); // Add pooled thread information?
 
 static void

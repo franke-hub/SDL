@@ -17,7 +17,7 @@
 //       Worker object methods.
 //
 // Last change date-
-//       2026/01/26
+//       2026/02/09
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<>
@@ -31,11 +31,13 @@
 #include "pub/Thread.h"             // For pub::Thread
 #include "pub/Trace.h"              // For pub::Trace
 #include "pub/Worker.h"             // For pub:: Worker, implemented
-#include <pub/utility.h>            // For pub::utility::report_exception
+#include <pub/utility.h>            // For pub::utility::report_exception, ...
+#include <pub/utility.i>            // For pub::utility conversion routines
 
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB::debugging;     // For debugging methods
 using pub::Trace;                   // For tracing methods
+using pub::utility::to_void;        // For if( to_void(this) == nullptr )
 using std::atomic_size_t;
 
 //----------------------------------------------------------------------------
@@ -112,8 +114,8 @@ Worker*                worker;      // The current Worker
 //----------------------------------------------------------------------------
 public:
    WorkerThread(                    // Constructor
-     Worker*           worker= nullptr) // Associated Worker
-:  Thread(), operational(true), sem(), worker(worker)
+     Worker*           _worker= nullptr) // Associated Worker
+:  Thread(), operational(true), sem(), worker(_worker)
 {  ++WorkerPool::new_workers;
 
    if( HCDM )
@@ -121,7 +123,7 @@ public:
    else if( USE_ITRACE )
      Trace::trace(".WRK", "=NEW", this, worker);
 
-   start();
+   start(ITS_DETACHED);
 }
 
 virtual
@@ -138,15 +140,21 @@ virtual
 // WorkerThread::debug
 //----------------------------------------------------------------------------
 virtual void
-   debug(const char* info= nullptr) const
+   debug(const char* info= "") const
 {
-   if( info == nullptr )
-     info= "WorkerThread";
+   {{{{ // The Debug lock provides sequential debugf outputs
+     std::lock_guard<Debug> debug(*Debug::get());
 
-   debugf("WorkerThread(%p)::debug(%s) worker(%p) operational(%s)\n", this
-         , info, worker, operational ? "true" : "false");
-   sem.debug("WorkerThread.sem");
-   Thread::debug(info);
+     debugf("WorkerThread(%p)::debug(%s)\n", this, info);
+     if( to_void(this) == nullptr ) {
+       debugf("..no information available\n");
+       return;
+     }
+
+     debugf("..worker(%p) operational(%s)\n", info, b2c(operational));
+     sem.debug(info);
+     Thread::debug(info);
+   }}}}
 }
 
 //----------------------------------------------------------------------------
@@ -174,8 +182,8 @@ inline void
    if( USE_IDEBUG && !operational ) { // This condition should never occur
      // This is an internal logic error. A non-operational thread is going to
      // or already has deleted itself. If this occurs, debugging is needed.
-     debugh("%4d %s !operational: invalid state\n", __LINE__, __FILE__);
-     throwf("Invalid state");
+     debugh("%4d %s (invalid state) !operational\n", __LINE__, __FILE__);
+     throwf("Worker: (invalid state) !operational");
    } else
    {{{{ // PERFORMANCE CRITICAL ==============================================
      std::lock_guard<decltype(pool_mutex)> lock(pool_mutex);
