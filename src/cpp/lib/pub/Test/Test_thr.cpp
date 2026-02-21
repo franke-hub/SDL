@@ -17,13 +17,14 @@
 //       Test Thread function.
 //
 // Last change date-
-//       2026/01/20
+//       2026/02/20
 //
 // Implementation notes-
-//       We don't trace but can create a trace table for library use.
+//       We don't trace anything but can create a trace table for library use.
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
+#include <functional>               // For std::function
 #include <iostream>                 // For std::cout, std::cerr
 #include <memory>                   // For std::shared_ptr, ...
 #include <mutex>                    // For std::lock_guard
@@ -37,7 +38,9 @@
 #include "pub/Mutex.h"              // For pub::Mutex
 #include "pub/Named.h"              // For pub::Named (Threads)
 #include "pub/Semaphore.h"          // For pub::Semaphore
+#include "pub/System.h"             // For pub::System
 #include "pub/Thread.h"             // For pub::Thread
+#include "pub/Worker.h"             // For pub::Worker
 #include "pub/Wrapper.h"            // For pub::Wrapper
 #include "pub/utility.i"            // For pub::utility conversion routines
 
@@ -51,6 +54,8 @@ using PUB::Mutex;
 using PUB::Named;
 using PUB::Semaphore;
 using PUB::Thread;
+using PUB::Worker;
+using PUB::WorkerPool;
 using PUB::Wrapper;
 using namespace PUB::debugging;
 
@@ -61,9 +66,9 @@ enum // Generic enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more
 
-,  MAXHANGERS=  16                  // Number of hangy threads to generate
-,  MAXNOISY=  1000                  // Number of noisy threads to generate
-,  MAXQUIET= 25000                  // Number of quiet threads to generate
+,  MAXDELETES=  16                  // Number of self-delete threads
+,  MAXNOISY=  1000                  // Number of noisy threads
+,  MAXQUIET= 25000                  // Number of quiet threads
 ,  TIMING=       1                  // Number of timing loops to run
 }; // Generic enum
 
@@ -92,6 +97,167 @@ static struct option   opts[]=      // The getopt_long parameter: longopts
 ,  {"trace",    optional_argument, &opt_trace, 0x0040'0000} // --trace
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       LambdaWorker
+//
+// Purpose-
+//       Generic worker, used to create abnormal Thread termination conditions
+//
+//----------------------------------------------------------------------------
+class LambdaWorker : public Worker {
+typedef std::function<void(void)>   Function;
+const Function         function;    // The Lambda function
+
+public:
+   LambdaWorker(                    // Constructor
+     const Function&   _F)          // The Lambda function
+:  Worker(), function(_F)
+{  }
+
+virtual void
+   work( void )
+{  function(); }                    // Invoke the Lambda function
+}; // class LambdaWorker
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       LoopyThread
+//
+// Purpose-
+//       Define a stoppable Thread
+//
+// Implementation notes-
+//       Used for abnormal Thread termination testing.
+//
+//----------------------------------------------------------------------------
+class LoopyThread : public Thread, public Named {
+public:
+Event                  started;     // (Set once, never reset)
+bool                   operational= false; // TRUE while operational
+bool                   self_delete= false; // Self-delete option
+bool                   self_detach= false; // Self-detach option
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   LoopyThread( void )
+:  Thread(), Named("LoopyThread")
+{  if( opt_hcdm || opt_verbose > 1 ) debugf("LoopyThread(%p)!\n", this); }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+virtual
+   ~LoopyThread( void )
+{  if( opt_hcdm || opt_verbose > 1 ) debugf("LoopyThread(%p)~\n", this); }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+virtual void
+   run(void)
+{
+   started.post();
+
+   if( opt_verbose > 1 )
+     debugf("LoopyThread(%p).run...\n", this);
+
+   while( operational ) {
+     Thread::sleep(1.0);
+   }
+
+   if( self_detach ) {
+     if( opt_verbose > 1 )
+       debugf("LoopyThread(%p):self-detach\n", this);
+
+     detach();
+   }
+
+   if( self_delete ) {
+     if( opt_verbose > 1 )
+       debugf("LoopyThread(%p)::self-delete\n", this);
+
+      delete this;
+   }
+
+   if( opt_verbose > 1 )
+     debugf("LoopyThread(%p)...run\n", this);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void
+   drive_destructor( void )         // Asynchronously drive the destructor
+{
+   LambdaWorker lw([this](void) {
+     this->~LoopyThread();          // Asynchonously delete the LoopyThread
+   }); // LambdaWorker
+
+   WorkerPool::work(&lw);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void
+   safe_start(void)
+{
+   operational= true;
+   start();
+   started.wait();
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void
+   set_self_delete(void)
+{  self_delete= true; }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void
+   set_self_detach(void)
+{  self_detach= true; }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void
+   stop( void )
+{  if( opt_verbose )
+     debugf("LoopyThread(%p).stop\n", this);
+
+   operational= false;
+}
+}; // class LoopyThread
+
+//----------------------------------------------------------------------------
+//
+// Struct-
+//       LoopyController
+//
+// Purpose-
+//       Control a LoopyThread
+//
+// Implementation notes-
+//       Used for abnormal Thread termination testing.
+//
+//----------------------------------------------------------------------------
+struct LoopyController {
+   LoopyThread*        loopy= nullptr; // The LoopyThread
+   Event               init;        // Initial Event
+   Event               stop;        // Stop Event
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   LoopyController( void )
+:  loopy(new LoopyThread())
+{  }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   ~LoopyController( void )
+{  delete loopy; }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void
+   post( void )                     // Post the stop Event
+{  stop.post(); }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void
+   wait( void )                     // Wait for stop Event
+{  stop.wait(); }
+}; // struct LoopyController
 
 //----------------------------------------------------------------------------
 //
@@ -133,9 +299,9 @@ virtual void
 
 #if 0
    // Terminate, display current
-   Thread* current= Thread::current();
+   Thread* thread= Thread::current();
    debugf("%12.6f NoisyThread(%p).exit(%s) %s\n", interval.stop(), this,
-          get_name().c_str(), this == current ? "SAME" : "DIFF");
+          get_name().c_str(), this == thread ? "SAME" : "DIFF");
    fflush(stdout);
 #endif
 }
@@ -181,10 +347,10 @@ public:
 virtual void
    run(void)
 {
-   Thread* current= Thread::current();
-   if (this != current ) {
+   Thread* thread= Thread::current();
+   if (this != thread ) {
      error_count++;
-     debugf("%4d ERROR: Thread(%p) Current(%p)\n", __LINE__, this, current);
+     debugf("%4d ERROR: Thread(%p) Current(%p)\n", __LINE__, this, thread);
    }
 }
 }; // class QuietThread
@@ -192,56 +358,76 @@ virtual void
 //----------------------------------------------------------------------------
 //
 // Class
-//       HangingThread
+//       SelfDeletingThread
 //
 // Purpose-
 //       This Thread is designed to run after being deleted.
 //
 //----------------------------------------------------------------------------
-class HangingThread : public Thread { // Hanging Thread class
+class SelfDeletingThread : public Thread { // SelfDeleting Thread class
 public:
 Event                  started;     // Posted when started
 
 public:
-   HangingThread( void )
+   SelfDeletingThread( void )
 :  Thread(), started() {}
 
 virtual void
    run(void)
 {
    if( HCDM || opt_hcdm )
-     debugf("%12.6f HangingThread(%p).run()\n", interval.stop(), this);
+     debugf("%12.6f SelfDeletingThread(%p).run()\n", interval.stop(), this);
 
-   Thread* current= Thread::current(); // The current Thread
-   if( current != this )               // This MUST BE correct
+   Thread* thread= Thread::current();  // The current Thread
+   if( thread != this )                // This MUST BE correct
    {
      error_count++;
-     debugf("%4d ERROR: HangingThread(%p) Current(%p)\n", __LINE__,
-            this, current);
+     debugf("%4d ERROR: SelfDeletingThread(%p) Current(%p)\n", __LINE__,
+            this, thread);
      ::exit(EXIT_FAILURE);
    }
 
    // Indicate started
    started.post(0);
 
-   // Once this sleep() operation is complete, the Thread should not exist.
-   Thread::sleep(0.250);            // Delay past thread deletion
-
-   current= Thread::current();
-   if( current != nullptr )
-   {
+   // Test Thread::current
+   thread= Thread::current();
+   if( thread != this ) {
      error_count++;
-     debugf("%4d ERROR: HangingThread(%p) Current(%p)\n", __LINE__,
-            this, current);
+     debugf("%4d ERROR: SelfDeletingThread(%p) != Current(%p)\n"
+           , __LINE__, this, thread);
+   }
+
+   detach();
+   thread= Thread::current();
+   if( thread != this ) {           // Current should work when detached
+     error_count++;
+     debugf("%4d ERROR: SelfDeletingThread(%p) != Current(%p)\n", __LINE__
+           , this, thread);
+   }
+
+   // After delete, don't reference the object
+   delete this;
+
+// This pragma shouldn't be necessary.
+// We only use this as an address. We don't use this-> anything.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wuse-after-free"
+   thread= Thread::current();
+   if( thread != nullptr ) {        // Current should not work when deleted
+     error_count++;
+     debugf("%4d ERROR: SelfDeletingThread(%p) Current(%p) != nullptr\n"
+           , __LINE__, this, thread);
    }
 
    // Show work being done on a deleted Thread
    if( HCDM || opt_hcdm ) {
-     debugf("%12.6f HangingThread(%p) exit\n", interval.stop(), this);
+     debugf("%12.6f SelfDeletingThread(%p) exit\n", interval.stop(), this);
      fflush(stdout);
    }
+#pragma GCC diagnostic pop
 }
-}; // class HangingThread
+}; // class SelfDeletingThread
 
 //----------------------------------------------------------------------------
 //
@@ -412,7 +598,7 @@ virtual void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       hangingThread
+//       selfDeletingThread
 //
 // Purpose-
 //       Insure that a thread can complete even though the corresponding
@@ -420,12 +606,12 @@ virtual void
 //
 //----------------------------------------------------------------------------
 static void
-   hangingThread(void)
+   selfDeletingThread(void)
 {
-   auto hangingThread= std::make_shared<HangingThread>();
+   SelfDeletingThread* thread= new SelfDeletingThread();
 
-   hangingThread->start();
-   hangingThread->started.wait();   // Do not return before run invoked!
+   thread->start();
+   thread->started.wait();
 }
 
 //----------------------------------------------------------------------------
@@ -449,20 +635,20 @@ static inline void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       testMutex
+//       test_Mutex
 //
 // Purpose-
 //       Test mutual exclusion object.
 //
 //----------------------------------------------------------------------------
 static inline void
-   testMutex(void)
+   test_Mutex(void)
 {
    MutexThread         mutexThread;
 
    if( opt_verbose ) {
      debugh("\n");
-     debugh("testMutex\n");
+     debugh("test_Mutex\n");
      debugh("Before alphaMutex.lock()\n");
    }
    alphaMutex.lock();
@@ -498,20 +684,20 @@ static inline void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       testSemaphore
+//       test_Semaphore
 //
 // Purpose-
 //       Test mutual exclusion object.
 //
 //----------------------------------------------------------------------------
 static inline void
-   testSemaphore(void)
+   test_Semaphore(void)
 {
    SemaphoreThread     semaphoreThread;
 
    if( opt_verbose ) {
      debugh("\n");
-     debugh("testSemaphore\n");
+     debugh("test_Semaphore\n");
      debugh("Before alphaSemaphore.wait()\n");
    }
    alphaSemaphore.wait();
@@ -546,14 +732,14 @@ static inline void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       testSleep
+//       test_Sleep
 //
 // Purpose-
 //       Thread thread sleep function.
 //
 //----------------------------------------------------------------------------
 static inline void
-   testSleep(void)
+   test_Sleep(void)
 {
    SleepThread         sleepThread;
 
@@ -571,14 +757,14 @@ static inline void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       testStress
+//       test_Stress
 //
 // Purpose-
 //       Thread stress test.
 //
 //----------------------------------------------------------------------------
 static inline void
-   testStress(void)
+   test_Stress(void)
 {
    char                buffer[32];
    NoisyThread*        noisyArray[MAXNOISY];
@@ -586,33 +772,32 @@ static inline void
    double              begin;       // Begin interval
    double              prior;       // Prior interval
 
+   // This test requires an unusually large number active Threads
+   pub::Thread::set_max_threads(MAXNOISY + MAXQUIET + 1'000);
    try {
      for(int count= 0; count<TIMING; count++) { // Timing loop, normally once
        interval.start();
-       if( opt_verbose ) {
-         debugf("\n");
-         debugf("%12.6f %4d Creating %d hanging threads\n", interval.stop()
-               , __LINE__, MAXHANGERS);
-       }
-       for(int i=0; i<MAXHANGERS; i++)
-         hangingThread();
+       if( opt_verbose )
+         debugf("\n%12.6f %4d Creating %d self deleting threads\n"
+               , interval.stop(), __LINE__, MAXDELETES);
 
-       if( opt_verbose ) {
-         debugf("\n");
-         debugf("%12.6f %4d Creating %d Noisy threads\n", interval.stop()
+       for(int i=0; i<MAXDELETES; i++)
+         selfDeletingThread();
+
+       if( opt_verbose )
+         debugf("\n%12.6f %4d Creating %d Noisy threads\n", interval.stop()
                , __LINE__, MAXNOISY);
-       }
+
        for(int i=0; i<MAXNOISY; i++) {
          sprintf(buffer, "%.4d", i);
          noisyArray[i]= new NoisyThread(buffer, noisy_delay);
          noisyArray[i]->safeStart();
        }
 
-       if( opt_verbose ) {
-         debugf("\n");
-         debugf("%12.6f Creating %d Quiet threads\n", interval.stop()
+       if( opt_verbose )
+         debugf("\n%12.6f Creating %d Quiet threads\n", interval.stop()
                , MAXQUIET);
-       }
+
        for(int i=0; i<MAXQUIET; i++)
          quietArray[i]= new QuietThread();
 
@@ -651,8 +836,7 @@ static inline void
        double maxjoin= 0.0;
        double minjoin= 99999.0;
        if( opt_verbose ) {
-         debugf("\n");
-         debugf("%12.6f Joining  %d Quiet threads\n", interval.stop()
+         debugf("\n%12.6f Joining  %d Quiet threads\n", interval.stop()
                , MAXQUIET);
          fflush(stdout);
        }
@@ -673,10 +857,9 @@ static inline void
        }
        double totjoin= prior - begin;
 
-       if( opt_verbose ) {
-         debugf("\n");
-         debugf("%12.6f Deleting Quiet threads\n", interval.stop());
-       }
+       if( opt_verbose )
+         debugf("\n%12.6f Deleting Quiet threads\n", interval.stop());
+
        for(int i=0; i<MAXQUIET; i++)
          delete quietArray[i];
 
@@ -705,6 +888,58 @@ static inline void
    }  catch(...) {
       debugf("Exception(...)\n");
    }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       test_Termination
+//
+// Purpose-
+//       Test (abnormal) Thread termination sequences.
+//
+//----------------------------------------------------------------------------
+static inline void
+   test_Termination(void)
+{
+   if( opt_verbose ) {
+     debugf("\ntest_Termination\n");
+     PUB::System::set_log_level(PUB::System::LL_NONE); // Full stderr logging
+   } else {
+     PUB::System::set_log_level(PUB::System::LL_ALL); // No stderr logging
+   }
+   PUB::System::log(PUB::System::LL_INFO, "\n");
+   PUB::System::log(PUB::System::LL_INFO, "Test_thr.cpp test_Termination\n");
+
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   if( opt_verbose )
+     debugf("..Terminate, auto-detach required\n");
+
+   LoopyThread* loopy= new LoopyThread();
+   loopy->set_self_delete();        // Delete before exit
+   loopy->safe_start();             // Start the LoopyThread (on this Thread)
+   loopy->stop();                   // Stop the LoopyThread
+   loopy= nullptr;                  // (The Thread self-deleted)
+   Thread::sleep(2.0);              // Allow (plenty of) time for complete stop
+
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   if( opt_verbose )
+     debugf("..Terminate, auto-join required\n");
+
+   LoopyController control;
+
+   LambdaWorker lw([&control](void) {
+     LoopyThread& loopy= *control.loopy;
+     loopy.safe_start();            // Start the LoopyThread (on this Worker)
+     control.init.post();           // Initialization complete
+   }); // LambdaWorker lw
+
+   WorkerPool::work(&lw);
+   control.init.wait();
+   control.loopy->stop();
+   Thread::sleep(2.0);              // Allow (plenty of) time for complete stop
+   delete control.loopy;            // Delete without join
+   control.loopy= nullptr;          // (Avoid duplicate delete)
 }
 
 //----------------------------------------------------------------------------
@@ -791,16 +1026,18 @@ extern int
        debugh("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
 
      for(int i= 0; i<8; i++)        // Test Event object
-       standardThread();
+       standardThread();            // This only tests current
 
-     testMutex();
-     testSemaphore();
-     testSleep();
-     testStress();
+     test_Mutex();
+     test_Semaphore();
+     test_Sleep();
+     test_Termination();
+
+     test_Stress();
 
      if( opt_verbose ) {
        debugf("\n");
-       Thread::static_debug("");
+       PUB::System::debug("Test_thr complete");
 
        tr->report_errors(error_count);
      }
@@ -809,5 +1046,7 @@ extern int
 
    //-------------------------------------------------------------------------
    // Run the test
+   opt_hcdm= HCDM;
+   opt_verbose= VERBOSE;
    return tc.run(argc, argv);
 }
