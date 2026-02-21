@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2025 Frank Eskesen.
+//       Copyright (C) 2022-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2025/01/11
+//       2026/02/21
 //
 // Implmentation note-
 //       TODO: Test _read() disconnect (close processing)
@@ -62,7 +62,6 @@
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB;
 using namespace PUB::debugging;
-using PUB::utility::is_null;
 using PUB::utility::to_string;
 using PUB::utility::visify;
 using std::string;
