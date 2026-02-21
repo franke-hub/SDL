@@ -17,7 +17,7 @@
 //       Dispatcher timing test.
 //
 // Last change date-
-//       2026/01/26
+//       2026/02/20
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic
@@ -25,14 +25,18 @@
 #include <new>                      // For std::bad_alloc, operator new
 #include <cinttypes>                // For integer types
 #include <clocale>                  // For setlocale
+#include <cstdlib>                  // For atexit
+#include <ctime>                    // For time, localtime
 
 #include <endian.h>                 // For htobe64
+#include <sys/signal.h>             // For signal, ...
 
 #include <pub/TEST.H>               // For test functions and macros
 #include <pub/Clock.h>              // For pub::Clock::now
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include "pub/Dispatch.h"           // For pub::dispatch objects
 #include <pub/Random.h>             // For pub::Random
+#include "pub/System.h"             // For pub::System::debug
 #include "pub/Thread.h"             // For pub::Thread
 #include <pub/Trace.h>              // For pub::Trace
 #include "pub/utility.i"            // For pub::utility conversion subroutines
@@ -59,13 +63,20 @@ enum
 // These compile-time options are independent of the --trace parameter option.
 ,  USE_IDEBUG= false                // Enable internal debugging?
 ,  USE_ITRACE= false                // Enable internal tracing?
+
+,  USE_XTRACE= false                // Enable extended internal tracing?
 }; // enum
 
 //----------------------------------------------------------------------------
-// Forward references
+// Forward class references
 //----------------------------------------------------------------------------
 class TimerItem;                    // For TimerItem*
 class TimerTask;                    // For TimerTask*
+
+//----------------------------------------------------------------------------
+// Forward method references
+//----------------------------------------------------------------------------
+static void sig_handler(int);       // The signal handler
 
 //----------------------------------------------------------------------------
 // Internal data areas
@@ -80,6 +91,13 @@ static void*           table= nullptr; // The Trace table
 static TimerItem**     item_array= nullptr; // The Timer Item array
 static TimerTask**     task_array= nullptr; // The Timer Task array
 
+// Signal handlers
+typedef void           (*sig_handler_t)(int);
+static sig_handler_t   sys1_handler= nullptr; // System SIGINT  signal handler
+static sig_handler_t   sys2_handler= nullptr; // System SIGSEGV signal handler
+static sig_handler_t   usr1_handler= nullptr; // System SIGUSR1 signal handler
+static sig_handler_t   usr2_handler= nullptr; // System SIGUSR2 signal handler
+
 // Extended options
 static double          opt_runtime= OPT_RUNTIME; // --runtime
 static int             opt_items= OPT_ITEMS; // --items
@@ -93,8 +111,26 @@ static struct option   opts[]=      // The getopt_long parameter: longopts
 ,  {"items",    required_argument, nullptr,        0} // --items=count
 ,  {"size",     required_argument, nullptr,        0} // --size=count
 ,  {"tasks",    required_argument, nullptr,        0} // --tasks=count
-,  {"trace",    optional_argument, &opt_trace,  0x0800'0000} // --trace{=size}
+,  {"trace",    optional_argument, &opt_trace,  0x0040'0000} // --trace{=size}
 ,  {0, 0, 0, 0}                     // (End of option list)
+};
+
+//----------------------------------------------------------------------------
+// Constant data areas
+//----------------------------------------------------------------------------
+const char* _month[]=
+{  "Jan"
+,  "Feb"
+,  "Mar"
+,  "Apr"
+,  "May"
+,  "Jun"
+,  "Jul"
+,  "Aug"
+,  "Sep"
+,  "Oct"
+,  "Nov"
+,  "Dec"
 };
 
 //----------------------------------------------------------------------------
@@ -162,7 +198,7 @@ void*
 }
 };
 
-static void
+static inline void
    trace(                           // Allocate and initialize trace Record
      const char*       ident,       // The trace identiier (4 characters)
      uint32_t          line,        // The line number
@@ -175,7 +211,7 @@ static void
    }
 }
 
-static void
+static inline void
    trace(                           // Allocate and initialize trace Record
      const char*       ident,       // The trace identiier (4 characters)
      uint32_t          line,        // The line number
@@ -189,6 +225,25 @@ static void
                                , next_task, last_item);
      (void)record;
    }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       at_exit
+//
+// Purpose-
+//       Handle atexit notification
+//
+//----------------------------------------------------------------------------
+static void
+   at_exit( void )
+{
+   if( opt_verbose > 2 )
+     printf("at_exit\n");
+
+   Trace::trace(".TST", __LINE__, "at_exit");
+   Trace::stop();
 }
 
 //----------------------------------------------------------------------------
@@ -317,7 +372,7 @@ virtual void
      if( opt_hcdm )
        tracef("%4d Task[%3d] Item[%3d] POST\n", __LINE__
              , identity, timer_item->identity);
-     else
+     else if( USE_XTRACE )
        trace(".TST", __LINE__, "POST ", identity, timer_item->identity);
 
      if( USE_IDEBUG )
@@ -328,7 +383,8 @@ virtual void
    }
 
    // Count this work item
-   trace(".TST", __LINE__, "COUNT", identity, timer_item->identity);
+   if( USE_XTRACE )
+     trace(".TST", __LINE__, "COUNT", identity, timer_item->identity);
    ++timer_item->task_count[identity]; // The Item saw us
    ++item_count[timer_item->identity]; // We saw the Item
 
@@ -336,8 +392,9 @@ virtual void
    uint32_t next= random.modulus((uint32_t)opt_tasks);
    if( USE_IDEBUG )
      timer_item->next_task= next;
-   trace(".TST", __LINE__, "QUEUE", identity, timer_item->identity
-        , next, last_item);
+   if( USE_XTRACE )
+     trace(".TST", __LINE__, "QUEUE", identity, timer_item->identity
+          , next, last_item);
    task_array[next]->enqueue(item);
 }
 }; // struct TimerTask
@@ -372,6 +429,63 @@ const char*                         // Return something
 
 //----------------------------------------------------------------------------
 //
+// Subroutine-
+//       sig_handler
+//
+// Purpose-
+//       Handle signals.
+//
+//----------------------------------------------------------------------------
+static void
+   sig_handler(                     // Handle signals
+     int               id)          // The signal identifier
+{
+   static int recursion= 0;         // Signal recursion depth
+   if( recursion ) {                // If signal recursion
+     fprintf(stderr, "sig_handler(%d) recursion\n", id);
+     fflush(stderr);
+     exit(EXIT_FAILURE);
+   }
+
+   // Handle signal
+   recursion++;                     // Disallow recursion
+   const char* signame= "<<Unexpected>>";
+   if( id == SIGINT ) signame= "SIGINT";
+   else if( id == SIGSEGV ) signame= "SIGSEGV";
+   else if( id == SIGUSR1 ) signame= "SIGUSR1";
+   else if( id == SIGUSR2 ) signame= "SIGUSR2";
+   errorf("sig_handler(%d) %s\n", id, signame);
+
+   switch(id) {                     // Handle the signal
+     case SIGINT:                   // (Console CTRL-C)
+       running= false;
+       exit(2);                     // Immediate exit
+       break;
+
+     case SIGSEGV:                  // (Program fault)
+       Trace::trace(".BUG", __LINE__, signame);
+       debug_set_mode(Debug::MODE_INTENSIVE);
+       debug_backtrace();
+       debugf("..terminated..\n");
+       exit(EXIT_FAILURE);
+       break;
+
+     default:                       // (SIGUSR1 || SIGUSR2)
+       Trace::trace(".SIG", __LINE__, signame);
+       Debug::Mode mode= debug_get_mode();
+
+       debug_set_mode(Debug::MODE_INTENSIVE);
+       System::debug(signame);
+
+       debug_set_mode(mode);
+       break;                       // (No configured action)
+   }
+
+   recursion--;
+}
+
+//----------------------------------------------------------------------------
+//
 // Class-
 //       TimerThread
 //
@@ -392,7 +506,7 @@ virtual void
    running= true;                   // Indicate running
    then= PUB::Clock::now();         // Test start time
    if( opt_hcdm || opt_verbose > 1 )
-     debugh("running= true\n");
+     debugh("%'10.3f running= true\n", PUB::Clock::now() - then);
 
    // Distribute the TimerItems
    // We can't distribute Items before the test is running since they will
@@ -408,7 +522,7 @@ virtual void
      task_array[task_ix++]->enqueue(item_array[item_ix++]);
    }
    if( opt_hcdm || opt_verbose > 2 ) // (Distribution doesn't take much time)
-     debugh("%'10.4f All Items distributed\n", PUB::Clock::now() - then);
+     debugh("%'10.3f All Items distributed\n", PUB::Clock::now() - then);
 
    Thread::sleep(opt_runtime);      // (Run the test)
 
@@ -419,7 +533,7 @@ virtual void
 
    running= false;                  // (But the test isn't 100% complete)
    if( opt_hcdm || opt_verbose > 1 )
-     debugh("%'10.4f running= false\n", PUB::Clock::now() - then);
+     debugh("%'10.3f running= false\n", PUB::Clock::now() - then);
 }
 }; // class TimerThread
 static TimerThread timer_thread;    // *THE* TimerThread
@@ -443,10 +557,16 @@ static int
       debugf("**************** REGRESSION TEST\n");
 
    if( opt_hcdm || opt_verbose > 1 ) {
-     debugf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
+     time_t gt= time(nullptr);
+     struct tm* lt= localtime(&gt);
+
+     debugf("Compiled: %s %s %s\n Started: %3s %2d %4d %.2d:%.2d:%.2d\n"
+           , __DATE__, __TIME__, __FILE__
+           , _month[lt->tm_mon], lt->tm_mday, lt->tm_year + 1900
+           , lt->tm_hour, lt->tm_min, lt->tm_sec);
      debugf("%16d opt_hcdm\n", opt_hcdm);
      debugf("%16d opt_verbose\n", opt_verbose);
-     debugf("%6s0x%.8x opt_trace\n", "", opt_trace);
+     debugf("%6s0x%.8x opt_trace (%'d)\n", "", opt_trace, opt_trace);
      debugf("\n");
    }
 
@@ -481,14 +601,14 @@ static int
    // Wait for the TimerThread to complete
    timer_thread.join();
    if( opt_hcdm || opt_verbose > 1 )
-     debugh("%'10.4f Join complete\n", PUB::Clock::now() - then);
+     debugh("%'10.3f Join complete\n", PUB::Clock::now() - then);
 
    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    // Wait for all TimerItem completions
    for(int item_ix= 0; item_ix<opt_items; ++item_ix) {
      if( opt_hcdm )
        tracef("%4d Task[%3d] Item[%3d] WAIT\n", __LINE__, -1, item_ix);
-     else
+     else if( USE_XTRACE )
        trace(".TST", __LINE__, "WAIT ", -1, item_ix);
      item_array[item_ix]->wait.wait();
    }
@@ -497,16 +617,16 @@ static int
    // Testing is complete
    done= PUB::Clock::now();
    if( opt_hcdm || opt_verbose > 1 ) {
-     debugh("%'10.4f Test complete\n", done - then);
+     debugh("%'10.3f Test complete\n", done - then);
 
      // We've waited for all TimerItems, but some TimerTasks (which run under
      // WorkerThreads) might have been stopped in that process. Stopping
      // schedules the Thread delete doesn't wait for completion. This normally
      // isn't a problem because Worker.cpp termination has a built-in delay.
      // We delay at this point in order to get coherent WorkerPool status.
-     Thread::sleep(0.25);           // (Allows pending deletes to complete)
+     Thread::sleep(2.0);            // (Allows pending deletes to complete)
      debugf("\n");
-     PUB::WorkerPool::debug("Test complete");
+     System::debug("Test complete");
    }
    //*************************************************************************
 
@@ -594,28 +714,73 @@ extern int
             );
    });
 
+   tc.on_init([tr](int, char**)
+   {
+     atexit(at_exit);               // Handle atexit
+
+     debug_set_head(Debug::HEAD_THREAD | Debug::HEAD_TIME);
+     if( opt_hcdm || opt_verbose > 1 )
+       debug_set_mode(Debug::MODE_INTENSIVE);
+
+     if( opt_trace )
+       table= tr->init_trace("./trace.mem", opt_trace);
+
+     // Initialize signal handling
+     sys1_handler= signal(SIGINT,  sig_handler);
+     sys2_handler= signal(SIGSEGV, sig_handler);
+     usr1_handler= signal(SIGUSR1, sig_handler);
+     usr2_handler= signal(SIGUSR2, sig_handler);
+
+     return 0;
+   });
+
    tc.on_parm([tr](std::string P, const char* V)
    {
-     if( P == "trace" ) {
-       if( V )
-         opt_trace= tr->ptoi(V);
+     if( P == "items" ) {
+       opt_items= tr->ptoi(V);
+       if( opt_items < 1 || opt_items >= 0x00010000 ) {
+         errorf("--items=%d invalid value\n", opt_items);
+         errorf("  Valid range: %'d..%'.d\n", 1, 65535);
+         return 1;
+       }
      } else if( P == "runtime" ) {
        opt_runtime= tr->ptod(V);
        if( opt_runtime < 1.0 ) {
-         opt_runtime= 1.0;
-         errorf("--runtime: Minimum value %.1f used\n", opt_runtime);
+         errorf("--runtime=%.3f invalid value\n", opt_runtime);
+         errorf("  Valid range: %'d..%'.d\n", 1, 604'800);
+         return 1;
+       } else if( opt_runtime > 604'800 ) {
+         errorf("--runtime=%.3f accepted, outside normal range\n"
+               , opt_runtime);
+         errorf("  Valid range: %'d..%'.d\n", 1, 604'800);
        }
-     } else if( P == "items" ) {
-       opt_items= tr->ptoi(V);
-       if( opt_items < 1 )
-         opt_items= 1;
      } else if( P == "size" ) {
        opt_size= (unsigned)tr->ptoi(V);
+       if( opt_size < 0 || opt_size >= 0x00010000 ) {
+         errorf("--size=%d invalid value\n", opt_size);
+         errorf("  Valid range: %'d..%'.d\n", 0, 65535);
+         return 1;
+       }
        PUB::WorkerPool::set_size(opt_size);
      } else if( P == "tasks" ) {
        opt_tasks= tr->ptoi(V);
-       if( opt_tasks < 1 )
-         opt_tasks= 1;
+       if( opt_tasks < 1 || opt_tasks >= 0x00010000 ) {
+         errorf("--tasks=%d invalid value\n", opt_tasks);
+         errorf("  Valid range: %'d..%'.d\n", 1, 65535);
+         return 1;
+       }
+     } else if( P == "trace" ) {
+       if( USE_ITRACE == false )
+         errorf("Warning: --trace option used but USE_ITRACE == false\n");
+
+       if( V ) {
+         opt_trace= tr->ptoi(V);
+         if( opt_trace < 0x00010000 ) {
+           errorf("--trace=0x%.8x (%d) invalid value\n", opt_trace, opt_trace);
+           errorf("  Valid range: %'d..%'.d\n", 0x00010000, 0x7FFFFFFF);
+           return 1;
+         }
+       }
      } else {
        fprintf(stderr, "Invalid option '%s'\n", s2c(P));
        return 1;
@@ -624,22 +789,22 @@ extern int
      return 0;
    });
 
-   tc.on_init([tr](int, char**)
-   {
-     debug_set_head(Debug::HEAD_THREAD | Debug::HEAD_TIME);
-     if( opt_hcdm || opt_verbose > 1 )
-       debug_set_mode(Debug::MODE_INTENSIVE);
-
-     if( opt_trace )
-       table= tr->init_trace("./trace.mem", opt_trace);
-
-     setlocale(LC_NUMERIC, "");     // Activates ' thousand separator
-
-     return 0;
-   });
-
    tc.on_term([tr]()
    {
+     if( opt_verbose > 2 )
+       printf("on_term\n");
+
+     // Restore system signal handlers
+     if( sys1_handler ) signal(SIGINT,  sys1_handler);
+     if( sys2_handler ) signal(SIGSEGV, sys2_handler);
+     if( usr1_handler ) signal(SIGUSR1, usr1_handler);
+     if( usr2_handler ) signal(SIGUSR2, usr2_handler);
+     sys1_handler= sys2_handler= usr1_handler= usr2_handler= nullptr;
+
+     // Terminate trace
+     Trace::trace(".TST", __LINE__, "on_term");
+     Trace::stop();
+
      if( table )
        tr->term_trace(table, opt_trace);
    });
@@ -677,7 +842,9 @@ extern int
 
    //-----------------------------------------------------------------------
    // Run the test
+   setlocale(LC_NUMERIC, "");       // Activates ' thousand separator
    opt_hcdm= HCDM;
    opt_verbose= VERBOSE;
+
    return tc.run(argc, argv);
 }
