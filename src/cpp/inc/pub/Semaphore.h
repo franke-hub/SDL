@@ -17,7 +17,7 @@
 //       Semaphore implementation using condition variable.
 //
 // Last change date-
-//       2026/01/12
+//       2026/02/09
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_SEMAPHORE_H_INCLUDED
@@ -50,25 +50,24 @@ class Semaphore {                   // Semaphore descriptor
 // Semaphore::Attributes
 //----------------------------------------------------------------------------
 private:
-unsigned               count;       // Post counter
+size_t                 count;       // Post counter
 std::condition_variable
                        cv;          // Event driver
-std::mutex             mutex;       // Protects cv
+mutable std::mutex     mutex;       // Protects cv and count
 
 //----------------------------------------------------------------------------
-// Semaphore::Constructor/asssignment/destructor
+// Semaphore::Constructors/asssignment/destructor
 //----------------------------------------------------------------------------
 public:
    Semaphore(                       // Default constructor
-     unsigned          count= 0)    // Default, count= 0
-:  count(count), cv(), mutex() {}
+     size_t            _count= 0);  // Default, count= 0
 
-// Disallowed: Copy constructor, assignment operator
-   Semaphore(const Semaphore&) = delete;
-Semaphore& operator=(const Semaphore&) = delete;
+   Semaphore(const Semaphore&) = delete; // Disallowed copy constructor
 
-inline
-   ~Semaphore( void ) {}            // Destructor
+Semaphore&
+   operator=(const Semaphore&) = delete; // Disallowed assignment operator
+
+   ~Semaphore( void );              // Destructor
 
 //----------------------------------------------------------------------------
 // Semaphore::debug
@@ -79,54 +78,23 @@ void
 //----------------------------------------------------------------------------
 // Semaphore::Methods
 //----------------------------------------------------------------------------
-unsigned
+size_t
    get_count( void ) const          // Get current count
 {  return count; }
 
 void
-   post( void )                     // Indicate resource available
-{  std::unique_lock<decltype(mutex)> lock(mutex);
-
-   count++;
-   cv.notify_one();
-}
+   post( void );                    // Indicate resource available
 
 void
-   reset( void )                    // Reset the Semaphore
-{  count= 0; }
+   reset(                           // Reset the Semaphore
+     size_t            _count= 0);  // To this post count
 
 void
-   wait( void )                     // Wait for resource
-{  std::unique_lock<decltype(mutex)> lock(mutex);
-
-   while( !count )                  // Handle spurious wake-ups
-     cv.wait(lock);
-
-   count--;
-}
+   wait( void );                    // Wait for resource
 
 bool                                // TRUE iff semaphore available
    wait(                            // Wait for resource
-     double            seconds)     // Timeout delay, in seconds
-{  std::unique_lock<decltype(mutex)> lock(mutex);
-
-   if( seconds > 0.0 ) {            // If delayed operation
-     std::chrono::microseconds delta(uint64_t(seconds * 1000000.0));
-     std::chrono::high_resolution_clock::time_point now=
-         std::chrono::high_resolution_clock::now();
-     std::chrono::high_resolution_clock::time_point timeout= now + delta;
-     while( !count ) {              // Handle spurious wake-ups
-       if( cv.wait_until(lock, timeout) == std::cv_status::timeout )
-         break;
-     }
-   }
-
-   if( count == 0 )
-     return false;
-
-   count--;
-   return true;
-}
+     double            seconds);    // Timeout delay, in seconds
 }; // class Semaphore
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_SEMAPHORE_H_INCLUDED
