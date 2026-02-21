@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2025 Frank Eskesen.
+//       Copyright (C) 2022-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under cc by-sa version 4.0
 //       with attribution required.
@@ -17,11 +17,11 @@
 //       Development journal
 //
 // Last change date-
-//       2025/05/16
+//       2026/01/18
 //
 -------------------------------------------------------------------------- -->
 
-Copyright &copy; 2022-2025 Frank Eskesen.
+Copyright &copy; 2022-2026 Frank Eskesen.
 
 This file is free content, distributed under cc by-sa version 4.0 with
 attribution required.
@@ -38,7 +38,7 @@ This journal provides SDL (Software Development Lab) commentary.
 It's only updated occasionally, and it is what it is.
 (Incomplete, mostly)
 
-[\[Last change date:\]](#most-recent-change) 2025/05/16
+[\[Most recent change\]](#most-recent-change)
 
 Journal entries are now sorted in date order rather than reverse date order.
 (Oldest first, newest last)
@@ -723,7 +723,7 @@ not Socket objects appear in a Select object's database.
 
 ----
 
-### <a id=most-recent-change>2025/05/17</a>
+### 2025/05/17
 
 All copyrighted files now have an SPDX-Licence-Identifier added. This means
 that the commit contains almost all the source files.
@@ -740,5 +740,13 @@ checking ignored that token.
 SA40 rather than the MIT copyright.
   - This was done one file at a time. Some markdown files include the
 copyright statement in published code instead of only the file heading.
+
+----
+
+### <a id=most-recent-change>2026/02/04 Timing Bug</a>
+
+[\[For detail, see\]](../Debugging.md#start_drive_timing_bug)
+
+A hard to debug timing condition was corrected.
 
 ----

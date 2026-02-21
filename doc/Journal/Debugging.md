@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2025 Frank Eskesen.
+//       Copyright (C) 2022-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under cc by-sa version 4.0
 //       with attribution required.
@@ -17,11 +17,11 @@
 //       Document difficult to debug problems.
 //
 // Last change date-
-//       2025/08/27
+//       2026/02/20
 //
 -------------------------------------------------------------------------- -->
 
-Copyright &copy; 2022-2025 Frank Eskesen.
+Copyright &copy; 2022-2026 Frank Eskesen.
 
 This file is free content, distributed under cc by-sa version 4.0 with
 attribution required.
@@ -32,13 +32,190 @@ https://creativecommons.org/licenses/by-sa/4.0/us/legalcode)
 
 This journal records problems that were particularly difficult to debug.
 
-- [\[SSH Fails "kex_exchange_identification"\]](#kex_exchange_id) <br/>
+- [\[Thread start syncronization timing bug"\]](#start_drive_timing_bug)
+- [\[SSH Fails "kex_exchange_identification"\]](#kex_exchange_id)
 - [\[Too Many Open Sockets\]](#too-many-sockets) <br/>
 
 ----
 
+# <a id="start_drive_timing_bug">Thread completes before it finishes starting</a>
+
+## **The problem**
+
+The (~/src/cpp/lib/pub/Test/)TimeDisp.cpp associated library source files were
+modified to allow the WorkerPool size to be modified by applications.
+After doing this and running with a worker pool size of two, TimeDisp would
+sometimes abort or not run to completion.
+The reason for this was not obvious, except that it was likely to be some sort
+of timing bug.
+
+Multithreading timing bugs are notoriously difficult to debug.
+This one was no exception to that rule.
+
+## **Adding  trace file logging obscured the problem**
+
+Using gdb debugging allowed us to see the state after a failure, but not its
+cause.
+We activated debugging tracef file event logging, but then the problem didn't
+recur.
+This is not unusual for multithreading problems since file writing changes
+event sequencing.
+
+Event tracing in memory is a low overhead alternative.
+When backed by a memory mapped file, this transient information isn't lost.
+Both Linux and Cygwin implentation are extremely well implemented.
+Even when a process aborts, the file matches the current storage state.
+
+We already had memory tracing functions implemented in Trace.cpp, but needed
+more trace points.
+The TimeDisp test application was modified to (optionally) create the memory
+mapped trace table, and event tracing was added.
+Additional event tracing was added to library code, notably Trace.cpp and
+Worder.cpp.
+The problem was became reproducable, but we didn't get enough information.
+Thus began a sequence of adding more internal trace points and correcting
+possible problems until, finally, the actual problem was discovered.
+Adding a trace of Thread::start()'s exit gave us the final clue needed.
+
+## **An initial red herring**
+
+Thinking Thread.cpp was solid, We examined Latch.cpp, looking for errors.
+We didn't find any, but we did clean up the code so that all lock methods
+use the same try_lock retry mechanism.
+
+We also had some minor improvements to some of the try_lock mechanisms.
+
+## **Implementation Background**
+
+In Thread.cpp, method start() creates a pthread, invoking method drive().
+We already knew that start needed to wait before it exited.
+Method drive initializes a Thread Local Storage Struct (TLSS) used to keep
+some of the Thread state.
+We already traced the Thread's constructor and destructor as well as the
+destructor's exit, (after which the Thread object cannot be referenced.)
+
+## **Internal trace analysis**
+
+A gdb backtrace after an abort sometimes found a WorkerThread method after
+an abort, implicating Worker.cpp, Thread.cpp, and Dispatch.cpp.
+With optimized parameters, the TimeDisp test application drives the
+Dispatch::Task's work() method at a rate of over 30 million operations per
+second.
+
+### What trace analysis showed for a failure event:
+
+We were actually kind of lucky because one failure resulted in a duplicate
+free() function call.
+This was lucky because it caused an an abort, immediately terminating tracing.
+
+We have an Event object implements the wait/post interface.
+It contains an int32_t post code, a std::condition_variable, and a
+std::mutex protecting the condition variable.
+The wait method waits for the post method to be invoked from a different
+thread.
+The Event object resides in the TLSS.
+
+The Thread under consideration is a WorkerThread, used to drive a work method.
+
+WorkerThread is defined and implemented in Worker.cpp.
+The Worker interface contains nothing but the (virtual) work method.
+
+It contains a pointer to the Worker.
+
+The trace sequence:
+- WorkerPool::work invocation (Using a new or reused WorkerThread)
+  - The WorkerPool is empty, so a new WorkerThread is created
+  - The WorkerThread constructor invokesThread::start
+- Thread::start invocation: (Starts the Thread, invoking the run method)
+  - start allocates the TLSS, putting its address in the Thread object
+  - start uses pthread_create to create a pthread.
+    - The pthread handle is saved in the TLSS
+    - Thread::drive is the pthread's initial method (It's static)
+    - The Thread object is the initial method's parameter
+  - start waits for a drive_initialized Event, to be posted by drive<br>
+We can't know exactly when start's wait begins.
+Thread::drive runs asynchonously.
+- Thread::drive invocation:
+  - The Thread and TLSS addresses are copied to stack storage
+  - A thread-local pointer, tl_tlss is initialized<br>
+Note that start can't initialize this. It's not in the same pthread.
+  - The Thread's state (in the TLSS) is set to FSM_DRIVE
+  - The drive_initialized Event is posted
+  - (We update some statistics)
+  - Thread::run is invoked, completing Thread::start's stated mission
+    - (This eventually results in a Worker::work invocation)
+- WorkerThread::run invocation:
+  - Worker::work is invoked
+- Lots of other unrelated events occur.
+- === Under WorkerThread run control
+  - WorkerThread Worker::work completes
+    - WorkerThread::done is invoked (the WorkerPool is full)
+      - WorkerThread::stop is invoked, marking the thread non-operational
+  - WorkerThread::run continues and deletes itself
+  - The Thread destructor is invoked
+  - The destructor issues a Thread::detach, which issues pthread_detach.
+  - The Thread destructor exits. (The Thread object storage is deleted.)
+  - The run method exits, Thread::drive continues
+  - Thread.cpp does not reference Thread object storage (This condition has been
+considered.)<br>
+It does, however, reference the thread local storage (which is where the
+detached state of the Thread was recorded.)
+  - Thread.cpp DELETES THE TLSS
+  - Thread.cpp continues, exiting the drive method and completing the pthread
+  - Uh-oh! We saw the TLSS delete but NOT Thread::start()'s exit, and its
+wait object is in the thread local storage we just deleted.
+
+## **The fix**
+
+Once the problem was known, the fix was relatively easy.
+
+- An additional Event, named start_completed, was added to the TLSS.
+- This event is posted by Thread::start as it's about to complete.
+Once posted, Thread::start doesn't reference the Thread or TLSS again.
+- Thread::drive waits for this event before driving the run method<br>
+Once Thread::drive's wait completes, the TLSS Events are never referenced.
+
+## **Problem "autopsy" report**
+
+### Why did this problem occur?
+
+When the WorkerThread was created, the WorkerPool must have been empty
+(or a WorkerPool Thread would have been reused.)
+
+When the WorkerThread was done, the WorkerPool must have been filled to
+capacity (or it would have been added to the WorkerPool list.)
+
+But, the same situation could have occured for *any* self-deleting thread.
+And, we'd like to (and, with this fix, now do) support a WorkerPool of size 0.
+
+### Why didn't we find this problem earlier?
+
+We don't have many instances of Threads that self-delete and, before TimeDisp,
+didn't have any that were capable of stress testing.
+
+### Additional testing with a WorkerPool size of zero
+We started a TimeDisp test to run for an hour with pool size==0.
+This completed without error on Fedora Linux.
+
+On CYGWIN, however, we got errors after about 16 minutes:
+- terminate called recursively
+- terminate called recursively after throwing an instance of std::system_error.
+
+Analyzing this problem, we noticed that Window's Task Manager reported a
+continuously growing handle count.
+We deduced that this occurred because Threads were being created faster than
+they were completing.
+Thread::start created new Threads that were starting but not completing before
+Thread::start exited.
+
+To fix this, we added a Semaphore that limits the number of concurrent Threads.
+While this did not control handle growth, TimeDisp with a runtime of four
+hours ran without error.
+
+----
+
 # <a id="kex_exchange_id">SSH fails reporting "kex_exchange_identification" error.</a>
-## ~~Initial (obscure) fix~~
+## **Initial (obscure) fix**
 **in which we describe a "trip down the rabbit hole," fixing a problem without
 really understanding its cause.**
 

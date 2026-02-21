@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (c) 2022-2025 Frank Eskesen.
+//       Copyright (c) 2022-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under cc by-sa version 4.0
 //       with attribution required.
@@ -17,12 +17,12 @@
 //       SDL Distribution reference manual
 //
 // Last change date-
-//       2025/10/19
+//       2026/02/20
 //
 -------------------------------------------------------------------------- -->
 # Software Development Lab (SDL) C++ Library Reference Manual
 
-Copyright (c) 2022-2024 Frank Eskesen.
+Copyright (c) 2022-2026 Frank Eskesen.
 
 This Reference Manual is free content, distributed under cc by-sa version 4.0
 with attribution required.
@@ -143,7 +143,7 @@ reporting. __TODO__ Event status checking.
 - Statistic.h: Provides statistical measurement object.
 - SubAllocator.h: (Placeholder: not implemented)
 - TEST.H: (Note all caps name) Provides test case error checking tools.
-- Thread.h: Provides a thread representaion.
+- [Thread.h:](./Thread.md) Provides a thread representaion.
 - Tokenizer.h: A string tokenizer
 - Trace.h: Provides circular trace table controls. When used in conjunction
 with a memory-mapped file, handy for debugging multi-threading problems.

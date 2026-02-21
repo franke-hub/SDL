@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (c) 2025 Frank Eskesen.
+//       Copyright (c) 2025-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under cc by-sa version 4.0
 //       with attribution required.
@@ -17,7 +17,7 @@
 //       Latch.h reference manual: XCL_latch
 //
 // Last change date-
-//       2025/11/04
+//       2026/02/08
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Latch.h>
@@ -25,21 +25,28 @@
 ## <a id=shr_latch>pub::XCL_latch</a>
 
 Use the XCL_latch to obtain exclusive access to a SHR_latch.
-(This is the only Latch that provides for and requires construction.)
+(This Latch requires construction.)
+
+All XCL_latch state is completely maintained in the SHR_latch.
+Multiple XCL_latch objects may reference the same SHR_latch.
 
 <!-- ===================================================================== -->
 ---
 #### <a id=constructor>void pub::XCL_latch::XCL_latch(SHR_latch& shr)</a>
 
-Constructs an XCL_latch to be used to obtain exclusive access to a SHR_latch.
+Constructs a Latch used to control exclusive access to a SHR_latch.
+
+---
+#### <a id=destructor>void pub::XCL_latch::~XCL_latch()</a>
+
+The destructor *DOES NOTHING*. It neither downgrades nor unlocks the Latch.
 
 ---
 #### <a id=downgrade>void pub::XCL_latch::downgrade</a>
 
 This method must only be invoked with the XCL_latch held.
 
-This releases exclusive access to the Latch, setting the Latch share count
-to one.
+Releases the exclusive Latch, leaving the SHR_latch singly held.
 The SHR_latch's unlock method must be invoked to release shared access.
 
 ---
@@ -57,6 +64,7 @@ Obtains the (exclusive) Latch.
 #### <a id=reset>void pub::XCL_latch::reset</a>
 
 Unconditionally resets the Latch to its initial (non-held) state.
+This should only be used for error recovery.
 
 ---
 #### <a id=try_lock>void pub::XCL_latch::try_lock</a>
@@ -84,6 +92,23 @@ This results in Thread one spinning waiting for Thread two and Thread two
 spinning waiting for Thread one.
 
 ---
+#### <a id=try_wait>void pub::XCL_latch::try_wait</a>
+
+Waits for *ALL* SHR_latch locks to be released.
+
+Called after try_lock succeeds to insure no SHR_latch locks are held.
+
+---
 #### <a id=unlock>void pub::XCL_latch::unlock</a>
 
-Releases the (exclusive) Latch.
+Releases the (exclusive) Latch, leaving no SHR_latch held.
+
+---
+#### <a id=upgrade>void pub::XCL_latch::upgrade</a>
+
+This method must only be invoked with the SHR_latch singly held and
+without XCL_latch being held by the same Thread..
+
+Obtains the exclusive Latch.
+
+Must be followed by downgrade or unlock.

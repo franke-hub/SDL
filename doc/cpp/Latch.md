@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (c) 2025 Frank Eskesen.
+//       Copyright (c) 2026 Frank Eskesen.
 //
 //       This file is free content, distributed under cc by-sa version 4.0
 //       with attribution required.
@@ -17,7 +17,7 @@
 //       Latch.h reference manual
 //
 // Last change date-
-//       2025/10/20
+//       2026/02/08
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Latch.h>
@@ -30,7 +30,6 @@
 | [RecursiveLatch](#RecursiveLatch) | Exclusive recursive spin Latch |
 | [SHR_latch](#SHR_latch) | Shared spin Latch (shared mode) |
 | [XCL_latch](#XCL_latch) | Shared spin Latch (exclusive mode) |
-| [NullLatch](#NullLatch) | Does nothing (see description for usage intent) |
 
 ** <a id="Latch_classes">Table 1: Latch Classes</a> **
 
@@ -74,18 +73,11 @@
 | Method | Purpose |
 |--------|---------|
 | [constructor](./pub_latch-XCL.md#constructor) | Create the XCL Latch. |
+| [downgrade](./pub_latch-XCL.md#downgrade) | Change mode: exclusive to shared. |
 | [is_held](./pub_latch-XCL.md#is_held) | Test: is the Latch held? |
-| [lock](./pub_latch-XCL.md#lock) | Obtain the (exclusive) Latch. |
+| [lock](./pub_latch-XCL.md#lock) | Obtain exclusive mode access. |
 | [reset](./pub_latch-XCL.md#reset) | Unconditionally reset the Latch. |
-| [try_lock](./pub_latch-XCL.md#try_lock) | Try to obtain the Latch. |
-| [unlock](./pub_latch-XCL.md#unlock) | Release the Latch. |
-
-#### <a id="NullLatch">[NullLatch](./pub_latch-NULL.md)</a>
-
-| Method | Purpose |
-|--------|---------|
-| [is_held](./pub_latch-NULL.md#is_held) | Test: is the Latch held? |
-| [lock](./pub_latch-NULL.md#lock) | Obtain the (exclusive) Latch. |
-| [reset](./pub_latch-NULL.md#reset) | Unconditionally reset the Latch. |
-| [try_lock](./pub_latch-NULL.md#try_lock) | Try to obtain the Latch. |
-| [unlock](./pub_latch-NULL.md#unlock) | Release the Latch. |
+| [try_lock](./pub_latch-XCL.md#try_lock) | Try to reserve exclusive mode. |
+| [try_wait](./pub_latch-XCL.md#try_wait) | Wait for exclusive mode access. |
+| [unlock](./pub_latch-XCL.md#unlock) | Completely release the Latch. |
+| [upgrade](./pub_latch-XCL.md#upgrade) | Change mode: shared to exclusive. |
