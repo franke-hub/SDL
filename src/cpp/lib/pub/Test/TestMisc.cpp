@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2025 Frank Eskesen.
+//       Copyright (c) 2018-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Miscellaneous tests.
 //
 // Last change date-
-//       2025/09/08
+//       2026/02/17
 //
 //----------------------------------------------------------------------------
 #include <functional>               // For std::function
@@ -35,15 +35,26 @@
 #include "pub/Properties.h"         // For pub::Properties
 #include "pub/Random.h"             // For pub::Random
 #include "pub/Statistic.h"          // For pub::Statistic
+#include "pub/System.h"             // For pub::System, tested
 #include "pub/Tokenizer.h"          // For pub::Tokenizer
 #include "pub/Wrapper.h"            // For pub::Wrapper
 
 // Namespace accessors
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB::debugging;
+
+// Class accessors
 using Exception= PUB::Exception;
 using IndexException= PUB::IndexException;
 using PUB::Wrapper;                 // For pub::Wrapper class
+
+//----------------------------------------------------------------------------
+// Constants for parameterization
+//----------------------------------------------------------------------------
+enum // Generic enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more
+}; // Generic enum
 
 //----------------------------------------------------------------------------
 //
@@ -123,7 +134,10 @@ static inline int                   // Number of errors encountered
 static inline int                   // Number of errors encountered
    test_Hardware( void )            // Test Hardware.h
 {
-   debugf("test_Hardware skipped: GNU compiler, x86 architecture required\n");
+   if( opt_verbose )
+     debugf("test_Hardware skipped: "
+            "GNU compiler, x86 architecture required\n");
+
    return 0;
 }
 #endif
@@ -248,6 +262,68 @@ static inline int
 
 //----------------------------------------------------------------------------
 //
+// Macro-
+//       verify_info
+//
+//----------------------------------------------------------------------------
+#define verify_info debugf("\n%4d %s: ", __LINE__, __FILE__)
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       bit_counter
+//
+// Purpose-
+//       For each bit in a word, count its occurance in a counter array.
+//
+//----------------------------------------------------------------------------
+static inline void
+   bit_counter(                     // Count bit occurances.
+     uint64_t          word,        // In this word
+     uint64_t*         array)       // Counter array[64]
+{
+   uint64_t mask= 1;
+   for(int i= 0; i<64; i++) {
+     if( (word&mask) != 0 )
+       array[i]++;
+
+     mask <<= 1;
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       bit_checker (Used by Random::_self_test)
+//
+// Purpose-
+//       Display the number of occurances for each bit.
+//
+//----------------------------------------------------------------------------
+static inline void
+   bit_checker(                     // Check bit occurances.
+     const char*       type,        // The function used to set the bits
+     size_t            count,       // The number of tests
+     uint64_t*         array)       // Counter array[64]
+{
+   size_t minCount= count/2 - count/512;
+   size_t maxCount= count/2 + count/512;
+   debugf("bit_checker(%s) {%'zd; %'zd; %'zd}\n", type
+         , minCount, count/2, maxCount);
+
+   for(int i= 0; i<63; i++) {
+     int x= 62 - i;
+     size_t ones= array[x];
+     debugf("[%2d] %'8zd of %'8zd ", x, ones, count);
+     if( ones >= minCount && ones <= maxCount )
+       debugf("OK\n");
+     else
+       debugf("!! NG !!\n");
+   }
+}
+
+//----------------------------------------------------------------------------
+//
 // Subroutine-
 //       test_Random
 //
@@ -257,7 +333,155 @@ static inline int
 //----------------------------------------------------------------------------
 static inline int                   // Number of errors found
    test_Random( void )              // Test Random.h
-{  return PUB::Random::_self_test(opt_verbose); }
+{
+static constexpr int   DIM_ARRAY= 64;
+
+static constexpr size_t ITERATIONS=      // Range:    10,000,000 and up
+                                               size_t(50'000'000);
+
+static constexpr size_t CHECK_ITERATIONS= // Range: 1,000,000,000 and up
+                                             size_t(3'000'000'000);
+
+   if( opt_verbose )
+     debugf("\ntest_Random (long-running)\n");
+
+   int error_count= 0;
+
+   PUB::Random& RNG= PUB::Random::standard;
+
+   //-----------------------------------------------------------------------
+   // Quick test for duplicates
+   uint64_t            array[DIM_ARRAY]; // Random value array
+   size_t              count;     // Iteration/result counter
+
+   for(int i=0; i<DIM_ARRAY; i++)
+     array[i]= RNG.get64();
+
+   for(int i=0; i<DIM_ARRAY; i++) {
+     for(int j=i+1; j<DIM_ARRAY; j++) {
+       if( array[i] == array[j] ) {
+         debugf("Random::get64() repeats [%d]==[%d]\n", i, j);
+         for(int x= 0; x<DIM_ARRAY; ++x) {
+           debugf("[%'5d]: %'zu\n", x, array[x]);
+         }
+         return 1;                // Quick loop detected
+       }
+     }
+   }
+
+   //-----------------------------------------------------------------------
+   // Test for duplicates. Duplicates will repeat sequence
+   uint64_t checker= array[DIM_ARRAY-1];
+   if( opt_verbose )
+     debugf("Pass 1\n");
+   for(uint64_t i= 1; i <= CHECK_ITERATIONS; ++i) {
+     if( RNG.get64() == checker ) { // Oh no! Algorithm failure
+       debugf("Random::get64() repeats: %'zd loops, value %'zu\n", i, checker);
+       return ++error_count;        // Slow loop detected
+     }
+     if( opt_verbose && (i % 1'000'000'000) == 0 )
+       printf("Iteration %'16zd of %'16zd\n", i, CHECK_ITERATIONS);
+   }
+
+   checker= RNG.get64();            // We might have skidded into a loop
+   if( opt_verbose )
+     debugf("Pass 2\n");
+   for(uint64_t i= 1; i <= CHECK_ITERATIONS; ++i) {
+     if( RNG.get64() == checker ) { // Oh no! Algorithm failure
+       debugf("Random::get64() repeats: %'zd loops, value %'zu\n", i, checker);
+       return ++error_count;        // Slow loop detected
+     }
+     if( opt_verbose && (i % 1'000'000'000) == 0 )
+       printf("Iteration %'16zd of %'16zd\n", i, CHECK_ITERATIONS);
+   }
+   if( opt_verbose )
+     debugf("No duplicate found in %'zu iterations\n", 2 * CHECK_ITERATIONS);
+
+   //-----------------------------------------------------------------------
+   // Distribution tests
+   if( opt_verbose && DIM_ARRAY >= 64 ) {
+     // Testing get
+     int prior[64];               // Prior bit value
+     int  cur0[64];               // Sequentially zero (current sequence)
+     int  cur1[64];               // Sequentially ones (current sequence)
+     int  max0[64];               // Sequentially zero (longest sequence)
+     int  max1[64];               // Sequentially ones (longest sequence)
+     int  seq0[64];               // Sequentially zero
+     int  seq1[64];               // Sequentially ones
+
+     for(int i=0; i<64; i++) {
+       prior[i]= (-1);            // Neither one nor zero
+       cur0[i]= 0;
+       cur1[i]= 0;
+       max0[i]= 0;
+       max1[i]= 0;
+       seq0[i]= 0;
+       seq1[i]= 0;
+     }
+
+     for(int i=0; i<DIM_ARRAY; i++)   // For bitCounter
+       array[i]= 0;
+
+     for(count= 0; count<ITERATIONS; count++) {
+       uint64_t temp= RNG.get64();
+
+       uint64_t mask= 1;
+       for(int i= 0; i<64; i++) {
+         if( (temp & mask) == 0 ) { // If bitvalue zero
+           if( prior[i] == 0 ) {
+             cur0[i]++;
+             if( cur0[i] > max0[i] )
+               max0[i]= cur0[i];
+
+             seq0[i]++;
+           } else {
+             prior[i]= 0;
+             cur0[i]= 0;
+             cur1[i]= 1;
+           }
+         } else {
+           if( prior[i] == 1 ) {
+             cur1[i]++;
+             if( cur1[i] > max1[i] )
+               max1[i]= cur1[i];
+
+             seq1[i]++;
+           } else {
+             prior[i]= 1;
+             cur0[i]= 1;
+             cur1[i]= 0;
+           }
+         }
+
+         mask <<= 1;
+       }
+
+       bit_counter(temp, array);
+     }
+     verify_info; bit_checker("get", count, array);
+
+     // Testing randomize
+     debugf("\n BIT         Seq0    :    Seq1 Max0 Max1 ITERATIONS(%'zd)\n"
+           , ITERATIONS);
+     for(int i= 0; i<63; i++) {
+       int x= 62 - i;
+       debugf("[%2d] %'12d %'12d %'4d %'4d\n", x
+             , seq0[x], seq1[x], max0[x], max1[x]);
+     }
+
+     for(int i=0; i<64; i++)      // For bitCounter
+       array[i]= 0;
+
+     for(count= 0; count<ITERATIONS; count++) {
+       RNG.randomize();
+       uint64_t temp= RNG.get64();
+       bit_counter(temp, array);
+     }
+     verify_info; bit_checker("randomize", count, array);
+   }
+
+   return error_count;
+}
 
 //----------------------------------------------------------------------------
 //
@@ -296,6 +520,82 @@ static inline int
      printf("stat: %ld  %ld,%ld,%ld\n", stat.counter.load()
            , stat.minimum.load() , stat.current.load(), stat.maximum.load());
    }
+
+   return error_count;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       test_System
+//
+// Purpose-
+//       Test System.h
+//
+//----------------------------------------------------------------------------
+static inline int                   // Number of errors encountered
+   test_System( void )              // Test System.h, System::log
+{
+   using namespace PUB::System;
+
+   int                 error_count= 0; // Number of errors encountered
+
+   if( opt_verbose )
+     debugf("\ntest_System\n");
+
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Test System::log
+   if( opt_verbose ) {
+     set_log_level(LL_HCDM);           // (Log HCDM only)
+     error_count += VERIFY(get_log_level() == LL_HCDM);
+
+     log(LL_NONE,  "\n");           // (syslog not stderr)
+     log(LL_NONE,  "%s LL_NONE  (-stderr)\n", __FILE__); // (syslog not stderr)
+     log(LL_INFO,  "%s LL_INFO  (-stderr)\n", __FILE__); // (syslog not stderr)
+     log(LL_ERROR, "%s LL_ERROR (-stderr)\n", __FILE__); // (syslog not stderr)
+     log(LL_HCDM,  "%s LL_HCDM  (+stderr)\n", __FILE__); // (syslog and stderr)
+     log(LL_ALL,   "%s LL_ALL   (+stderr)\n", __FILE__); // (syslog and stderr)
+   }
+
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Test System::get_LR, System::get_SP, System::get_TSC
+#if defined(__GNUC__) && defined(_HW_X86) // GNU compiler, x86 required
+   intptr_t one= (intptr_t)get_LR();
+   intptr_t two= (intptr_t)get_LR();
+   error_count += VERIFY(two > one && (two-one) < 64);
+   if( opt_verbose )
+     debugf("one(0x%.16zx) two(0x%.16zx) get_LR\n", one, two);
+
+   one= (intptr_t)get_SP();
+   two= (intptr_t)get_SP();
+   error_count += VERIFY(two == one);
+   if( opt_verbose )
+     debugf("one(0x%.16zx) two(0x%.16zx) get_SP\n", one, two);
+
+   intptr_t max= 0;
+   intptr_t min= 1'000'000'000'000;
+   one= get_TSC();
+   intptr_t old= one;
+   for(int i= 0; i<64; ++i) {
+     two= get_TSC();
+     error_count += VERIFY(two >= one);
+     intptr_t del= two - old;
+     if( del < min )
+       min= del;
+     if( del > max )
+       max= del;
+     old= two;
+   }
+
+   error_count += VERIFY(two > one);
+   if( opt_verbose )
+     debugf("one(0x%.16zx) two(0x%.16zx) min(%zd) max(%zd) get_TSC\n"
+           , one, two, min, max);
+#else
+   ++error_count;
+   debugf("System::get_LR, System::get_SP, and System::get_TSC\n"
+          "require GNU compiler and x86 hardware\n");
+#endif
 
    return error_count;
 }
@@ -413,12 +713,13 @@ extern int                          // Return code
    {
      int error_count= 0;
 
-     setlocale(LC_NUMERIC, "");     // Allows printf("%'d\n", 123456789);
-     error_count += test_Hardware(); // Test Hardware.h
+     setlocale(LC_NUMERIC, "");        // Allows printf("%'d\n", 123456789);
+     error_count += test_Hardware();   // Test Hardware.h
      error_count += test_Properties(); // Test Properties.h
-     error_count += test_Random();  // Test Random.h
-     error_count += test_Statistic(); // Test Statistic.h
-     error_count += test_Tokenizer(); // Test Tokenizer.h
+     error_count += test_Random();     // Test Random.h
+     error_count += test_Statistic();  // Test Statistic.h
+     error_count += test_System();     // Test System.h
+     error_count += test_Tokenizer();  // Test Tokenizer.h
 
      if( error_count || opt_verbose ) {
        debugf("\n");
