@@ -17,7 +17,7 @@
 //       Define the Thread control object.
 //
 // Last change date-
-//       2026/01/21
+//       2026/02/20
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_THREAD_H_INCLUDED
@@ -33,20 +33,6 @@
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
-// MACRO _IF_PUBLIB_THREAD_INLINE, controlled by _PUBLIB_THREAD_DEBUG
-//----------------------------------------------------------------------------
-#ifndef   _PUBLIB_THREAD_DEBUG
-#  define _PUBLIB_THREAD_DEBUG      // (Last for Thread.cpp debugging)
-#  undef  _PUBLIB_THREAD_DEBUG      // (Last for INLINE compilation)
-#endif
-
-#ifndef _PUBLIB_THREAD_DEBUG
-#  define _IF_PUBLIB_THREAD_INLINE(x) x
-#else
-#  define _IF_PUBLIB_THREAD_INLINE(x) ;
-#endif
-
-//----------------------------------------------------------------------------
 //
 // Class-
 //       Thread
@@ -60,35 +46,44 @@ public:
 //----------------------------------------------------------------------------
 // Thread::Typedefs and enumerations
 //----------------------------------------------------------------------------
-typedef pthread_t      handle_t;    // Import tlss::handle_t
+typedef pthread_t      handle_t;    // The tlss::handle_t
+
+// The start method parameter
+enum ITS                            // Initial Thread State
+{  ITS_JOINABLE= 0                  // Joinable (default)
+,  ITS_DETACHED                     // Detached
+};
 
 //----------------------------------------------------------------------------
-// Thread::tlss || Thread Local Storage struct
+// Thread::tlss_event || Thread Local Storage Struct Event container
+//----------------------------------------------------------------------------
+struct tlss_event {                 // TLSS startup events
+pub::Event             drive_initialized; // Thread::drive init complete
+pub::Event             start_completed; // Thread::start complete
+}; // struct tlss_event
+
+//----------------------------------------------------------------------------
+// Thread::tlss || Thread Local Storage Struct
 //----------------------------------------------------------------------------
 struct tlss {                       // Thread Local Storage
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Attributes
-Latch                  mutex;       // Protects this struct
+RecursiveLatch         mutex;       // Protects this struct
 int                    fsm= 0;      // Finite State Machine
 int                    ___= 0;      // (For alignment)
 
-Thread*                pub_thread{}; // The current pub::Thread
-pthread_t              pth_handle{}; // The associated system pthread handle
+Thread*                thread= nullptr; // The current pub::Thread
+handle_t               handle= null_handle; // The associated pthread handle
 
-// These Events are each used once during Thread startup and never reused.
-pub::Event             drive_initialized; // Thread::drive init complete
-pub::Event             start_completed; // Thread::start complete
+// The tlss_events are only used during startup.
+tlss_event*            E= nullptr;  // (Events only used during startup)
+char                   TES[sizeof(tlss_event)]; // The Event storage
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Constructor/destructor
-   tlss(Thread* thread)
-_IF_PUBLIB_THREAD_INLINE(
-:  pub_thread(thread)
-{  })
+   tlss(Thread* thread);
 
-   ~tlss( void )
-_IF_PUBLIB_THREAD_INLINE(
-{  })
+   ~tlss( void );
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Methods
@@ -104,23 +99,28 @@ void
 // Thread::Attributes
 //----------------------------------------------------------------------------
 private:
-mutable Latch          mutex;       // Mutex, protects _tlss ONLY
-tlss*                  _tlss= nullptr; // (Internal, valid only while running)
+mutable Latch          tlss_latch;  // Latch, only protects Thread::tlss_
+tlss*                  tlss_= nullptr; // (Internal, valid only while running)
+
+static size_t          max_threads; // Maximum allowed running Threads
 
 public:
 static const handle_t  null_handle; // The handle of a non-executing thread
 
 //----------------------------------------------------------------------------
-// Thread::Constructors/Destructors
+// Thread::Constructors/Destructor
 //----------------------------------------------------------------------------
-   Thread( void );
+   Thread( void );                  // Constructor
 
-// Disallowed: Copy constructor, assignment operator
-   Thread(const Thread&) = delete;
-Thread& operator=(const Thread&) = delete;
+virtual                             // VIRTUAL
+   ~Thread( void );                 // Destructor
 
-virtual
-   ~Thread( void );
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Disallowed: copy constructor; assignment operator
+   Thread(const Thread&) = delete; // Disallowed copy constructor
+
+Thread&
+   operator=(const Thread&) = delete; // Disallowed assignment operator
 
 //----------------------------------------------------------------------------
 // Thread::Debugging methods
@@ -138,10 +138,17 @@ static void
 //----------------------------------------------------------------------------
 handle_t                            // The native Thread handle (when active)
    get_handle( void ) const         // Get native Thread handle
-{  return _tlss ? _tlss->pth_handle : null_handle; }
+{  return tlss_ ? tlss_->handle : null_handle; }
+
+static size_t                       // The maximum number active Threads
+   get_max_threads( void )
+{  return max_threads; }
 
 bool                                // TRUE iff Thread is joinable
    joinable( void ) const;          // Is this Thread joinable?
+
+static void
+   set_max_threads(size_t);           // Set maximum number active Threads
 
 //----------------------------------------------------------------------------
 // Thread::Static methods
@@ -166,24 +173,22 @@ void
 void
    join( void );                    // Wait for this Thread to complete
 
-int                                 // Return code, 0 or errno
-   join(double);                    // Join with timeout
-
 // OVERRIDE this method. (There is no default implementation.)
 virtual void
    run( void ) = 0;                 // Operate this thread
 
 // Thread::start creates the system thread that drives the run method.
-// Note: under unusual circumstances a run method may complete even before the
-// start method returns.
+// Note that a Thread without explicit sequencing controls might be deleted
+// even before the start method returns.
 void
-   start( void );                   // Start this Thread
+   start(                           // Start this Thread
+     ITS               its= ITS_JOINABLE); // Joinable Thread
 
 //----------------------------------------------------------------------------
 // Thread::Internal methods
 //----------------------------------------------------------------------------
 protected:
-static void*                        // (Thread return code, always nullptr)
+static void*
    drive(                           // Drive (run)
      void*             _thread);    // This Thread
 
