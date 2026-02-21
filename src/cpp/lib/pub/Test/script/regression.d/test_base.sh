@@ -17,7 +17,7 @@
 ##       Run executables with default options
 ##
 ## Last change date-
-##       2026/01/26
+##       2026/02/19
 ##
 ##############################################################################
 
@@ -45,6 +45,7 @@ test_set="TestIoda TestList TestLock TestMisc"
 test_set="$test_set Test_num Test_utf"
 for test in $test_set
 do
+  [[ "$test" == "TestMisc" ]] && echo "TEST: ./$test (started)"
   [[ "$test" == "Test_num" ]] && echo "TEST: ./$test (started)"
   ./$test
   rc=$?

@@ -38,7 +38,6 @@
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Event.h>              // For pub::Event
 #include <pub/Interval.h>           // For pub::Interval
-#include <pub/Semaphore.h>          // For pub::Semaphore
 #include "pub/Select.h"             // For pub::Select, minimally tested
 #include "pub/Socket.h"             // For pub::Socket, tested
 #include "pub/Thread.h"             // For pub::Thread
