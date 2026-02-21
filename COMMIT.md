@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2026/01/22
+//       2026/02/21
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -62,12 +62,12 @@ Distribution test: Moved prerequisite build programs to ~/src/cpp/sys/.
 (A synchronization commit with debugging hooks left in the code.
 Most of these hooks need to be removed before a trunk commit.)
 
-Issue #2 has been corrected, but dispatch::Task::~Task still has issues.
+Issue #2 has been corrected, but dispatch\::Task\::~Task still has issues.
 The FC_UNDEF wait request doesn't complete, so the destructor doesn't complete
 and the Client and Server destructors don't complete. (Client and Server
-objects contain dispatch::Task objects.)
+objects contain dispatch\::Task objects.)
 
-Isolating the the problem to the dispatch::Task destructor proved exceedingly
+Isolating the the problem to the dispatch\::Task destructor proved exceedingly
 difficult and compounded by the FC_UNDEF wait request (lack of) completion
 issue. Minor ancillary code base modifications were made while waiting for
 some flash of inspiration for ways to debug the problem.
@@ -164,13 +164,13 @@ scaffolding and might not ever be used.
   - New feature: ctrl-F9 copies current line to history line. (F9 without ctrl
 copies the filename to the history line.)
 - src/cpp/RFC: RFC7541.*
-  - Almost all functions fully operational. (Pack::resize does not yet transfer
+  - Almost all functions fully operational. (Pack\::resize does not yet transfer
 the resize request via an Ioda Writer/Reader.)
-  - Added Ioda::dump function. It displays the entire Ioda buffer sequence.
+  - Added Ioda\::dump function. It displays the entire Ioda buffer sequence.
 
 ### 11/16/2023 maint (test)
 - Documentation update test (Verify .md files on github.)
-- Removed Debug::errorp method. (Moved to ~/src/cpp/lib/pub/Fileman.cpp)
+- Removed Debug\::errorp method. (Moved to ~/src/cpp/lib/pub/Fileman.cpp)
 
 ### 12/03/2023 maint
 - Added "make update" feature.
@@ -223,7 +223,7 @@ both the static and (incomplete) shared library objects.
 ### 03/05/2024 maint
 - Partially updated Debug.h documentation, correcting links and missing
 information.
-- Removed pub::Debug::clr_head and changed pub::Debug::set_head to set
+- Removed pub\::Debug\::clr_head and changed pub\::Debug\::set_head to set
 complete heading rather than set heading bit.
 - Fixed ~/src/cpp/lib/dev/Test/T_Stream.hpp, adding a short delay to allow
 threads to complete. (Otherwise Stream object count error could occur.)
@@ -426,11 +426,11 @@ documentation while also clarifying the interface definitions.
 Merged maint/preview into trunk.
 
 ### 09/18/2024 trunk
-Removed boost::core::demangle.hpp dependency.
+Removed boost\::core\::demangle.hpp dependency.
 
 ### 10/05/2024 maint/trunk
 Added auto-recompile trigger for dev and pub libraries to account for a
-pub::Object::~Object linkage change.
+pub\::Object\::~Object linkage change.
 
 Restructured ~/src/cpp/Brian/.
 - Updated the Command and Service objects.
@@ -467,7 +467,7 @@ along with the associated regression test.
 ### 11/25/2024 maint (With extensive diagnostics)
 Looking at a Brian termination problem. Sometimes it completes and sometimes
 it doesn't.
-When it doesn't complete pub::Console appears to be in some sort
+When it doesn't complete pub\::Console appears to be in some sort
 of loop.
 (The loop is known, but exactly what's looping hasn't been determined yet.)
 
@@ -525,7 +525,7 @@ other environments.
 Debugging this problem hasn't been possible. It appears to be occuring during
 startup complete Signal handling, but the event handler doesn't appear to be
 invoked. The Signals restructuring requires all Events to be derived from a
-new Signals::Event struct which is basically just a tag. Event handlers now
+new Signals\::Event struct which is basically just a tag. Event handlers now
 need to dynamically cast the provided basic Event type into the expected
 derived type rather than simply rely on template type matching.
 
@@ -584,7 +584,7 @@ Added:
 - ~/src/cpp/inc/pub/Calendar.h   (The Calendar interface)
 - ~/src/cpp/inc/pub/Julian.h     (The Julian interface)
 - ~/src/cpp/lib/pub/Calendar.cpp (Most of the Calendar.h implementation)
-- ~/src/cpp/lib/pub/Cal400.cpp   (Calendar::day2ymd table implementation)
+- ~/src/cpp/lib/pub/Cal400.cpp   (Calendar\::day2ymd table implementation)
 - ~/src/cpp/lib/pub/Julian.cpp   (Julian.h implementation)
 - ~/src/cpp/lib/pub/Test/.H      (A link ~/src/cpp/inc/pub)
 - ~/src/cpp/lib/pub/Test/TestTime.cpp (The Calendar, Clock and Julian
@@ -630,7 +630,7 @@ ID of a key that's on your secret key list.
 ### 2025/04/25 trunk/maint
 Commits are now sorted in date order rather than reverse date order.
 
-Removed unnecessary error checking in the Select::~Select (destructor) method
+Removed unnecessary error checking in the Select\::~Select (destructor) method
 implemented in ~/src/cpp/lib/pub/Select.cpp.
 Now that Sockets don't reference Select objects, it's not an issue whether or
 not Socket objects appear in a Select object's database.
@@ -690,7 +690,7 @@ The appropriate SPDX-License-Identifier was added to each copyright header.
 
 ~/src/cpp/Fileman/Scanner.cpp automated this task.
 
-A simple check was added to pub::List::insert to detect inverted after and
+A simple check was added to pub\::List\::insert to detect inverted after and
 link parameters.
 
 ### 2025/08/16 trunk/maint
@@ -745,7 +745,7 @@ This commit contains work in progress.
 - List's bubble sorting has been changed to the merge algorithm.
 The algorithm features avoidance of link removal/insertion operations when the
 next merge item to be inserted is from the same split chain.
-  - A new list type, DHDL_sort, implements the sort method. DHDL_list::sort.
+  - A new list type, DHDL_sort, implements the sort method. DHDL_list\::sort.
 (Implementation went through multiple iterations.)
   - The DHDL_sort link uses a virtual operator<() to define how to sort.
 (We'd like to move that function to the DHDL_sort list to reduce storage use.
@@ -847,10 +847,10 @@ Added _GLIBCXX_* modifiers copied from c++/new.
 ### 2026/01/08 maint/trunk
 - ~/src/cpp/Scanner/Scanner.cpp: Added additional binary file types
 - Fixed Xcb/Term Editor problem: Possible incorrect locate column in UTF8 files
-  - ~/src/cpp/inc/pub/Utf.h: Define utf8_decoder::set_buffer_offset
-  - ~/src/cpp/lib/pub/Utf.cpp: Implement utf8_decoder::set_buffer_offset
-  - ~/src/cpp/lib/pub/Test/Test_utf.cpp: Test utf8_decoder::set_buffer_offset
-  - ~/src/cpp/Edit/Xcb/Editor.cpp: Use utf8_decoder::set_buffer_offset
+  - ~/src/cpp/inc/pub/Utf.h: Define utf8_decoder\::set_buffer_offset
+  - ~/src/cpp/lib/pub/Utf.cpp: Implement utf8_decoder\::set_buffer_offset
+  - ~/src/cpp/lib/pub/Test/Test_utf.cpp: Test utf8_decoder\::set_buffer_offset
+  - ~/src/cpp/Edit/Xcb/Editor.cpp: Use utf8_decoder\::set_buffer_offset
 
 ### 2026/01/21 maint
 - Fixed misspelled "argruments" to "arguments" in comments
@@ -867,7 +867,7 @@ storage.
   - ~/src/cpp/lib/pub/Thread.cpp: Added additional synchronization logic
     - Added lots of internal trace event recording
   - ~/src/cpp/inc/pub/Thread.h: Added start_completed synchronization Event
-    - The Thread::mutex and Thread::tlss::mutex types were changed from
+    - The Thread\::mutex and Thread\::tlss\::mutex types were changed from
 RecursiveLatch to Latch. (Neither should have been Recursive.)
   - ~/src/cpp/lib/pub/Latch.cpp: Added diagnostic internal tracing
   - ~/src/cpp/lib/pub/Latch.h (and ~/src/cpp/lib/pub/Latch.cpp):
@@ -888,20 +888,58 @@ tests for TimeDisp parameters that resulted in failure.
 ### <a id="last-change">2026/01/22 maint/trunk</a>
 - DEV library regression test failed on test virtual machine
   - (OS maintenance was done at the same time.)
-  - The problem appeared to be a double free in std::string<br>
+  - The problem appeared to be a double free in std\::string<br>
 A reboot and full library recompile fixed it.
     - Updated ~/bat/sys/.want-version to force full library recompiles.
 
-<!-- IN PROGRESS --------------------------------------------------------- ---
-### <a id="last-change">2026/01/23 maint/trunk</a>
+### <a id="last-change">2026/02/21 maint</a>
+- ~/src/cpp/inc/pub/Latch.h, ~/src/cpp/lib/pub/Latch.cpp
+  - The XCL_latch's Thread ID is moved to the SHR_latch.
+  - Uses identical lock retry logic for all Latch types
+  - Added (conditional) XCL_latch\::upgrade and XCL_latch\::try_reserve
+  - Removed (unused) NullLatch
+- ~/src/cpp/inc/pub/Semaphore.h, ~/src/cpp/lib/pub/Semaphore.cpp
+  - Implementation moved from Semaphore.h into Semaphore.cpp
+- ~/src/cpp/inc/pub/System.h, ~/src/cpp/lib/pub/System.cpp [added]
+  - Added System\::log function, writes message to ~/.local/log/syslog.out
+  - Duplicates Hardware.h functions. (Hardware.h to be deprecated.)
+- ~/src/cpp/inc/pub/Thread.h, ~/src/cpp/lib/pub/Thread.cpp
+  - Added extensive commentary documentation
+  - Added error handling for destruction of an un-detached or un-joined Thread
+    - (This is always an application error and always recorded)
+    - Added forced error tests to ~/src/cpp/lib/pub/Test/Test_thr.cpp
+  - Added Semaphore control to limit the number of running Threads
+- ~/src/cpp/inc/pub/Trace.h, ~/src/cpp/lib/pub/Trace.cpp
+  - Trace\::trace now allows intermixed pointers, intptr_t, or const char* values
 - ~/src/cpp/inc/pub/Worker.h, ~/src/cpp/lib/pub/Worker.cpp
   - All internal variables exposed (pool_size is R/W, all others are R/O.)
+  - Worker Threads are started in detached mode.
 - ~/src/cpp/inc/pub/Wrapper.h, ~/src/cpp/lib/pub/Wrapper.cpp
-  - Now provides double value parmeters.
+  - Now provides double value parmeter conversions.
+
+- ~/src/cpp/lib/pub/Test/Quick.cpp
+  - Added Latch.h new function tests, including forced error injection.
+- ~/src/cpp/lib/pub/Test/TestMisc.cpp
+  - Added Random.h tests (moved from ~/src/cpp/lib/pub/Random.cpp.) These are
+relatively long-running tests that were disabled prior to this change.
+  - Added System.h tests.
+- ~/src/cpp/lib/pub/Test/Test_thr.cpp
+  - Added forced error Thread destructor tests.
+  - Modified Noisy and Quiet Thread tests to allow a large number of active
+Threads.
 - ~/src/cpp/lib/pub/Test/TimeDisp.cpp
   - Rearranged (and improved) output formatting
-- ~/src/cpp/lib/pub/Test/script/regression.d/TimeDisp.cpp
-  - Rearranged (and improved) output formatting
+  - Added signal handling.
 - ~/src/cpp/lib/pub/Test/script/regression.d/test_time.sh
   - Combines and writes output to test_time.out (for recording)
----- --------------------------------------------------------------------- -->
+
+- ~/doc/Journal/Debugging.md, ~/doc/Journal/Journal.md
+  - Documented the Thread start timing but
+- ~/doc/cpp/Latch.md
+  - Documented the XCL_latch interface changes and NullLatch removal
+- ~/doc/cpp/pub_latch-NULL.md
+  - (Removed)
+- ~/doc/cpp/pub_latch-XCL.md
+  - Documented the changed and new methods.
+- ~/doc/cpp/REFERENCE.md, ~/doc/cpp/Thread.md, ~/doc/cpp/pub_thread.md
+  - Documented Thread.h (Preliminary version, work needed)
