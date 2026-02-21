@@ -39,7 +39,7 @@
 #include "pub/Console.h"            // For pub::Console, implemented
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Event.h>              // For pub::Event
-#include <pub/Trace.h>              // For pub::Trace
+#include "pub/Trace.h"              // For pub::Trace
 #include <pub/utility.h>            // For namespace pub::utility
 #include "pub/utility.i"            // For conversion routines
 

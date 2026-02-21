@@ -25,9 +25,9 @@
 
 #include <functional>               // For std::function
 
-#include <pub/Latch.h>              // For pub::Latch
-#include <pub/List.h>               // For pub::AI_list, for Item's base class
-#include <pub/Event.h>              // For pub::Wait
+#include "pub/Latch.h"              // For pub::Latch
+#include "pub/List.h"               // For pub::AI_list, for Item's base class
+#include "pub/Event.h"              // For pub::Wait
 #include <pub/Worker.h>             // For pub::Worker
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)

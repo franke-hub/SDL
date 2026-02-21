@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2024 Frank Eskesen.
+//       Copyright (c) 2020-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Utility functions.
 //
 // Last change date-
-//       2024/12/20
+//       2026/02/11
 //
 // Implementation notes-
 //       ato* routines:
@@ -61,9 +61,25 @@ extern volatile int    data;        // For any use
 extern volatile int    unit;        // By convention, always 1
 extern volatile int    zero;        // By convention, always 0
 
-// Functions used to avoid compiler quirks or optimizations
-extern bool is_null(void*);         // Allows is_null(this)
-extern int  nop( void );            // Returns zero. Don't tell the compiler!
+//----------------------------------------------------------------------------
+//
+// Subroutines that hide information from the compiler-
+//       utility::nop
+//       utility::to_void
+//
+// Purpose-
+//       Does nothing, but now the parameter (if any) won't be inlined.
+//         The parameter is always unused. It's not even referenced.
+//       Allows `if( to_void(this) == nullptr )` avoiding compiler complaint.
+//         Sometimes this "should not occur" condition actually occurs often
+//         enough to warrant this test.
+//
+//----------------------------------------------------------------------------
+int                                 // (Always 0. Shhh, that's a secret)
+   nop(void* v= nullptr);           // Insures v isn't inlined
+
+const void*                         // (Always v. Shhh, that's a secret)
+   to_void(const void* v);          // Is v == nullptr?
 
 //----------------------------------------------------------------------------
 //

@@ -33,7 +33,7 @@
 #include <pub/Dispatch.h>           // For namespace pub::dispatch
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Statistic.h>          // For pub::Active_record
-#include <pub/Trace.h>              // For pub::Trace
+#include "pub/Trace.h"              // For pub::Trace
 #include <pub/utility.h>            // For pub::to_string, ...
 #include "pub/http/Client.h"        // For pub::http::Client
 #include "pub/http/Options.h"       // For pub::http::Options

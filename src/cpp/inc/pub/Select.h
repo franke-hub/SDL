@@ -34,8 +34,8 @@
 #include <sys/socket.h>             // For socket methods
 
 #include <pub/Dispatch.h>           // For pub::dispatch::Item
-#include <pub/Latch.h>              // For pub::SHR_latch, pub::XCL_latch
-#include <pub/List.h>               // For pub::AI_list<>
+#include "pub/Latch.h"              // For pub::SHR_latch, pub::XCL_latch
+#include "pub/List.h"               // For pub::AI_list<>
 #include "pub/Socket.h"             // For pub::Socket
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)

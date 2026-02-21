@@ -64,6 +64,7 @@ enum Heading                        // Debug::Heading
 {  HEAD_DEFAULT= 0x00000001         // Default heading (HEAD_TIME)
 ,  HEAD_TIME=    0x00000001         // Include time in heading
 ,  HEAD_THREAD=  0x00000002         // Include thread to heading
+,  HEAD_ALL=     0x00000003         // Include all optional headings
 }; // enum Heading
 
 //----------------------------------------------------------------------------

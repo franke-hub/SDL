@@ -35,7 +35,7 @@
 #include "gui/Widget.h"             // For Widget
 #include "gui/Window.h"             // For Window (Base class)
 #include <pub/Debug.h>              // For Debug object
-#include <pub/Trace.h>              // For Trace object
+#include "pub/Trace.h"              // For Trace object
 #include <pub/utility.h>            // For pub::utility::dump
 
 using pub::Debug;                   // For Debug object

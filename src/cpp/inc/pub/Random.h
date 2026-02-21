@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2023 Frank Eskesen.
+//       Copyright (c) 2007-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       (Pseudo)-random number generator.
 //
 // Last change date-
-//       2023/11/13
+//       2026/02/18
 //
 // Usage notes-
 //       The Random object is thread-safe and lock free. It uses an algorithm
@@ -89,19 +89,15 @@ uint32_t                            // The next random value
    get( void )                      // Get the next random value
 {  return uint32_t(get64()); }
 
+uint64_t                            // The next random value
+   get64( void );                   // Get the next 64-bit random value
+
 void
    randomize( void );               // Randomize the seed
 
 void
    set_seed(                        // Set the seed value
      uint64_t          seed);       // To this
-
-static int                          // Undefined
-   _self_test(int);                 // Self-test, undefined parameter
-
-protected:
-uint64_t                            // The next random value
-   get64( void );                   // Get the next 64-bit random value
 }; // class Random
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_RANDOM_H_INCLUDED

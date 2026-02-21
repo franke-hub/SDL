@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2025 Frank Eskesen.
+//       Copyright (C) 2020-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2025/10/06
+//       2026/02/09
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -52,8 +52,31 @@ namespace _LIBPUB_NAMESPACE::utility {
 volatile int           data= 0;     // For any use
 volatile int           unit= 1;     // By convention, always 1
 volatile int           zero= 0;     // By convention, always 0
-int  nop( void ) { return 0; }      // Returns zero. Don't tell the compiler!
-bool is_null(void* V) { return V == nullptr; } // Allows is_null(this)
+
+//----------------------------------------------------------------------------
+//
+// Subroutines that hide information from the compiler-
+//       utility::nop
+//       utility::to_void
+//
+// Purpose-
+//       Does nothing. Insures that the parameter (if any) isn't inlined.
+//         The parameter is always unused.
+//       Allows `if( to_void(this) == nullptr )` avoiding compiler complaint.
+//         Sometimes this "should not occur" condition actually occurs often
+//         enough to warrant this test.
+//
+//----------------------------------------------------------------------------
+int                                 // (Always 0. Shhh, that's a secret)
+   nop(void* v)                     // Breaks up compiler optimization.
+{  if( false && v == nullptr )      // (Pretend to reference v)
+     return 1;                      // (Snarky comment)
+   return 0;
+}
+
+const void*                         // (Always v. Shhh, that's a secret)
+   to_void(const void* v)           // Convert v to const void*
+{  return v; }
 
 //----------------------------------------------------------------------------
 //

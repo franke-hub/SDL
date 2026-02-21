@@ -41,7 +41,7 @@
 #include <pub/Dispatch.h>           // For pub::namespace pub::dispatch
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Socket.h>             // For pub::Socket
-#include <pub/Trace.h>              // For pub::Trace
+#include "pub/Trace.h"              // For pub::Trace
 #include <pub/utility.h>            // For pub::utility::to_string(), ...
 #include "pub/utility.i"            // For conversion routines
 #include "pub/http/Agent.h"         // For pub::http::ListenAgent, owner

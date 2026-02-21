@@ -34,7 +34,7 @@
 #include <pub/Exception.h>          // For catch(pub::Exception)
 #include <pub/Signals.h>            // For pub::Signals interface
 #include <pub/Thread.h>             // For pub::Thread::sleep
-#include <pub/Trace.h>              // For pub::Trace
+#include "pub/Trace.h"              // For pub::Trace
 #include <pub/Worker.h>             // For pub::WorkerPool
 
 #include "Command.h"                // For Command

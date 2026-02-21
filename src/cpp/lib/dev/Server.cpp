@@ -38,7 +38,7 @@
 #include <pub/Select.h>             // For pub::Select
 #include <pub/Socket.h>             // For pub::Socket
 #include <pub/Statistic.h>          // For pub::Active_record
-#include <pub/Trace.h>              // For pub::Trace
+#include "pub/Trace.h"              // For pub::Trace
 #include <pub/utility.h>            // For namespace pub::utility
 #include "pub/utility.i"            // For conversion routines
 #include "pub/http/Agent.h"         // For pub::http::ListenAgent

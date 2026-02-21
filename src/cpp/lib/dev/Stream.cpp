@@ -34,7 +34,7 @@
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Ioda.h>               // For pub::Ioda
 #include <pub/Statistic.h>          // For pub::Active_record
-#include <pub/Trace.h>              // For pub::Trace
+#include "pub/Trace.h"              // For pub::Trace
 #include <pub/utility.h>            // For pub::to_string, ...
 #include "pub/http/Client.h"        // For pub::http::Client
 #include "pub/http/HTTP.h"          // For pub::http::HTTP

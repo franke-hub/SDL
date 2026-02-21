@@ -39,7 +39,7 @@
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Select.h>             // For pub::Select
 #include <pub/Socket.h>             // For pub::Socket::sockaddr_u
-#include <pub/Trace.h>              // For pub::Trace
+#include "pub/Trace.h"              // For pub::Trace
 #include "pub/http/Agent.h"         // For pub::http::Agent, implemented
 #include "pub/http/Client.h"        // For pub::http::Client
 #include "pub/http/Listen.h"        // For pub::http::Listen

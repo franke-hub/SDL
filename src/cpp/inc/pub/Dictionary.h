@@ -28,7 +28,7 @@
 #include <cstring>                  // For strcmp, ...
 
 #include <pub/Debug.h>              // For namespace pub::debugging
-#include <pub/List.h>               // For pub::List
+#include "pub/List.h"               // For pub::List
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------

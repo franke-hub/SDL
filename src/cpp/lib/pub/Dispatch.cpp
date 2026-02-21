@@ -33,7 +33,7 @@
 #include <pub/Semaphore.h>          // For pub::Semaphore, Timers event
 #include <pub/Statistic.h>          // For pub::Active_record
 #include "pub/Thread.h"             // For pub::Thread, Timers is a Named Thread
-#include <pub/Trace.h>              // For pub::Trace
+#include "pub/Trace.h"              // For pub::Trace
 #include <pub/utility.i>            // For pub::v2c
 #include <pub/Worker.h>             // For pub::Worker
 

@@ -48,7 +48,7 @@
 #include <pub/Named.h>              // For pub::Named
 #include <pub/Statistic.h>          // For pub::Active_record
 #include <pub/Thread.h>             // For pub::Thread
-#include <pub/Trace.h>              // For pub::Trace
+#include "pub/Trace.h"              // For pub::Trace
 #include <pub/utility.h>            // For namespace pub::utility
 #include "pub/utility.i"            // For conversion routines
 #include "pub/http/Agent.h"         // For pub::http::ClientAgent (owner)

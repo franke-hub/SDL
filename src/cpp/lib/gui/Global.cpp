@@ -25,7 +25,6 @@
 //----------------------------------------------------------------------------
 #include "gui/Global.h"             // Implementation class
 #include <pub/Debug.h>              // For Debug object
-#include <pub/Trace.h>              // For Trace object
 
 using pub::Debug;                   // For Debug object
 using namespace pub::debugging;     // For debugging

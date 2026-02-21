@@ -84,8 +84,8 @@
 #include <cstdio>                   // For printf
 
 #include <pub/Debug.h>              // For namespace pub::debugging
-#include <pub/List.h>               // For pub::List
-#include <pub/Latch.h>              // For pub::XCL_latch, SHR_latch
+#include "pub/List.h"               // For pub::List
+#include "pub/Latch.h"              // For pub::XCL_latch, SHR_latch
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 namespace signals {
