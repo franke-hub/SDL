@@ -17,11 +17,11 @@
 //       Primitive mechanisms for granting access to a resource.
 //
 // Last change date-
-//       2026/01/18
+//       2026/02/20
 //
 // Implementation notes-
 //       Maintain implementation compatability with Latch.h
-//       Only used if _PUBLIB_LATCH_DEBUG is defined in Latch.h
+//       Only used if _PUBLIB_LATCH_INLINE is left undefined by Latch.h
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE                 // For sched_getcpu
@@ -43,10 +43,12 @@
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB::debugging;     // For debugging subroutines
 using namespace PUB::utility;       // For pub::utility::to_string
+using std::string;
 
 //----------------------------------------------------------------------------
-#ifdef _PUBLIB_LATCH_DEBUG          // Conditionally compiled
+#ifndef _PUBLIB_LATCH_INLINE        // Conditionally compiled
 
+namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
@@ -70,10 +72,10 @@ enum
 namespace {                         // Anonymous namespace
 static struct StaticGlobal {
    StaticGlobal( void )             // Initialize main()'s tl_tlss
-{  if( HCDM || VERBOSE > 0 ) debugh("pub::Latch::StaticGlobal!\n"); }
+{  if( HCDM ) debugf("pub::Latch::StaticGlobal!\n"); }
 
    ~StaticGlobal( void )            // Initialize main()'s tl_tlss
-{  if( HCDM || VERBOSE > 0 ) debugh("pub::Latch::StaticGlobal~\n"); }
+{  if( HCDM ) debugf("pub::Latch::StaticGlobal~\n"); }
 }  static_global;
 }  // Anonymous namespace
 
@@ -86,7 +88,7 @@ static struct StaticGlobal {
 //       Return the current std::thread::id string
 //
 //----------------------------------------------------------------------------
-static inline std::string           // The current std::thread::id string
+static inline string                // The current std::thread::id string
    id_string( void )                // Get current std::thread::id string
 {  return to_string(std::this_thread::get_id()); }
 
@@ -133,6 +135,37 @@ static inline const void*           // The current std::thread::id (void*)
 
 //============================================================================
 //
+// Macro-
+//       _LOCK
+//
+// Purpose-
+//       Implement lock method
+//
+//----------------------------------------------------------------------------
+#define _LOCK(type, debug)                                                   \
+{  if( USE_ITRACE )                                                          \
+     Trace::trace(type, "=TRY", this);                                       \
+                                                                             \
+   for(uint32_t spin_count= 1;;++spin_count) {                               \
+     if( try_lock() )                                                        \
+       break;                                                                \
+                                                                             \
+     if( (spin_count & 0x0000000f) == 0 ) {                                  \
+       if( (spin_count & 0x00000010) != 0 )                                  \
+         std::this_thread::yield();                                          \
+       else {                                                                \
+         std::this_thread::sleep_for(std::chrono::nanoseconds(spin_count));  \
+         if( spin_count > MAX_SPIN ) {                                       \
+           debug                                                             \
+           spin_count= MIN_SPIN;                                             \
+   } } } }                                                                   \
+                                                                             \
+   if( USE_ITRACE )                                                          \
+     Trace::trace(type, "=OWN", this);                                       \
+}
+
+//============================================================================
+//
 // Struct-
 //       pub::Basic_latch::methods
 //
@@ -143,13 +176,13 @@ static inline const void*           // The current std::thread::id (void*)
 //       (Explicitly) does not check thread::id in lock or unlock.
 //
 //----------------------------------------------------------------------------
-bool                                // TRUE if latch is held
-   pub::Basic_latch::is_held( void ) const // Is latch held?
+bool                                // TRUE if latch is held by anyone
+   Basic_latch::is_held( void ) const // Is latch held?
 {  return latch.load() != 0; }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
-   pub::Basic_latch::lock( void )   // Obtain the Basic_latch
+   Basic_latch::lock( void )        // Obtain the Basic_latch
 {
    if( USE_ITRACE )
      Trace::trace(".LKB", "=TRY", this);
@@ -165,7 +198,7 @@ void
          std::this_thread::sleep_for(std::chrono::nanoseconds(spin_count));
          if( spin_count > MAX_SPIN ) {
            if( USE_IDEBUG )
-             debugh("BasicLatch(%p) SPIN\n", this);
+             debugh("pub::BasicLatch(%p) SPIN\n", this);
            else if( USE_ITRACE )
              Trace::trace(".LKB", "SPIN", this, i2v(spin_count));
            spin_count= MIN_SPIN;
@@ -180,12 +213,12 @@ void
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
-   pub::Basic_latch::reset( void )  // Initialize/Reset the Basic_latch
+   Basic_latch::reset( void )       // Initialize/Reset the Basic_latch
 {  latch.store(0); }                // Note: Unchecked
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool                                // TRUE iff successful
-   pub::Basic_latch::try_lock( void ) // Attempt to obtain the Basic_latch
+   Basic_latch::try_lock( void )    // Attempt to obtain the Basic_latch
 {  latch_t oldValue= 0;
    latch_t newValue= 1;
    return latch.compare_exchange_strong(oldValue, newValue);
@@ -193,14 +226,14 @@ bool                                // TRUE iff successful
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
-   pub::Basic_latch::unlock( void ) // Release the Basic_latch
+   Basic_latch::unlock( void )      // Release the Basic_latch
 {
    if( USE_ITRACE )
      Trace::trace(".LKB", "=REL", this);
 
    // Verify that the latch is held
    if( latch.load() == 0 )
-     throw std::runtime_error("Basic_latch unlock error");
+     throwf("pub::Basic_latch(%p)::unlock when not locked\n", this);
 
    latch.store(0);                  // Release the Basic_latch
 }
@@ -214,13 +247,13 @@ void
 //       Implement pub::Latch methods defined in Latch.h
 //
 //----------------------------------------------------------------------------
-bool                                // TRUE if latch is held
-   pub::Latch::is_held( void ) const // Is Latch held?
+bool                                // TRUE if latch is held by anyone
+   Latch::is_held( void ) const     // Is Latch held?
 {  return latch.load() != std::thread::id(); }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
-   pub::Latch::lock( void )         // Obtain the Latch
+   Latch::lock( void )              // Obtain the Latch
 {
    if( USE_ITRACE )
      Trace::trace(".LKL", "=TRY", this);
@@ -256,24 +289,24 @@ void
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
-   pub::Latch::reset( void )        // Initialize/Reset the Latch
+   Latch::reset( void )             // Initialize/Reset the Latch
 {  latch.store(std::thread::id()); }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool                                // TRUE iff successful
-   pub::Latch::try_lock( void )     // Attempt to obtain the Latch
+   Latch::try_lock( void )          // Attempt to obtain the Latch
 {
    std::thread::id oldValue= std::thread::id();
    std::thread::id newValue= std::this_thread::get_id();
-   if( VERBOSE == 0 ) {
-     if( latch.compare_exchange_strong(oldValue, newValue) )
-       return true;
-   } else {
+   if( HCDM || VERBOSE > 0 ) {
      bool cc= latch.compare_exchange_strong(oldValue, newValue);
-     traceh("%4d Latch: CPU[%2d] %s= compare_exchange(%s,%s)\n", __LINE__
+     traceh("%4d pub::Latch: CPU[%2d] %s= compare_exchange(%s,%s)\n", __LINE__
            , sched_getcpu(), b2c(cc)
            , s2c(to_string(oldValue)), s2c(to_string(newValue)));
      if( cc )
+       return true;
+   } else {
+     if( latch.compare_exchange_strong(oldValue, newValue) )
        return true;
    }
 
@@ -284,31 +317,25 @@ bool                                // TRUE iff successful
    // ERROR: Latch is aready held by this thread (Probably not recoverable)
    if( USE_ITRACE )
      Trace::trace(".LKL", "=LRE", this, tid(newValue)); // LatchRecursionError
-   debugf("pub::Latch(%p) thread(%s) recursion error\n", this
-         , s2c(id_string()));
 
    latch.store(std::thread::id());  // Release the Latch (held by this Thread)
-   if( VERBOSE > 0 )
-     throwf("pub::Latch recursion error"); // (This adds a backtrace)
-   throw std::runtime_error("pub::Latch recursion error");
+   throwf("pub::Latch(%p)::try_lock thread(%s) when already locked\n", this
+         , s2c(id_string()));
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
-   pub::Latch::unlock( void )       // Release the Latch
+   Latch::unlock( void )            // Release the Latch
 {
-   if( VERBOSE > 0 )
-     traceh("%4d Latch: CPU[%2d] latch(%s) thread(%s)\n", __LINE__
+   if( HCDM || VERBOSE > 0 )
+     traceh("%4d pub::Latch: CPU[%2d] latch(%s) thread(%s)\n", __LINE__
            , sched_getcpu(), s2c(to_string(latch.load())), s2c(id_string()));
    else if( USE_ITRACE )
      Trace::trace(".LKL", "=REL", this, tid(latch));
 
    // Verify that the current thread holds the Latch
-   if( latch.load() != std::this_thread::get_id() ) {
-     if( VERBOSE > 0 )
-       throwf("pub::Latch unlock error");
-     throw std::runtime_error("pub::Latch unlock error");
-   }
+   if( latch.load() != std::this_thread::get_id() )
+     throwf("pub::Latch(%p)::unlock when not locked\n", this);
 
    latch.store(std::thread::id());  // Release the Latch
 }
@@ -322,13 +349,13 @@ void
 //       Implement pub::RecursiveLatch methods defined in Latch.h
 //
 //----------------------------------------------------------------------------
-bool                                // TRUE if latch is held
-   pub::RecursiveLatch::is_held( void ) const // Is Latch held?
+bool                                // TRUE if latch is held by anyone
+   RecursiveLatch::is_held( void ) const // Is Latch held?
 {  return latch.load() != std::thread::id(); }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
-   pub::RecursiveLatch::lock( void ) // Obtain the Latch
+   RecursiveLatch::lock( void )     // Obtain the Latch
 {
    if( USE_ITRACE )
      Trace::trace(".LKR", "=TRY", this, tid());
@@ -344,7 +371,7 @@ void
          std::this_thread::sleep_for(std::chrono::nanoseconds(spin_count));
          if( spin_count > MAX_SPIN ) {
            if( USE_IDEBUG )
-             debugh("RecursiveLatch(%p) spin loop: "
+             debugh("pub::RecursiveLatch(%p) SPIN: "
                     "count(%zd) Current(%s) Owner(%s)\n", this
                    , count, s2c(id_string()), s2c(to_string(latch)) );
            else if( USE_ITRACE )
@@ -362,7 +389,7 @@ void
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
-   pub::RecursiveLatch::reset( void ) // Initialize/Reset the RecursiveLatch
+   RecursiveLatch::reset( void )    // Initialize/Reset the RecursiveLatch
 {
    count= 0;
    latch.store(std::thread::id());
@@ -370,7 +397,7 @@ void
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool                                // TRUE iff successful
-   pub::RecursiveLatch::try_lock( void ) // Attempt to obtain a RecursiveLatch
+   RecursiveLatch::try_lock( void ) // Attempt to obtain a RecursiveLatch
 {
    std::thread::id oldValue= std::thread::id();
    std::thread::id newValue= std::this_thread::get_id();
@@ -385,14 +412,14 @@ bool                                // TRUE iff successful
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
-   pub::RecursiveLatch::unlock( void ) // Release the RecursiveLatch
+   RecursiveLatch::unlock( void )   // Release the RecursiveLatch
 {
    if( USE_ITRACE )
      Trace::trace(".LKR", "=REL", this, i2v(count));
 
    // Verify that the current thread holds the RecursiveLatch
    if( latch.load() != std::this_thread::get_id() )
-     throw std::runtime_error("RecursiveLatch unlock error");
+     throwf("pub::RecursiveLatch(%p)::unlock when not locked\n", this);
 
    // We have the latch (so we own both the count and the latch)
    --count;                         // Decrement the recursion count
@@ -409,13 +436,13 @@ void
 //       Implement pub::SHR_latch methods defined in Latch.h
 //
 //----------------------------------------------------------------------------
-bool                                // TRUE if latch is held
-   pub::SHR_latch::is_held( void ) const // Is Latch held? (shared or exclusive)
+bool                                // TRUE if latch is held by anyone
+   SHR_latch::is_held( void ) const // Is Latch held or reserved?
 {  return count.load() != 0; }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
-   pub::SHR_latch::lock( void )     // Obtain the SHR_latch
+   SHR_latch::lock( void )          // Obtain the SHR_latch
 {
    if( USE_ITRACE )
      Trace::trace(".LKS", "=TRY", this);
@@ -431,7 +458,7 @@ void
          std::this_thread::sleep_for(std::chrono::nanoseconds(spin_count));
          if( spin_count > MAX_SPIN ) {
            if( USE_IDEBUG )
-             debugh("SHR_latch(%p) spin loop: count(%zx) Current(%s)\n", this
+             debugh("pub::SHR_latch(%p) SPIN: count(%zx) Current(%s)\n", this
                    , count.load(), s2c(id_string()));
            else if( USE_ITRACE )
              Trace::trace(".LKS", "SPIN", this, i2v(spin_count));
@@ -447,12 +474,12 @@ void
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
-   pub::SHR_latch::reset( void )    // Initialize/Reset the SHR_latch
-{  count.store(0); }
+   SHR_latch::reset( void )         // Initialize/reset the SHR/XCL_latch
+{  thread= std::thread::id(); count.store(0); }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool                                // TRUE iff successful
-   pub::SHR_latch::try_lock( void ) // Attempt to obtain the latch
+   SHR_latch::try_lock( void )      // Attempt to obtain the Latch
 {
    uintptr_t oldValue= count.load();
    if( oldValue & HBIT )            // (Disallow SHR_latch if XCL reservation)
@@ -464,7 +491,7 @@ bool                                // TRUE iff successful
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
-   pub::SHR_latch::unlock( void )   // Release the SHR_latch
+   SHR_latch::unlock( void )        // Release the SHR_latch
 {
    if( USE_ITRACE )
      Trace::trace(".LKS", "=REL", this);
@@ -473,7 +500,7 @@ void
    uintptr_t oldValue= count.load();
    for(;;) {
      if( oldValue == 0 || oldValue == HBIT ) // If unlock when not locked
-       throw std::runtime_error("SHR_latch unlock error");
+       throwf("pub::SHR_latch(%p)::unlock when not locked\n", this);
 
      uintptr_t newValue= oldValue - 1;
      if( count.compare_exchange_strong(oldValue, newValue) )
@@ -490,29 +517,34 @@ void
 //       Implement pub::XCL_latch methods defined in Latch.h
 //
 //----------------------------------------------------------------------------
-   pub::XCL_latch::XCL_latch(       // Constructor
+   XCL_latch::XCL_latch(            // Constructor
      SHR_latch&        source)
-:  share(source) {}
+:  share(source)
+{  if( HCDM ) debugf("pub::XCL_latch!(%p,%p)\n", this, &source); }
+
+   XCL_latch::~XCL_latch( void )    // Destructor
+{  if( HCDM ) debugf("pub::XCL_latch~(%p)\n", this); }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
-   pub::XCL_latch::downgrade( void ) // Downgrade XCL_latch to SHR_latch
+   XCL_latch::downgrade( void )     // Downgrade XCL_latch to SHR_latch
 {
-   if( thread != std::this_thread::get_id()
-       || share.count.load() != HBIT )
-     throw std::runtime_error("XCL_latch downgrade error");
+   if( share.thread != std::this_thread::get_id()
+       || (share.count.load() & HBIT) == 0 )
+     throwf("pub::XCL_latch(%p)::downgrade when not locked\n", this);
 
-   thread= std::thread::id();
+   share.thread= std::thread::id();
    share.count.store(1);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool                                // TRUE if latch is held
-   pub::XCL_latch::is_held( void ) const // Is latch (exclusively) held
-{  return share.count.load() & HBIT; }
+bool                                // TRUE if latch is reserved by anyone
+   XCL_latch::is_held( void ) const // Is latch reserved?
+{  return share.count.load() & HBIT; } // True even when held by this thread
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
-   pub::XCL_latch::lock( void )     // Obtain the XCL_latch
+   XCL_latch::lock( void )          // Obtain the XCL_latch
 {
    if( USE_ITRACE )
      Trace::trace(".LKX", "=TRY", this);
@@ -528,9 +560,10 @@ void
          std::this_thread::sleep_for(std::chrono::nanoseconds(spin_count));
          if( spin_count > MAX_SPIN ) {
            if( USE_IDEBUG )
-             debugh("XCL_latch(%p) SPIN: count(%zx) thread(%s) owner(%s)\n"
+             debugh("pub::XCL_latch(%p) SPIN: shr_count(%zx) "
+                    "thread(%s) owner(%s)\n"
                    , this, share.count.load()
-                   , s2c(id_string()), s2c(to_string(thread)));
+                   , s2c(id_string()), s2c(to_string(share.thread)));
            else if( USE_ITRACE )
              Trace::trace(".LKX", "SPIN", this, i2v(spin_count));
            spin_count= MIN_SPIN;
@@ -545,90 +578,104 @@ void
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
-   pub::XCL_latch::reset( void )    // Reset the XCL_latch
-{
-   thread= std::thread::id();
-   share.reset();
-}
+   XCL_latch::reset( void )         // Reset the XCL_latch
+{  share.reset(); }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool                                // TRUE iff successful
-   pub::XCL_latch::try_lock( void ) // Attempt to obtain the XCL_latch
+   XCL_latch::try_lock( void )      // Attempt to obtain the XCL_latch
 {
-   // Reserve the Latch for exclusive use
+   if( !try_reserve() )             // If we can't reserve
+     return false;                  // (We can't continue)
+
+   // SUCCESS: Wait for all shares to unlock.
+   uintptr_t oldValue= share.count.load();
+   for(uint32_t spin_count= 1; oldValue != HBIT; ++spin_count) {
+     if( spin_count & 0x00000007 )
+       std::this_thread::yield();
+     else {
+       std::this_thread::sleep_for(std::chrono::nanoseconds(spin_count));
+       if( spin_count > MAX_SPIN ) {
+         spin_count= MIN_SPIN;
+       }
+     }
+     oldValue= share.count.load();
+   }
+
+// share.count= HBIT;
+// share.thread= std::this_thread::get_id();
+   return true;
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Note: invoked from try_lock, upgrade, and/or application
+bool                                // TRUE iff reserved
+   XCL_latch::try_reserve( void )   // Try to reserve the XCL_latch
+{
    uintptr_t oldValue= share.count.load();
    for(;;) {
-     if( oldValue & HBIT )          // If already reserved
-       return false;                // (Only one reservation allowed)
+     if( oldValue & HBIT ) {        // If already reserved
+       if( share.thread == std::this_thread::get_id() ) { // If by this Thread
+         unlock();
+         throwf("pub::XCL_latch(%p)::try_reserve thread(%s) "
+                "when already reserved\n", this, s2c(id_string()));
+       }
+
+       return false;
+     }
 
      uintptr_t newValue= oldValue | HBIT;
      if( share.count.compare_exchange_strong(oldValue, newValue) )
        break;
    }
 
-   thread= std::this_thread::get_id(); // We have the reservation
-
-   // Wait for all shares to unlock.
-   for(uint32_t spin_count= 1; oldValue != HBIT; ++spin_count) {
-     if( spin_count & 0x00000007 )
-       std::this_thread::yield();
-     else {
-       std::this_thread::sleep_for(std::chrono::nanoseconds(spin_count));
-       if( spin_count > MAX_SPIN ) {  // Maximum delay: 10 microseconds
-         spin_count= MIN_SPIN;
-         if( USE_IDEBUG )
-           debugh("XCL_latch(%p) TRY SPIN: count(%zx) Current(%s)\n", this
-                 , share.count.load(), s2c(id_string()));
-         else if( USE_ITRACE )
-           Trace::trace(".LKX", "WAIT", this, i2v(spin_count));
-       }
-     }
-     oldValue= share.count.load();
-   }
-
+// share.count= HBIT | (current share count);
+   share.thread= std::this_thread::get_id();
    return true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
-   pub::XCL_latch::unlock( void )   // Release the XCL_latch
+   XCL_latch::unlock( void )        // Release the XCL_latch
 {
    if( USE_ITRACE )
      Trace::trace(".LKX", "=REL", this);
 
-   if( thread != std::this_thread::get_id() )
-     throw std::runtime_error("XCL_latch unlock error");
+   if( share.thread != std::this_thread::get_id() )
+     throwf("pub::XCL_latch(%p)::unlock when not locked\n", this);
 
-   thread= std::thread::id();
+   share.thread= std::thread::id();
    share.count.store(0);
 }
 
-//============================================================================
-//
-// Struct-
-//       pub::NullLatch::methods
-//
-// Purpose-
-//       Implement pub::NullLatch methods defined in Latch.h
-//
-//----------------------------------------------------------------------------
-bool                                // TRUE if latch is held
-   pub::NullLatch::is_held( void ) const // Is Latch held?
-{  return false; }
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool
+    XCL_latch::upgrade( void )      // Upgrade a SHR_latch into an XCL_Latch
+{
+   if( !try_reserve() )             // If we can't reserve
+     return false;                  // (We can't continue)
 
-void
-   pub::NullLatch::lock( void )     // Obtain the NullLatch
-{  }
+   if( share.count.load() == HBIT ) { // If invoked without a SHR_latch held
+     unlock();                      // (Restore the pre-reserve state)
+     throwf("pub::XCL_latch(%p)::upgrade without SHR_latch held\n", this);
+   }
 
-void
-   pub::NullLatch::reset( void )    // Initialize/Reset the NullLatch
-{  }
+   // Wait for all shares but one to unlock.
+   uintptr_t oldValue= share.count.load();
+   for(uint32_t spin_count= 1; oldValue != HONE; ++spin_count) {
+     if( spin_count & 0x00000007 )
+       std::this_thread::yield();
+     else {
+       std::this_thread::sleep_for(std::chrono::nanoseconds(spin_count));
+       if( spin_count > MAX_SPIN ) {
+         spin_count= MIN_SPIN;
+       }
+     }
+     oldValue= share.count.load();
+   }
 
-bool                                // TRUE iff successful
-   pub::NullLatch::try_lock( void ) // Attempt to obtain the NullLatch
-{  return true; }
-
-void
-   pub::NullLatch::unlock( void )   // Release the NullLatch
-{  }
-#endif // #ifdef _PUBLIB_LATCH_DEBUG
+// share.count= HONE);
+// share.thread= std::this_thread::get_id();
+   return true;
+}
+} // namespace _LIBPUB_NAMESPACE
+#endif // #ifndef _PUBLIB_LATCH_INLINE

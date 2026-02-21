@@ -17,11 +17,11 @@
 //       Primitive mechanisms for granting access to a resource.
 //
 // Last change date-
-//       2026/01/21
+//       2026/02/20
 //
 // Implementation notes-
 //       All Latch methods are duplicated in ~/src/cpp/lib/pub/Latch.cpp.
-//       Latch.cpp methods are only used when _PUBLIB_LATCH_DEBUG is defined.
+//       Latch.cpp methods are used when _PUBLIB_LATCH_INLINE is NOT defined.
 //
 //       Internal logic for these mechanisms are further described in
 //         "~/src/cpp/lib/pub/.LOGICS.md".
@@ -40,8 +40,6 @@
 //         RecursiveLatch  Primitive recursive exclusive latch
 //         SHR_latch       The shared part of a shared/exclusive latch pair
 //         XCL_latch       The exclusive reference to a SHR_latch
-//         NullLatch       A latch that does nothing
-//         TestLatch       Primitive exclusive latch that disallows recursion
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_LATCH_H_INCLUDED
@@ -56,14 +54,14 @@
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
-// MACRO _IF_PUBLIB_LATCH_INLINE, controlled by _PUBLIB_LATCH_DEBUG
+// MACRO _IF_PUBLIB_LATCH_INLINE, controlled by _PUBLIB_LATCH_INLINE
 //----------------------------------------------------------------------------
-#ifndef   _PUBLIB_LATCH_DEBUG       // For production, use INLINE compilation
-#  define _PUBLIB_LATCH_DEBUG       // (Last for Latch.cpp compilation)
-#  undef  _PUBLIB_LATCH_DEBUG       // (Last for INLINE compilation)
+#ifndef   _PUBLIB_LATCH_INLINE      // For production, use INLINE compilation
+#  undef  _PUBLIB_LATCH_INLINE      // (Last for Latch.cpp debug compilation)
+#  define _PUBLIB_LATCH_INLINE      // (Last for INLINE compilation)
 #endif
 
-#ifndef _PUBLIB_LATCH_DEBUG
+#ifdef _PUBLIB_LATCH_INLINE
 #  define _IF_PUBLIB_LATCH_INLINE(x) x
 #else
 #  define _IF_PUBLIB_LATCH_INLINE(x) ;
@@ -71,6 +69,38 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 
 #define MAX_SPIN 10'000             // Maximim spin delay in nanoseconds
 #define MIN_SPIN  5'000             // Minimum spin delay (after MAX_SPIN)
+
+//============================================================================
+//
+// Macro-
+//       _LOCK
+//
+// Purpose-
+//       Implement lock method
+//
+// Implementation note-
+//       Since we invoke try_lock, we can't use a base class for this without
+//       making try_lock a virtual method.
+//
+//----------------------------------------------------------------------------
+#ifdef _PUBLIB_LATCH_INLINE
+#  define _LOCK                                                              \
+{                                                                            \
+   for(uint32_t spin_count= 1;;++spin_count) {                               \
+     if( try_lock() )                                                        \
+       break;                                                                \
+                                                                             \
+     if( (spin_count & 0x0000000f) == 0 ) {                                  \
+       if( (spin_count & 0x00000010) != 0 )                                  \
+         std::this_thread::yield();                                          \
+       else {                                                                \
+         std::this_thread::sleep_for(std::chrono::nanoseconds(spin_count));  \
+         if( spin_count > MAX_SPIN )                                         \
+           spin_count= MIN_SPIN;                                             \
+}  } } }
+#else                               // (Use Latch.cpp lock with diagnostics)
+#  define _LOCK ;
+#endif
 
 //============================================================================
 //
@@ -95,7 +125,7 @@ std::atomic<latch_t>   latch{0};    // The BASIC spin latch
 //----------------------------------------------------------------------------
 // Basic_latch::Methods
 //----------------------------------------------------------------------------
-bool                                // TRUE if latch is held
+bool                                // TRUE if latch is held by anyone
    is_held( void ) const            // Is Latch held?
 _IF_PUBLIB_LATCH_INLINE(
 {  return latch.load() != 0; })
@@ -103,24 +133,7 @@ _IF_PUBLIB_LATCH_INLINE(
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    lock( void )                     // Obtain the Basic_latch
-_IF_PUBLIB_LATCH_INLINE(
-{
-   for(uint32_t spin_count= 1;;++spin_count) {
-     if( try_lock() )
-       break;
-
-     if( (spin_count & 0x0000000f) == 0 ) {
-       if( (spin_count & 0x00000010) != 0 )
-         std::this_thread::yield();
-       else {
-         std::this_thread::sleep_for(std::chrono::nanoseconds(spin_count));
-         if( spin_count > MAX_SPIN ) {
-           spin_count= MIN_SPIN;
-         }
-       }
-     }
-   }
-})
+_LOCK
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
@@ -144,7 +157,7 @@ _IF_PUBLIB_LATCH_INLINE(
 {
    // Verify that the latch is held
    if( latch.load() == 0 )
-     throw std::runtime_error("Basic_latch unlock error");
+     throw std::runtime_error("pub::Basic_latch unlock when not locked");
 
    latch.store(0);                  // Release the Basic_latch
 })
@@ -175,7 +188,7 @@ std::atomic<std::thread::id>
 //----------------------------------------------------------------------------
 // Latch::Methods
 //----------------------------------------------------------------------------
-bool                                // TRUE if latch is held
+bool                                // TRUE if latch is held by anyone
    is_held( void ) const            // Is Latch held?
 _IF_PUBLIB_LATCH_INLINE(
 {  return latch.load() != std::thread::id(); })
@@ -183,24 +196,7 @@ _IF_PUBLIB_LATCH_INLINE(
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    lock( void )                     // Obtain the Latch
-_IF_PUBLIB_LATCH_INLINE(
-{
-   for(uint32_t spin_count= 1;;++spin_count) {
-     if( try_lock() )
-       break;
-
-     if( (spin_count & 0x0000000f) == 0 ) {
-       if( (spin_count & 0x00000010) != 0 )
-         std::this_thread::yield();
-       else {
-         std::this_thread::sleep_for(std::chrono::nanoseconds(spin_count));
-         if( spin_count > MAX_SPIN ) {
-           spin_count= MIN_SPIN;
-         }
-       }
-     }
-   }
-})
+_LOCK
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
@@ -222,9 +218,9 @@ _IF_PUBLIB_LATCH_INLINE(
      return false;
 
    //-------------------------------------------------------------------------
-   // ERROR: Latch is aready held by this thread (Probably not recoverable)
-   latch.store(std::thread::id());
-   throw std::runtime_error("Latch recursion error");
+   // ERROR: Latch is aready held by this thread
+   latch.store(std::thread::id());  // (We release the Latch)
+   throw std::runtime_error("pub::Latch try_lock but already locked");
 })
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -234,7 +230,7 @@ _IF_PUBLIB_LATCH_INLINE(
 {
    // Verify that the current thread holds the Latch
    if( latch.load() != std::this_thread::get_id() )
-     throw std::runtime_error("Latch unlock error");
+     throw std::runtime_error("pub::Latch unlock when not locked");
 
    latch.store(std::thread::id()); // Release the Latch
 })
@@ -257,7 +253,7 @@ uintptr_t              count{};     // Share count
 //----------------------------------------------------------------------------
 // RecursiveLatch::Methods
 //----------------------------------------------------------------------------
-bool                                // TRUE if latch is held
+bool                                // TRUE if latch is held by anyone
    is_held( void ) const            // Is Latch held?
 _IF_PUBLIB_LATCH_INLINE(
 {  return latch.load() != std::thread::id(); })
@@ -265,24 +261,7 @@ _IF_PUBLIB_LATCH_INLINE(
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    lock( void )                     // Obtain the Latch
-_IF_PUBLIB_LATCH_INLINE(
-{
-   for(uint32_t spin_count= 1;;++spin_count) {
-     if( try_lock() )
-       break;
-
-     if( (spin_count & 0x0000000f) == 0 ) {
-       if( (spin_count & 0x00000010) != 0 )
-         std::this_thread::yield();
-       else {
-         std::this_thread::sleep_for(std::chrono::nanoseconds(spin_count));
-         if( spin_count > MAX_SPIN ) {
-           spin_count= MIN_SPIN;
-         }
-       }
-     }
-   }
-})
+_LOCK
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
@@ -316,7 +295,7 @@ _IF_PUBLIB_LATCH_INLINE(
 {
    // Verify that the current thread holds the RecursiveLatch
    if( latch.load() != std::this_thread::get_id() )
-     throw std::runtime_error("RecursiveLatch unlock error");
+     throw std::runtime_error("pub::RecursiveLatch unlock when not locked");
 
    // We have the latch (so we own both the count and the latch)
    --count;                         // Decrement the recursion count
@@ -335,7 +314,7 @@ _IF_PUBLIB_LATCH_INLINE(
 //
 // Implementation notes-
 //       A Thread may hold either a SHR_latch or an XCL_latch, but not both.
-//       The implementation deadlocks during an attempt to hold both latches.
+//       Upgrade must be used to convert share to exclusive mode.
 //
 //----------------------------------------------------------------------------
 static_assert( sizeof(uintptr_t) == 8 || sizeof(uintptr_t) == 4
@@ -346,6 +325,7 @@ struct SHR_latch {                  // SHR_latch descriptor
 // SHR_latch::Attributes
 //----------------------------------------------------------------------------
 std::atomic<uintptr_t> count{};     // The number of shared users
+std::thread::id        thread{std::thread::id()}; // The owning XCL thread
 
 static constexpr const uintptr_t
        HBIT= sizeof(uintptr_t) == 8 ? 0x8000'0000'0000'0000L : 0x8000'0000;
@@ -353,42 +333,25 @@ static constexpr const uintptr_t
 //----------------------------------------------------------------------------
 // SHR_latch::Methods
 //----------------------------------------------------------------------------
-bool                                // TRUE if latch is held
-   is_held( void ) const            // Is Latch held? (shared or exclusive)
+bool                                // TRUE if latch is held by anyone
+   is_held( void ) const            // Is Latch held or reserved?
 _IF_PUBLIB_LATCH_INLINE(
 {  return count.load() != 0; })
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    lock( void )                     // Obtain the SHR_latch
-_IF_PUBLIB_LATCH_INLINE(
-{
-   for(uint32_t spin_count= 1;;++spin_count) {
-     if( try_lock() )
-       break;
-
-     if( (spin_count & 0x0000000f) == 0 ) {
-       if( (spin_count & 0x00000010) != 0 )
-         std::this_thread::yield();
-       else {
-         std::this_thread::sleep_for(std::chrono::nanoseconds(spin_count));
-         if( spin_count > MAX_SPIN ) {
-           spin_count= MIN_SPIN;
-         }
-       }
-     }
-   }
-})
+_LOCK
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
-   reset( void )                    // Initialize/Reset the SHR_latch
+   reset( void )                    // Initialize/reset the SHR/XCL_latch
 _IF_PUBLIB_LATCH_INLINE(
-{  count.store(0); })
+{  thread= std::thread::id(); count.store(0); })
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool                                // TRUE iff successful
-   try_lock( void )                 // Attempt to obtain the latch
+   try_lock( void )                 // Attempt to obtain the Latch
 _IF_PUBLIB_LATCH_INLINE(
 {
    uintptr_t oldValue= count.load();
@@ -408,7 +371,7 @@ _IF_PUBLIB_LATCH_INLINE(
    uintptr_t oldValue= count.load();
    for(;;) {
      if( oldValue == 0 || oldValue == HBIT ) // If unlock when not locked
-       throw std::runtime_error("SHR_latch unlock error");
+       throw std::runtime_error("pub::SHR_latch unlock when not locked");
 
      uintptr_t newValue= oldValue - 1;
      if( count.compare_exchange_strong(oldValue, newValue) )
@@ -423,27 +386,28 @@ _IF_PUBLIB_LATCH_INLINE(
 //       XCL_latch
 //
 // Purpose-
-//       Primitive shared/exclusive latch, held exclusively.
-//
-// Implementation notes-
-//       A Thread may hold either a SHR_latch or an XCL_latch, but not both.
-//       The implementation deadlocks during an attempt to hold both latches.
+//       Extends a SHR_latch to allow exclusive use.
 //
 //----------------------------------------------------------------------------
 struct XCL_latch {                  // XCL_latch descriptor
 SHR_latch&             share;       // The associated SHR_latch
-std::thread::id        thread{std::thread::id()}; // The owning XCL thread
 
 static constexpr const uintptr_t
        HBIT= sizeof(uintptr_t) == 8 ? 0x8000'0000'0000'0000L : 0x8000'0000;
 
+static constexpr const uintptr_t
+       HONE= sizeof(uintptr_t) == 8 ? 0x8000'0000'0000'0001L : 0x8000'0001;
+
 //----------------------------------------------------------------------------
-// XCL_latch::Constructor
+// XCL_latch::Constructor/destructor
 //----------------------------------------------------------------------------
-   XCL_latch(
+   XCL_latch(                       // Constructor
      SHR_latch&        source)
 _IF_PUBLIB_LATCH_INLINE(
 :  share(source) {})
+
+   ~XCL_latch( void )               // Destructor
+_IF_PUBLIB_LATCH_INLINE(= default;) // Explicitly *DOES NOTHING*
 
 //----------------------------------------------------------------------------
 // XCL_latch::Methods
@@ -454,53 +418,36 @@ _IF_PUBLIB_LATCH_INLINE(
    Preconditions:
      The exclusive latch *MUST* be held by the currently running Thread.
 ***/
-
+// (Compare to unlock)
 void
    downgrade( void )                // Downgrade XCL_latch to SHR_latch
 _IF_PUBLIB_LATCH_INLINE(
 {
-   if( thread != std::this_thread::get_id()
-       || share.count.load() != HBIT )
-     throw std::runtime_error("XCL_latch downgrade error");
+   if( share.thread != std::this_thread::get_id()
+       || (share.count.load() & HBIT) == 0 )
+     throw std::runtime_error("pub::XCL_latch downgrade when not locked");
 
-   thread= std::thread::id();
+   share.thread= std::thread::id();
    share.count.store(1);
 })
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool                                // TRUE if latch is held
+bool                                // TRUE if latch is reserved by anyone
    is_held( void ) const            // Is latch (exclusively) held
 _IF_PUBLIB_LATCH_INLINE(
-{  return share.count.load() & HBIT; })
+{  return share.count.load() & HBIT; }) // True even when held by this thread
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    lock( void )                     // Obtain the XCL_latch
-_IF_PUBLIB_LATCH_INLINE(
-{
-   for(uint32_t spin_count= 1;;++spin_count) {
-     if( try_lock() )
-       break;
-
-     if( (spin_count & 0x0000000f) == 0 ) {
-       if( (spin_count & 0x00000010) != 0 )
-         std::this_thread::yield();
-       else {
-         std::this_thread::sleep_for(std::chrono::nanoseconds(spin_count));
-         if( spin_count > MAX_SPIN ) {
-           spin_count= MIN_SPIN;
-         }
-       }
-     }
-   }
-})
+_LOCK
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
-   reset( void )                    // Reset the XCL_latch
+   reset( void )                    // Unconditionally reset the XCL_latch
 _IF_PUBLIB_LATCH_INLINE(
 {
-   thread= std::thread::id();
+   share.thread= std::thread::id();
    share.reset();
 })
 
@@ -509,20 +456,11 @@ bool                                // TRUE iff successful
    try_lock( void )                 // Attempt to obtain the XCL_latch
 _IF_PUBLIB_LATCH_INLINE(
 {
-   // Reserve the Latch for exclusive use
+   if( !try_reserve() )             // If we can't reserve
+     return false;                  // (We can't continue)
+
+   // SUCCESS: Wait for all shares to unlock.
    uintptr_t oldValue= share.count.load();
-   for(;;) {
-     if( oldValue & HBIT )          // If already reserved
-       return false;                // (Only one reservation allowed)
-
-     uintptr_t newValue= oldValue | HBIT;
-     if( share.count.compare_exchange_strong(oldValue, newValue) )
-       break;
-   }
-
-   thread= std::this_thread::get_id(); // We have the reservation
-
-   // Wait for all shares to unlock.
    for(uint32_t spin_count= 1; oldValue != HBIT; ++spin_count) {
      if( spin_count & 0x00000007 )
        std::this_thread::yield();
@@ -539,62 +477,86 @@ _IF_PUBLIB_LATCH_INLINE(
 })
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void
-   unlock( void )                   // Release the XCL_latch
+bool                                // TRUE iff reserved
+   try_reserve( void )              // Try to reserve the XCL_latch
 _IF_PUBLIB_LATCH_INLINE(
 {
-   if( thread != std::this_thread::get_id() )
-     throw std::runtime_error("XCL_latch unlock error");
+   uintptr_t oldValue= share.count.load();
+   for(;;) {
+     if( oldValue & HBIT ) {        // If already reserved
+       if( share.thread == std::this_thread::get_id() ) { // If by this Thread
+         unlock();
+         throw std::runtime_error("pub::XCL_latch try_reserve "
+                                  "when already reserved");
+       }
 
-   thread= std::thread::id();
+       return false;
+     }
+
+     uintptr_t newValue= oldValue | HBIT;
+     if( share.count.compare_exchange_strong(oldValue, newValue) )
+       break;
+   }
+
+   share.thread= std::this_thread::get_id();
+   return true;
+})
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// (Compare to downgrade)
+void
+   unlock( void )                   // Release the XCL_latch (and SHR_latch)
+_IF_PUBLIB_LATCH_INLINE(
+{
+   if( share.thread != std::this_thread::get_id() )
+     throw std::runtime_error("pub::XCL_latch unlock when not locked");
+
+   share.thread= std::thread::id();
    share.count.store(0);
+})
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool                                // TRUE if sucessful
+   upgrade( void )                  // Upgrade a SHR_latch into an XCL_Latch
+/***
+   Upgrade from shared to exclusive mode.
+
+   Preconditions:
+     The exclusive latch *MUST NOT* be held by the currently running Thread.
+     The shared latch *MUST* be *SINGLY* held by the currently running Thread.
+***/
+_IF_PUBLIB_LATCH_INLINE(
+{
+   if( !try_reserve() )             // If we can't reserve
+     return false;                  // (We can't continue)
+
+   if( share.count.load() == HBIT ) { // If invoked without a SHR_latch held
+     unlock();                      // (Restore the pre-reserve state)
+     throw std::runtime_error("pub::XCL_latch upgrade without SHR_latch held");
+   }
+
+   // Wait for all shares but one to unlock.
+   uintptr_t oldValue= share.count.load();
+   for(uint32_t spin_count= 1; oldValue != HONE; ++spin_count) {
+     if( spin_count & 0x00000007 )
+       std::this_thread::yield();
+     else {
+       std::this_thread::sleep_for(std::chrono::nanoseconds(spin_count));
+       if( spin_count > MAX_SPIN ) {
+         spin_count= MIN_SPIN;
+       }
+     }
+     oldValue= share.count.load();
+   }
+
+   return true;
 })
 }; // struct XCL_latch
 
-//============================================================================
-//
-// Struct-
-//       NullLatch
-//
-// Purpose-
-//       Define a (limited purpose) Latch that does nothing.
-//
-// Implementation notes-
-//       In code that may be conditionally compiled for single-threaded or
-//       multi-threaded operation, a NullLatch can be used instead of a
-//       Latch when compiled in single-threaded mode.
-//
-//----------------------------------------------------------------------------
-struct NullLatch {                  // NullLatch descriptor
-//----------------------------------------------------------------------------
-// NullLatch::Methods
-//----------------------------------------------------------------------------
-bool                                // TRUE if latch is held
-   is_held( void ) const            // Is Latch held?
-_IF_PUBLIB_LATCH_INLINE(
-{  return false; })
-
-void
-   lock( void )                     // Obtain the NullLatch
-_IF_PUBLIB_LATCH_INLINE(
-{  })
-
-void
-   reset( void )                    // Initialize/Reset the NullLatch
-_IF_PUBLIB_LATCH_INLINE(
-{  })
-
-bool                                // TRUE iff successful
-   try_lock( void )                 // Attempt to obtain the NullLatch
-_IF_PUBLIB_LATCH_INLINE(
-{  return true; })
-
-void
-   unlock( void )                   // Release the NullLatch
-_IF_PUBLIB_LATCH_INLINE(
-{  })
-}; // struct NullLatch
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// (Macro removal)
 #undef _IF_PUBLIB_LATCH_INLINE
+#undef _LOCK
 #undef MAX_SPIN
 #undef MIN_SPIN
 
