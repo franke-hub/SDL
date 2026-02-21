@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2019-2024 Frank Eskesen.
+//       Copyright (C) 2019-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Trace object methods.
 //
 // Last change date-
-//       2024/12/20
+//       2026/02/05
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE                 // For sched_getcpu
@@ -44,9 +44,10 @@ namespace _LIBPUB_NAMESPACE {
 // Compile-time options
 //----------------------------------------------------------------------------
 enum // Compile-time options. We rely on optimization to elide unused code.
-{  CHECK= false                     // Check for should not occur conditions?
-,  HCDM= false                      // Hard Core Debug Mode?
-// VERBOSE= 0                       // Verbosity, higher is more verbose
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
+
+,  USE_CHECK= false                 // Check for should not occur conditions?
 }; // Compile-time options
 
 //----------------------------------------------------------------------------
@@ -111,8 +112,9 @@ Trace*                              // -> Trace instance
      void*             addr,        // Address of trace table
      size_t            size)        // Length of trace table
 {
-   if( CHECK ) debugf("%4d HCDM Trace.cpp CHECK active\n", __LINE__);
    if( HCDM  ) debugf("%4d HCDM Trace.cpp HCDM active\n", __LINE__);
+   if( USE_CHECK && false )
+     debugf("%4d HCDM Trace.cpp USE_CHECK active\n", __LINE__);
 
    if( addr == nullptr              // Reject invalid parameters
        || size < TABLE_SIZE_MIN || size > TABLE_SIZE_MAX )
@@ -136,32 +138,6 @@ Trace*                              // -> Trace instance
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Trace::take
-//
-// Purpose-
-//       Atomically take and reset the common Trace object.
-//
-// Implementation note-
-//       Not needed, at least yet. Trace::trace= nullptr suffices.
-//
-//----------------------------------------------------------------------------
-#if false                           // Limited utility, unused
-Trace*                              // Replaced Trace::trace
-   Trace::take( void )              // Reset the global Trace object
-{
-   std::atomic<Trace*>* atomic_p= (std::atomic<Trace*>*)&trace;
-
-   Trace* old= atomic_p->load();
-   while( !atomic_p->compare_exchange_weak(old, nullptr) )
-     ;
-
-   return old;
-}
-#endif
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       Trace::static_debug
 //
 // Purpose-
@@ -173,7 +149,7 @@ void
      const char*       info)        // Caller information
 {
    debugf("Trace(%p)::static_debug(%s)\n", table, info);
-   debugf("..CHECK(%s) HCDM(%s)\n", pub::b2c(CHECK), pub::b2c(HCDM));
+   debugf("..HCDM(%s) USE_CHECK(%s)\n", pub::b2c(HCDM), pub::b2c(USE_CHECK));
    if( table )
      debugf("..next(0x%.8x) size(0x%.8x) zero(0x%.2x) last(0x%.8x) wrap(%lu)\n"
            , table->next.load(), table->size, table->zero, table->last
@@ -206,7 +182,7 @@ void*                               // Resultant
 
    size +=  (ALIGNMENT - 1);
    size &= ~(ALIGNMENT - 1);
-// if( CHECK ) {                    // Check size parameter?
+   if( USE_CHECK || true ) {        // Check size parameter?
      // Size checks are always enabled:
      //   size == 0: An all too common mistake
      //   size > (available size): The for(;;) loop never exits
@@ -214,13 +190,13 @@ void*                               // Resultant
 //   if ( size == 0 || size > (this->size - this->zero) ) // If too large
      if ( size == 0 || size > (this->size - sizeof(Trace) ) ) // If too large
        throw std::bad_alloc();      // Parameter error
-// } // if( CHECK )
+   } // if( USE_CHECK || true )
 
    oldV= next.load();
    for(;;) {
      last= 0;                       // Indicate not wrapped
      newV= oldV + size;             // Arithmetic overflow is a user error
-     if( CHECK ) {                  // Check for arithmetic overflow?
+     if( USE_CHECK ) {              // Check for arithmetic overflow?
        // Arithmetic overflow can only occur when the size parameter plus the
        // size of the table is greater than UINT32_MAX.
        // This is simple for an application to avoid and while the checking
@@ -303,7 +279,7 @@ void
 {
    if( table ) {
      table->reactivate();
-     Trace::trace(".SYS", "<go>");
+     Trace::trace(".SYS", "<go>", ":start");
    }
 }
 
@@ -320,7 +296,7 @@ void
    Trace::stop( void )              // Suspend tracing
 {
    if( table ) {
-     Trace::trace(".SYS", "stop");
+     Trace::trace(".SYS", "stop", ":stop");
      table->deactivate();
    }
 }

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2024 Frank Eskesen.
+//       Copyright (c) 2019-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Trace table storage allocator.
 //
 // Last change date-
-//       2024/12/20
+//       2026/01/28
 //
 // Usage notes-
 //       The Trace object allocates storage sequentially from itself, wrapping
@@ -80,6 +80,41 @@
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
+// Anonymous struct-
+//       opt_t
+//
+// Purpose-
+//       The constructed trace option type.
+//
+//----------------------------------------------------------------------------
+namespace {
+struct opt_t {                      // Option type
+size_t                 option;      // The option
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   opt_t(const uintptr_t i)
+{  option= i; }
+
+   opt_t(
+     const char*       c)           // char* option (with blank fill)
+{  size_t s= strlen(c);
+   if( s > sizeof(option) )
+     s= sizeof(option);
+   memcpy((char*)&option, c, s);
+   if( s < sizeof(option) )
+     memset((char*)&option + s, ' ', sizeof(option) - s);
+}
+
+   opt_t(const void* v)
+{  option= uintptr_t(v); }
+
+   opt_t(std::nullptr_t)
+{  option= 0; }
+}; // struct opt_t
+}  // Anonymous namespace
+
+//----------------------------------------------------------------------------
+//
 // Class-
 //       Trace
 //
@@ -135,17 +170,11 @@ uint64_t               clock;       // The UTC epoch clock, in nanoseconds
 char                   value[16];   // User data area, (2 64-bit void*'s)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-static intptr_t*                    // The indexed intptr_t*
-   ix2i(                            // Indexed intptr* conversion
+static size_t*                      // The indexed size_t*
+   zx2z(                            // Indexed intptr* conversion
      char*             value,       // The data area
-     int               index)       // The intptr_t* index
-{  return (intptr_t*)value + index; }
-
-static void**                       // The indexed (void*)
-   vx2v(                            // Indexed void* conversion
-     char*             value,       // The data area
-     int               index)       // The void* index
-{  return (void**)value + index; }
+     unsigned          index)       // The intptr_t* index
+{  return (size_t*)value + index; }
 
 _LIBPUB_FLATTEN
 _LIBPUB_HOT
@@ -187,7 +216,7 @@ inline void
    trace(                           // Initialize with
      const char*       ident,       // This char[4] trace type identifier
      uint32_t          code,        // Trace code
-     const void*       info);       // A char[16] informational Buffer
+     const char*       info);       // A char[16] informational Buffer
 
 _LIBPUB_FLATTEN
 _LIBPUB_HOT
@@ -195,17 +224,8 @@ inline void
    trace(                           // Initialize with
      const char*       ident,       // This char[4] trace type identifier
      const char*       unit,        // This char[4] trace subtype identifier
-     const void*       W0,          // Word[0]
-     const void*       W1= nullptr); // Word[1]
-
-_LIBPUB_FLATTEN
-_LIBPUB_HOT
-inline void
-   trace(                           // Initialize with
-     const char*       ident,       // This char[4] trace type identifier
-     const char*       unit,        // This char[4] trace subtype identifier
-     intptr_t          I0,          // intptr[0]
-     intptr_t          I1= 0);      // intptr[1]
+     opt_t             O0,          // Opt[0]
+     opt_t             O1= nullptr); // Opt[1]
 
 _LIBPUB_FLATTEN
 _LIBPUB_HOT
@@ -213,25 +233,12 @@ inline void                         // Uses extended record
    trace(                           // Initialize with
      const char*       ident,       // This char[4] trace type identifier
      const char*       unit,        // This char[4] trace subtype identifier
-     const void*       W0,          // Word[0]
-     const void*       W1,          // Word[1]
-     const void*       W2,          // Word[2]
-     const void*       W3= nullptr, // Word[3]
-     const void*       W4= nullptr, // Word[4]
-     const void*       W5= nullptr); // Word[5]
-
-_LIBPUB_FLATTEN
-_LIBPUB_HOT
-inline void                         // Uses extended record
-   trace(                           // Initialize with
-     const char*       ident,       // This char[4] trace type identifier
-     const char*       unit,        // This char[4] trace subtype identifier
-     intptr_t          I0,          // intptr_t[0]
-     intptr_t          I1,          // intptr_t[1]
-     intptr_t          I2,          // intptr_t[2]
-     intptr_t          I3= 0,       // intptr_t[3]
-     intptr_t          I4= 0,       // intptr_t[4]
-     intptr_t          I5= 0);      // intptr_t[5]
+     opt_t             O0,          // Opt[0]
+     opt_t             O1,          // Opt[1]
+     opt_t             O2,          // Opt[2]
+     opt_t             O3= nullptr, // Opt[3]
+     opt_t             O4= nullptr, // Opt[4]
+     opt_t             O5= nullptr); // Opt[5]
 }; // struct Record
 
 //----------------------------------------------------------------------------
@@ -281,14 +288,6 @@ static inline void
 _LIBPUB_FLATTEN
 _LIBPUB_HOT
 static inline void
-   trace(                           // I/O trace event
-     const char*       ident,       // Trace identifier
-     uint32_t          code,        // Trace code (Usually __LINE__)
-     const char*       addr);       // Trace info (char[16])
-
-_LIBPUB_FLATTEN
-_LIBPUB_HOT
-static inline void
    trace(                           // Simple trace event
      const char*       ident,       // Trace identifier
      const char*       unit);       // Trace sub-identifier
@@ -296,33 +295,19 @@ static inline void
 _LIBPUB_FLATTEN
 _LIBPUB_HOT
 static inline void
-   trace(                           // Simple trace event
+   trace(                           // I/O trace event
      const char*       ident,       // Trace identifier
-     const char*       unit,        // Trace sub-identifier
-     const void*       W0,          // Word[0]
-     const void*       W1= nullptr); // Word[1]
+     uint32_t          code,        // Trace code (Usually __LINE__)
+     const char*       info);       // Trace info (16 characters max used)
 
 _LIBPUB_FLATTEN
 _LIBPUB_HOT
 static inline void
-   trace(                           // Initialize with
-     const char*       ident,       // This char[4] trace type identifier
-     const char*       unit,        // This char[4] trace subtype identifier
-     intptr_t          I0,          // intptr[0]
-     intptr_t          I1= 0);      // intptr[1]
-
-_LIBPUB_FLATTEN
-_LIBPUB_HOT
-static inline void                // Uses extended record
-   trace(                           // Initialize with
-     const char*       ident,       // This char[4] trace type identifier
-     const char*       unit,        // This char[4] trace subtype identifier
-     const void*       W0,          // Word[0]
-     const void*       W1,          // Word[1]
-     const void*       W2,          // Word[2]
-     const void*       W3= nullptr, // Word[3]
-     const void*       W4= nullptr, // Word[4]
-     const void*       W5= nullptr); // Word[5]
+   trace(                           // Simple trace event
+     const char*       ident,       // Trace identifier
+     const char*       unit,        // Trace sub-identifier
+     opt_t             O0,          // Opt[0]
+     opt_t             O1= nullptr); // Opt[1]
 
 _LIBPUB_FLATTEN
 _LIBPUB_HOT
@@ -330,34 +315,34 @@ static inline void                  // Uses extended record
    trace(                           // Initialize with
      const char*       ident,       // This char[4] trace type identifier
      const char*       unit,        // This char[4] trace subtype identifier
-     intptr_t          I0,          // intptr_t[0]
-     intptr_t          I1,          // intptr_t[1]
-     intptr_t          I2,          // intptr_t[2]
-     intptr_t          I3= 0,       // intptr_t[3]
-     intptr_t          I4= 0,       // intptr_t[4]
-     intptr_t          I5= 0);      // intptr_t[5]
+     opt_t             O0,          // Opt[0]
+     opt_t             O1,          // Opt[1]
+     opt_t             O2,          // Opt[2]
+     opt_t             O3= nullptr, // Opt[3]
+     opt_t             O4= nullptr, // Opt[4]
+     opt_t             O5= nullptr); // Opt[5]
 
 // I/O Trace Methods - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 _LIBPUB_FLATTEN
 _LIBPUB_HOT
 static inline void
    io_trace(                        // I/O trace event
-     const char*       ident,       // A char[4] Trace identifier
-     const char*       type,        // A char[4] trace subtype identifier
-     const void*       W0,          // (Usually an object address)
-     const void*       W1,          // (Usually object information)
-     const void*       addr,        // Trace info (32 characters max used)
-     size_t            size);       // Actual info size
+     const char*       ident,       // A char[4] Trace type identifier
+     const char*       unit,        // A char[4] trace unit identifier
+     opt_t             O0,          // (Usually an object address)
+     opt_t             O1,          // (Usually object information)
+     const void*       data);       // Trace data (32 characters max used)
 
 _LIBPUB_FLATTEN
 _LIBPUB_HOT
 static inline void
    io_trace(                        // I/O trace event
-     const char*       ident,       // A char[4] Trace identifier
-     const char*       type,        // A char[4] trace subtype identifier
-     const void*       W0,          // (Usually an object address)
-     const void*       W1,          // (Usually object information)
-     const void*       addr);       // Trace info (C-string)
+     const char*       ident,       // A char[4] Trace type identifier
+     const char*       unit,        // A char[4] trace unit identifier
+     opt_t             O0,          // (Usually an object address)
+     opt_t             O1,          // (Usually object information)
+     const void*       data,        // Trace data (32 characters max used)
+     size_t            size);       // Actual data size
 
 //----------------------------------------------------------------------------
 // Trace::Buffer<size_t>, a temporary (completely filled) character string
@@ -372,8 +357,8 @@ char buffer[SIZE];                  // The temporary Buffer, '\0' padded
    Buffer(const Buffer& copy)
 {  memcpy(this->buffer, copy.buffer, SIZE); }
 
-   Buffer(const void* info)
-{  size_t size= strlen((const char*)info);
+   Buffer(const char* info)
+{  size_t size= strlen(info);
    if( size < SIZE ) {
      memcpy(buffer, info, size);
      memset(buffer+size, '\0', SIZE-size);
@@ -382,7 +367,7 @@ char buffer[SIZE];                  // The temporary Buffer, '\0' padded
    }
 }
 
-   Buffer(const void* info, size_t size)
+   Buffer(const char* info, size_t size)
 {  if( size < SIZE ) {
      memcpy(buffer, info, size);
      memset(buffer+size, '\0', SIZE-size);
