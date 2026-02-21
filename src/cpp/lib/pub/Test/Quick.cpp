@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2025 Frank Eskesen.
+//       Copyright (c) 2018-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2025/11/23
+//       2026/02/08
 //
 //----------------------------------------------------------------------------
 #include <iostream>                 // For std::cout
@@ -68,6 +68,12 @@ enum                                // Generic enum
 #define TEST_COMPILE_ERRORS true    // Test compilation errors
 #undef  TEST_COMPILE_ERRORS         // Don't test compilation errors
 #endif
+
+//----------------------------------------------------------------------------
+// Constants
+//----------------------------------------------------------------------------
+static constexpr const uintptr_t HBIT= XCL_latch::HBIT;
+static constexpr const uintptr_t HONE= XCL_latch::HONE;
 
 //----------------------------------------------------------------------------
 // Options
@@ -415,8 +421,6 @@ static inline int
 
    int                 error_count= 0; // Number of errors encountered
 
-   static constexpr uintptr_t
-       HBIT= sizeof(uintptr_t) == 8 ? 0x8000000000000000L : 0x80000000;
    std::thread::id null_id= std::thread::id();
    std::thread::id tid;               // The current recursive.latch.load()
 
@@ -441,7 +445,7 @@ static inline int
      error_count += MUST_NOT(Fail to throw an exception);
    } catch(std::runtime_error& X) {
      if( opt_verbose )
-       debugf("....As expected: %s\n", X.what());
+       debugf("%4d ..As expected: %s\n", __LINE__, X.what());
    }
 
    //-------------------------------------------------------------------------
@@ -476,22 +480,27 @@ static inline int
      error_count += MUST_NOT(Fail to throw an exception);
    } catch(std::runtime_error& X) {
      if( opt_verbose )
-       debugf("....As expected: %s\n", X.what());
+       debugf("%4d ..As expected: %s\n", __LINE__, X.what());
    }
 
    //-------------------------------------------------------------------------
    if( opt_verbose )
-     debugf("..Testing: SHR_latch/XCL_latch\n");
+     debugf("..Testing: SHR/XCL_latch\n");
    SHR_latch shr;
    XCL_latch xcl(shr);
    error_count += MUST_EQ(false, shr.is_held());
    error_count += MUST_EQ(false, xcl.is_held());
 
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Test multiple SHR_latch::lock
+   xcl.reset();                     // (Reset: No latch held)
    {{{{ std::lock_guard<decltype(shr)> lock1(shr);
      error_count += MUST_EQ(shr.count.load(), 1);
      error_count += MUST_EQ(true,  shr.is_held());
      error_count += MUST_EQ(false, xcl.is_held());
-//   if( xcl.try_lock() )             // (Deadlock if SHR+XCL on same thread)
+
+     // At this point xcl.try_lock() will livelock waiting for shr.unlock()
+//   if( xcl.try_lock() )
 //     error_count += MUST_NOT(Obtain exclusive while shared);
 
      {{{{ std::lock_guard<decltype(shr)> lock2(shr);
@@ -503,12 +512,15 @@ static inline int
    error_count += MUST_EQ(false, shr.is_held());
    error_count += MUST_EQ(false, xcl.is_held());
 
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Test XCL unlock from try_lock // Same as lock_guard lock(xcl)
+   xcl.reset();                     // (Reset: No latch held)
    if( xcl.try_lock() )
    {
      error_count += MUST_EQ(true,  shr.is_held());
      error_count += MUST_EQ(true,  xcl.is_held());
      error_count += MUST_EQ(shr.count, HBIT);
-     xcl.unlock();;
+     xcl.unlock();
      error_count += MUST_EQ(shr.count, 0);
    } else {
      error_count += MUST_NOT(Fail to obtain exclusive latch);
@@ -516,60 +528,127 @@ static inline int
    error_count += MUST_EQ(false, shr.is_held());
    error_count += MUST_EQ(false, xcl.is_held());
 
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Test XCL lock_guard
    {{{{ std::lock_guard<decltype(xcl)> lock(xcl);
      error_count += MUST_EQ(shr.count, HBIT);
      error_count += MUST_EQ(true,  shr.is_held());
      error_count += MUST_EQ(true,  xcl.is_held());
    }}}}
    error_count += MUST_EQ(shr.count, 0);
-   error_count += MUST_EQ(xcl.thread, null_id);
+   error_count += MUST_EQ(shr.thread, null_id);
    error_count += MUST_EQ(false, shr.is_held());
    error_count += MUST_EQ(false, xcl.is_held());
 
-   // Test release share lock when not held
-   try {
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Test unlock errors
+   xcl.reset();                     // (Reset: No latch held)
+   try {                            // SHR unlock, no lock held
      shr.unlock();
      error_count += MUST_NOT(Fail to throw an exception);
    } catch(std::runtime_error& X) {
      if( opt_verbose )
-       debugf("....As expected: %s\n", X.what());
+       debugf("%4d ..As expected: %s\n", __LINE__, X.what());
    }
    error_count += MUST_EQ(shr.count, 0);
 
-   // Test downgrade. (Note: upgrade not supported)
-   xcl.lock();
-   error_count += MUST_EQ(shr.count, HBIT);
-   error_count += MUST_EQ(xcl.thread, std::this_thread::get_id());
-
-   xcl.downgrade();
-   error_count += MUST_EQ(shr.count, 1);
-   error_count += MUST_EQ(xcl.thread, null_id);
-   error_count += MUST_EQ(shr.count, 1);
-   try {                            // Test downgrade when XCL not held
-     xcl.downgrade();
+   try {                            // XCL unlock, no lock held
+     xcl.unlock();
      error_count += MUST_NOT(Fail to throw an exception);
    } catch(std::runtime_error& X) {
      if( opt_verbose )
-       debugf("....As expected: %s\n", X.what());
+       debugf("%4d ..As expected: %s\n", __LINE__, X.what());
    }
-   error_count += MUST_EQ(shr.count, 1);
-   shr.unlock();
    error_count += MUST_EQ(shr.count, 0);
 
-   //-------------------------------------------------------------------------
-   if( opt_verbose )
-     debugf("..Testing: NullLatch\n");
-   NullLatch fake_latch;
-   error_count += MUST_EQ(false, fake_latch.is_held());
+   try {                            // XCL unlock with only SHR lock held
+     shr.lock();
+     xcl.unlock();
+     error_count += MUST_NOT(Fail to throw an exception);
+   } catch(std::runtime_error& X) {
+     if( opt_verbose )
+       debugf("%4d ..As expected: %s\n", __LINE__, X.what());
+   }
+   error_count += MUST_EQ(shr.count, 1);
 
-   {{{{ std::lock_guard<decltype(fake_latch)> lock1(fake_latch);
-        error_count += MUST_EQ(false, fake_latch.is_held());
-        std::lock_guard<decltype(fake_latch)> lock2(fake_latch);
-        std::lock_guard<decltype(fake_latch)> lock3(fake_latch);
-        std::lock_guard<decltype(fake_latch)> lock4(fake_latch);
-        error_count += MUST_EQ(false, fake_latch.is_held());
-   }}}}
-   error_count += MUST_EQ(false, fake_latch.is_held());
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Test upgrade/downgrade
+   xcl.reset();                     // (Reset: No latch held)
+
+   try {                            // ERROR: Test upgrade without SHR held
+     xcl.upgrade();
+     error_count += MUST_NOT(Fail to throw an exception);
+   } catch(std::runtime_error& X) {
+     if( opt_verbose )
+       debugf("%4d ..As expected: %s\n", __LINE__, X.what());
+   }
+
+   try {                            // ERROR: Downgrade when not held
+     xcl.downgrade();
+   } catch(std::runtime_error& X) {
+     if( opt_verbose )
+       debugf("%4d ..As expected: %s\n", __LINE__, X.what());
+   }
+
+   try {                            // ERROR: Downgrade when XCL not held
+     shr.lock();
+     xcl.downgrade();
+   } catch(std::runtime_error& X) {
+     if( opt_verbose )
+       debugf("%4d ..As expected: %s\n", __LINE__, X.what());
+   }
+
+   try {                            // Upgrade from SHR state
+     xcl.upgrade();
+     error_count += MUST_EQ(HONE,  shr.count.load());
+     error_count += MUST_EQ(true,  shr.is_held());
+     error_count += MUST_EQ(true,  xcl.is_held());
+   } catch(std::runtime_error& X) {
+     error_count += MUST_NOT(Fail to upgrade SHR latch);
+   }
+
+   try {                            // Downgrade after upgrade
+     error_count += MUST_EQ(HONE,  shr.count.load()); // Verify upgrade
+     error_count += MUST_EQ(true,  shr.is_held());
+     error_count += MUST_EQ(true,  xcl.is_held());
+     xcl.downgrade();
+     error_count += MUST_EQ(true,  shr.is_held());
+     error_count += MUST_EQ(false, xcl.is_held());
+   } catch(std::runtime_error& X) {
+     error_count += MUST_NOT(Fail to downgrade XCL latch);
+   }
+
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Test try_reserve
+   xcl.reset();                     // (Reset: No latch held)
+   if( xcl.try_reserve() )
+   {
+     error_count += MUST_EQ(HBIT,  shr.count.load());
+     error_count += MUST_EQ(true,  shr.is_held());
+     error_count += MUST_EQ(true,  xcl.is_held());
+   } else {
+     error_count += MUST_NOT(Fail to reserve exclusive latch);
+   }
+
+   try {                            // ERROR: Reserve while reserved
+     if( xcl.try_reserve() )
+       error_count += MUST_NOT(Fail to reserve while reserved);
+
+     error_count += MUST_NOT(Fail to throw an exception);
+   } catch(std::runtime_error& X) {
+     if( opt_verbose )
+       debugf("%4d ..As expected: %s\n", __LINE__, X.what());
+   }
+
+   try {                            // (Error recovery must release Latch)
+     xcl.try_reserve();
+     error_count += MUST_EQ(HBIT,  shr.count.load()); // Verify reservation
+     error_count += MUST_EQ(true,  shr.is_held());
+     error_count += MUST_EQ(true,  xcl.is_held());
+     xcl.unlock();
+   } catch(std::runtime_error& X) {
+     error_count += MUST_NOT(Fail to release reserve);
+   }
 
    return error_count;
 }
@@ -1180,7 +1259,7 @@ static inline int
 //       test_dirty
 //
 // Purpose-
-//       A quick and dirty test.
+//       A quick and dirty test. (It's occasionally used for debugging.)
 //
 //----------------------------------------------------------------------------
 static inline int
