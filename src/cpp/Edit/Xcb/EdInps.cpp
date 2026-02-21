@@ -35,7 +35,7 @@
 #include <gui/Window.h>             // For gui::Window
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/List.h>               // For pub::List
-#include <pub/Trace.h>              // For pub::Trace
+#include "pub/Trace.h"              // For pub::Trace
 #include <pub/Utf.h>                // For pub::Utf classes
 
 #include "Active.h"                 // For Active

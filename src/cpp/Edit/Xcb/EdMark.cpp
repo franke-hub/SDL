@@ -25,7 +25,7 @@
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include "pub/Signals.h"            // For pub::Signals interface
 #include <pub/Tokenizer.h>          // For pub::Tokenizer
-#include <pub/Trace.h>              // For pub::Trace
+#include "pub/Trace.h"              // For pub::Trace
 #include <pub/Utf.h>                // For pub::utf8_decoder
 #include <pub/utility.h>            // For pub::utility (when debugging)
 #include <pub/utility.i>            // For pub::s2c (when debugging)

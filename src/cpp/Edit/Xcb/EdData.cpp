@@ -24,7 +24,7 @@
 #include <sys/types.h>              // For system types
 
 #include <pub/Debug.h>              // For namespace pub::debugging
-#include <pub/Trace.h>              // For pub::Trace
+#include "pub/Trace.h"              // For pub::Trace
 
 #include "Active.h"                 // For Active
 #include "Config.h"                 // For namespace config

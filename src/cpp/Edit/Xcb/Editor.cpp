@@ -34,7 +34,7 @@
 #include <pub/Data.h>               // For namespace pub::data
 #include <pub/Debug.h>              // For Debug, namespace pub::debugging
 #include <pub/Thread.h>             // For pub::Thread::sleep
-#include <pub/Trace.h>              // For pub::Trace
+#include "pub/Trace.h"              // For pub::Trace
 #include <pub/Utf.h>                // For pub::utf8_decoder
 #include <pub/utility.h>            // For pub::utility::wildstrcmp, ...
 

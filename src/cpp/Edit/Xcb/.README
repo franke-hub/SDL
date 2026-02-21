@@ -125,7 +125,7 @@ Restructured modules, splitting some functions into .hpp files.
 
 2022/12/29 Renamed EdText to EdTerm, also changing this file.
 
-2022/12/20 Default running detached from command line.
+2022/12/20 Defaults to running in background mode.
          This can be overridden using the '--fg' parameter.
 
 2022/08/25 Redo/Undo on modified line yields inconsistent REDO (crash)

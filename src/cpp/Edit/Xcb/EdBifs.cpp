@@ -25,7 +25,7 @@
 #include <pub/Data.h>               // For pub::data::Name::get_file_name()
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Tokenizer.h>          // For pub::Tokenizer
-#include <pub/Trace.h>              // For pub::Trace
+#include "pub/Trace.h"              // For pub::Trace
 
 #include "Config.h"                 // For namespace config
 #include "EdData.h"                 // For EdData

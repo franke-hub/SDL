@@ -27,7 +27,7 @@
 #include <sys/stat.h>               // For stat
 
 #include <pub/Debug.h>              // For namespace pub::debugging
-#include <pub/Trace.h>              // For pub::Trace
+#include "pub/Trace.h"              // For pub::Trace
 #include <pub/List.h>               // For pub::List
 
 #include "Config.h"                 // For namespace config

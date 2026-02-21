@@ -31,7 +31,7 @@
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/List.h>               // For pub::List
 #include "pub/Signals.h"            // For pub::Signals interface
-#include <pub/Trace.h>              // For pub::Trace
+#include "pub/Trace.h"              // For pub::Trace
 #include "pub/utility.i"            // For utility conversion routines
 
 #include "Config.h"                 // For Config::check, namespace config

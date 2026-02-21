@@ -41,7 +41,7 @@
 #include <pub/Debug.h>              // For pub::Debug, namespace pub::debugging
 #include <pub/Parser.h>             // For pub::Parser
 #include "pub/Signals.h"            // For pub::Signals interface
-#include <pub/Trace.h>              // For pub::Trace
+#include "pub/Trace.h"              // For pub::Trace
 
 #include "Active.h"                 // For Active
 #include "Config.h"                 // For Config (Implementation class)
