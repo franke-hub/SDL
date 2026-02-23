@@ -17,7 +17,7 @@
 //       Debug object methods.
 //
 // Last change date-
-//       2026/01/20
+//       2026/02/23
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard, ...
@@ -43,18 +43,10 @@
 #include "pub/Latch.h"              // For pub::Latch objects
 #include <pub/Named.h>              // For pub::Named Threads
 #include "pub/Thread.h"             // For pub::Threads
-#include <pub/utility.h>            // For utility::to_string
+#include "pub/utility.i"            // For pub::utility conversion routines
 
-#ifdef _OS_WIN
-  #include <windows.h>              // For GetCurrentThreadId
-  #include <io.h>                   // For isatty
-
-  #define vsnprintf _vsnprintf
-
-  #ifndef va_copy
-    #define va_copy(dest, src) dest= src
-  #endif
-#endif
+// #define PUB _LIBPUB_NAMESPACE    // Not needed, compiling in namespace PUB
+// using PUB:s2c;                   // "
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -259,7 +251,7 @@ void
      if( current )
        named= dynamic_cast<Named*>(current);
      if( named )
-       fprintf(file, "<%13s> ", named->get_name().c_str());
+       fprintf(file, "<%13s> ", s2c(named->get_name()));
      else {
        if( sizeof(void*) == 8 )
          fprintf(file, "<@%.12lx> ", (unsigned long)(uintptr_t)current);
@@ -287,16 +279,16 @@ void
 
    if( handle == nullptr ) {        // If still not active
      int ERRNO= errno;              // On some systems, fopen sets errno= 0
-     if( isSTDIO(file_name.c_str()) ) {
+     if( isSTDIO(s2c(file_name)) ) {
        if( file_name[0] == '>' || file_name[0] == '1' )
          handle= stdout;
        else
          handle= stderr;
-     } else {
-       handle= fopen(file_name.c_str(), file_mode.c_str());// Open the trace file
+     } else {                       // Open the trace file
+       handle= fopen(s2c(file_name), s2c(file_mode));
        if( handle == nullptr ) {    // If the open failed
          fprintf(stderr, "DEBUG: Error: fopen(%s,%s) error %d:%s\n"
-                       , file_name.c_str(), file_mode.c_str()
+                       , s2c(file_name), s2c(file_mode)
                        , errno, strerror(errno));
          handle= stderr;
        }
@@ -325,7 +317,7 @@ void
      int rc= fclose(handle);        // Close the file
      if( rc != 0 )                  // If error encountered
        fprintf(stderr, "DEBUG: Error: file(%s), close error(%d) %d:%s\n"
-                     , file_name.c_str(), rc, errno, strerror(errno));
+                     , s2c(file_name), rc, errno, strerror(errno));
    }
 
    handle= nullptr;                 // Indicate closed
@@ -448,12 +440,12 @@ void
        int rc= fclose(handle);      // Close the trace file
        if( rc != 0 )                // If the close failed
          fprintf(stderr, "DEBUG: Error: file(%s) close error %d:%s\n"
-                       , file_name.c_str(), errno, strerror(errno));
+                       , s2c(file_name), errno, strerror(errno));
 
-       handle= fopen(file_name.c_str(), "ab"); // Re-open the trace file
+       handle= fopen(s2c(file_name), "ab"); // Re-open the trace file
        if( handle == nullptr ) {    // If the re-open failed
          fprintf(stderr, "DEBUG: Error: file(%s) open(\"ab\") error %d:%s\n"
-                       , file_name.c_str(), errno, strerror(errno));
+                       , s2c(file_name), errno, strerror(errno));
          handle= stderr;
        }
      }
@@ -478,7 +470,7 @@ void
 
    if( handle )                     // If file is open
      fprintf(stderr, "Debug(%p)::set_file_mode ignored, File(%s) open\n", this
-                   , file_name.c_str());
+                   , s2c(file_name));
 
    file_mode= mode;                 // Set the file mode
 }
@@ -521,8 +513,8 @@ void
    auto array= trace.as_vector();
    for(size_t i= 1; i<array.size(); i++) {
      auto frame= array[i];
-     debugf("[bt] %2zd %s at %s:%zd\n", i-1, frame.name().c_str()
-           , frame.source_file().c_str(), frame.source_line());
+     debugf("[bt] %2zd %s at %s:%zd\n", i-1, s2c(frame.name())
+           , s2c(frame.source_file()), frame.source_line());
    }
    flush();
 }
@@ -724,23 +716,23 @@ void
    Debug::vabortf(                  // Debug vprintf abort facility
      const char*       fmt,         // The PRINTF format string
      va_list           argptr)      // VALIST
-{
-   std::lock_guard<decltype(mutex)> lock(mutex);
+{  std::lock_guard<decltype(mutex)> lock(mutex);
 
-   fflush(stdout);
-
+   // Write to stderr
    {{{{
      va_list errptr;
      va_copy(errptr, argptr);
-     vfprintf(stderr, fmt, errptr); // Write to stderr
+     vfprintf(stderr, fmt, errptr);
      va_end(errptr);
 
      fprintf(stderr, "\n");
    }}}}
-   fflush(stderr);
 
-   // If trace file is already open and is neither stdout nor stderr
-   if( handle != nullptr && handle != stdout && handle != stderr )
+   // Write to trace file (if not stdout or stderr)
+   if( handle == nullptr )          // If trace file not already open
+     init();                        // Open it now
+
+   if( handle != stdout && handle != stderr )
    {{{{
      va_list logptr;
      va_copy(logptr, argptr);
@@ -749,10 +741,16 @@ void
 
      fprintf(handle, "\n");
      fflush(handle);                // Flush the handle buffer
-     flush();                       // Intensive buffer flush
    }}}}
 
+   // Diagnostic backtrace
    backtrace();
+   debugf("Aborting\n");
+
+   // Flush all output files
+   flush();
+
+   // Abort
    abort();
 }
 
@@ -915,23 +913,23 @@ void
    Debug::vthrowf(                  // Debug vprintf exception facility
      const char*       fmt,         // The PRINTF format string
      va_list           argptr)      // VALIST
-{
-   std::lock_guard<decltype(mutex)> lock(mutex);
+{  std::lock_guard<decltype(mutex)> lock(mutex);
 
-   fflush(stdout);
-
+   // Write to stderr
    {{{{
      va_list errptr;
      va_copy(errptr, argptr);
-     vfprintf(stderr, fmt, errptr); // Write to stderr
+     vfprintf(stderr, fmt, errptr);
      va_end(errptr);
 
      fprintf(stderr, "\n");
    }}}}
-   fflush(stderr);
 
-   // If trace file is already open and is neither stdout nor stderr
-   if( handle != nullptr && handle != stdout && handle != stderr )
+   // Write to trace file (if not stdout or stderr)
+   if( handle == nullptr )          // If trace file not already open
+     init();                        // Open it now
+
+   if( handle != stdout && handle != stderr )
    {{{{
      va_list logptr;
      va_copy(logptr, argptr);
@@ -939,16 +937,20 @@ void
      va_end(logptr);
 
      fprintf(handle, "\n");
-     fflush(handle);                // Flush the handle buffer
-     flush();                       // Intensive buffer flush
    }}}}
 
-   int L= vsnprintf(buffer, sizeof(buffer), fmt, argptr);
-   if( L < 0 || size_t(L) >= sizeof(buffer) ) // If cannot properly format
-     throw std::runtime_error(fmt); // Just use the format string
-
+   // Diagnostic backtrace
    backtrace();
-   throw std::runtime_error(buffer);
+
+   // Flush all output files
+   flush();
+
+   // Throw the exception
+   const char* text= buffer;        // Default (formatted) exception text
+   int L= vsnprintf(buffer, sizeof(buffer), fmt, argptr);
+   if( L < 0 || size_t(L) >= sizeof(buffer) ) // If format failed or incomplete
+     text= fmt;                     // Just use the format string
+   throw std::runtime_error(text);
 }
 
 //----------------------------------------------------------------------------

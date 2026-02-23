@@ -17,7 +17,7 @@
 //       Dispatcher timing test.
 //
 // Last change date-
-//       2026/02/20
+//       2026/02/23
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic
@@ -528,7 +528,7 @@ virtual void
 
    if( opt_hcdm || opt_verbose > 1 ) { // WorkerPool debug while still running
      debugh("TimerThread\n");
-     PUB::WorkerPool::debug("while running==true");
+     PUB::System::debug("while running==true");
    }
 
    running= false;                  // (But the test isn't 100% complete)
