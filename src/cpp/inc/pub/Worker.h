@@ -17,7 +17,7 @@
 //       Define a Worker used to handle discrete units of work.
 //
 // Last change date-
-//       2026/02/09
+//       2026/02/23
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_WORKER_H_INCLUDED
@@ -94,8 +94,11 @@ typedef std::atomic_size_t          atomic_size_t;
 static atomic_size_t   del_workers; // The number of deleted WorkerThreads
 static atomic_size_t   new_workers; // The number of created WorkerThreads
 static atomic_size_t   max_running; // Maximum number of running WorkerThreads
+static atomic_size_t   max_threads; // Maximum number of WorkerThreads
 static atomic_size_t   max_used;    // Maximum number of pooled WorkerThreads
+
 static atomic_size_t   running;     // Current number of running WorkerThreads
+static atomic_size_t   threads;     // Current number of WorkerThreads
 static atomic_size_t   workers;     // Number of WorkerPool::work() invocations
 
 //----------------------------------------------------------------------------
@@ -105,6 +108,10 @@ public:
 static size_t                       // The maximum number of running Workers
    get_max_running( void )          // Get maximum number of running Workers
 {  return max_running.load(); }
+
+static size_t                       // The maximum number of active Threads
+   get_max_threads( void )          // Get maximum number of active Threads
+{  return max_threads.load(); }
 
 static size_t                       // The current thread pool count
    get_max_used( void )             // Get current thread pool count
@@ -116,6 +123,10 @@ static size_t                       // The current number of running Workers
 
 static size_t                       // The current thread pool size
    get_size( void );                // Get current thread pool size
+
+static size_t                       // The current number of Threads
+   get_threads( void )              // Get current number of Threads
+{  return threads.load(); }
 
 static size_t                       // The current thread pool used count
    get_used( void );                // Get current thread pool used count
@@ -150,6 +161,24 @@ static void
 static void
    work(                            // Process work
      Worker*           worker);     // Using this Worker
+
+//----------------------------------------------------------------------------
+// WorkerPool::Protected methods
+//----------------------------------------------------------------------------
+protected:
+static void                         // Decrement the running count
+   dec_running( void )
+{  --running; }
+
+static void                         // Decrement the threads count
+   dec_threads( void )
+{  --threads; }
+
+static void                         // Increment the running count
+   inc_running( void );
+
+static void                         // Increment the threads count
+   inc_threads( void );
 }; // class WorkerPool
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_WORKER_H_INCLUDED

@@ -17,7 +17,7 @@
 //       Worker object methods.
 //
 // Last change date-
-//       2026/02/09
+//       2026/02/23
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<>
@@ -68,9 +68,12 @@ static size_t          pool_used= 0; // Current number of pooled WorkerThreads
 atomic_size_t          WorkerPool::del_workers(0); // WorkerThread delete count
 atomic_size_t          WorkerPool::new_workers(0); // WorkerThread new count
 atomic_size_t          WorkerPool::max_running(0); // Maximum running
+atomic_size_t          WorkerPool::max_threads(0); // Maximum threads
 atomic_size_t          WorkerPool::max_used(0); // Maximum pool Thread count
-atomic_size_t          WorkerPool::running(0);  // Running Thread count
-atomic_size_t          WorkerPool::workers(0); // WorkerPool::work() invocations
+
+atomic_size_t          WorkerPool::running(0); // Running Thread count
+atomic_size_t          WorkerPool::threads(0); // Current Thread count
+atomic_size_t          WorkerPool::workers(0); // WorkerPool::work() calls
 
 //----------------------------------------------------------------------------
 // Global constructor/destructor
@@ -169,9 +172,7 @@ inline bool
 //----------------------------------------------------------------------------
 inline void
    done( void )                      // Work complete
-{  --WorkerPool::running;
-
-   if( HCDM )
+{  if( HCDM )
      traceh("WorkerThread(%p).done(%p)\n", this, worker);
    else if( USE_ITRACE )
      Trace::trace(".WRK", "DONE", this, worker);
@@ -237,11 +238,14 @@ void
    else if( USE_ITRACE )
      Trace::trace(".WRK", "=RUN", this, worker);
 
+   WorkerPool::inc_threads();
+
    while( operational ) {
      if( worker == nullptr ) {      // (Should not occur, but ignorable)
        if( USE_IDEBUG )
          debugh("%4d %s operational but NO WORKER\n", __LINE__, __FILE__);
      } else {
+       WorkerPool::inc_running();
        try {
          worker->work();
        } catch(Exception& X) {
@@ -254,6 +258,7 @@ void
          debugh("WorkerException: ...\n");
          utility::report_exception("...");
        }
+       WorkerPool::dec_running();
      }
 
      worker= nullptr;
@@ -272,6 +277,7 @@ void
    else if( USE_ITRACE )
      Trace::trace(".WRK", "INOP", this, worker);
 
+   WorkerPool::dec_threads();
    delete this;
 }
 
@@ -310,6 +316,46 @@ size_t                              // The current thread pool size
 size_t                              // The current thread pool used count
    WorkerPool::get_used( void )     // Get current thread pool used count
 {  return pool_used; }
+
+//----------------------------------------------------------------------------
+//
+// Protected method-
+//       WorkerPool::inc_running
+//
+// Purpose-
+//       Increment the running count, possibly setting max_running
+//
+//----------------------------------------------------------------------------
+void
+   WorkerPool::inc_running( void )  // Increment the running count
+{
+   size_t was_running= ++running;
+   size_t was_maximum= max_running.load();
+   while( was_running > was_maximum ) {
+     if( max_running.compare_exchange_weak(was_maximum, was_running) )
+       break;
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Protected method-
+//       WorkerPool::inc_threads
+//
+// Purpose-
+//       Increment the threads count, possibly setting max_threads
+//
+//----------------------------------------------------------------------------
+void
+   WorkerPool::inc_threads( void )  // Increment the threads count
+{
+   size_t was_threads= ++threads;
+   size_t was_maximum= max_threads.load();
+   while( was_threads > was_maximum ) {
+     if( max_threads.compare_exchange_weak(was_maximum, was_threads) )
+       break;
+   }
+}
 
 //----------------------------------------------------------------------------
 //
@@ -360,9 +406,11 @@ void
 {
    debugf("WorkerPool::debug(%s)\n", info ? info : "");
 
-   debugf("%'16zd max_running\n", max_running.load());
    debugf("%'16zd max_pooled\n",  max_used.load());
+   debugf("%'16zd max_running\n", max_running.load());
+   debugf("%'16zd max_threads\n", max_threads.load());
    debugf("%'16zd running\n",     running.load());
+   debugf("%'16zd threads\n",     threads.load());
    debugf("%'16zd new_workers\n", new_workers.load());
    debugf("%'16zd del_workers\n", del_workers.load());
    debugf("%'16zd workers\n",     workers.load());
@@ -405,8 +453,10 @@ void
    del_workers.store(0);
    new_workers.store(0);
    max_running.store(0);
+   max_threads.store(0);
    max_used.store(0);
    running.store(0);
+   threads.store(0);
    workers.store(0);
 }
 
@@ -420,9 +470,9 @@ void
 //
 //----------------------------------------------------------------------------
 void
-   WorkerPool::work(                 // Process work
-     Worker*           worker)       // Using this Worker
-{  ++workers;
+   WorkerPool::work(                // Process work
+     Worker*           worker)      // Using this Worker
+{  ++workers;                       // (Invocation counter)
 
    if( HCDM )
      traceh("WorkerPool.work(%p) running(%zd)\n", worker, running.load());
@@ -437,13 +487,6 @@ void
      if( pool_used > 0 )
        thread= pool[--pool_used];
    }}}} // PERFORMANCE CRITICAL ==============================================
-
-   size_t was_running= ++running;
-   size_t was_maximum= max_running.load();
-   while( was_running > was_maximum ) {
-     if( max_running.compare_exchange_weak(was_maximum, was_running) )
-       break;
-   }
 
    if( thread )
      thread->reuse(worker);
