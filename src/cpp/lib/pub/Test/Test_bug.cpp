@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2024 Frank Eskesen.
+//       Copyright (c) 2007-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,11 +17,13 @@
 //       Test debugging methods.
 //
 // Last change date-
-//       2024/03/04
+//       2026/02/23
 //
 //----------------------------------------------------------------------------
+#include <stdexcept>                // For std::runtime_error
 #include <cerrno>                   // For errno
 
+#include <pub/TEST.H>               // For test functions and macros
 #include "pub/Debug.h"              // For Debug, tested
 #include <pub/Wrapper.h>            // For class Wrapper
 
@@ -31,13 +33,19 @@ using namespace PUB::debugging;
 using PUB::Wrapper;                 // For pub::Wrapper class
 
 //----------------------------------------------------------------------------
+// Constants for parameterization
+//----------------------------------------------------------------------------
+enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
+}; // enum
+
+//----------------------------------------------------------------------------
 // Extended options
 //----------------------------------------------------------------------------
-static int             opt_trace= false;   // --backtrace
-static struct option   opts[]=      // The getopt_long parameter: longopts
-{  {"backtrace",  no_argument,       &opt_trace,  true} // --backtrace
-,  {0, 0, 0, 0}                     // (End of option list)
-};
+//static struct option   opts[]=      // The getopt_long parameter: longopts
+//{  {0, 0, 0, 0}                     // (End of option list)
+//};
 
 //----------------------------------------------------------------------------
 //
@@ -86,7 +94,7 @@ extern int                          // Return code
 {
    //-------------------------------------------------------------------------
    // Initialize
-   Wrapper  tc= opts;               // The test case wrapper
+   Wrapper  tc;                     // The test case wrapper
    Wrapper* tr= &tc;                // A test case wrapper pointer
 
    tc.on_main([tr](int, char*[])
@@ -100,7 +108,7 @@ extern int                          // Return code
      // Implementation note: backtrace is provided by the boost library and
      // its output varies depending upon the installed version. Since
      // regression testing checks our output, it's not tested by default.
-     if( opt_trace )
+     if( opt_verbose )
        test_bt();
 
      // Test modes
@@ -132,10 +140,41 @@ extern int                          // Return code
      errorh("This appears in %s and %s\n", "TRACE", "STDERR");
      traceh("This appears in %s ONLY\n",   "TRACE");
 
+     // Test throwf (output not checked)
+     if( opt_verbose ) {
+       bool caught= false;
+       try {
+         debugf("\n%4d Testing throwf\n", __LINE__);
+         throwf("%4d runtime_error", __LINE__);
+         error_count += MUST_NOT(fail to throw an exception);
+       } catch(std::runtime_error& X) {
+         debugf("(Backtrace expected)\n");
+         debugf("%4d ..As expected: %s\n", __LINE__, X.what());
+         caught= true;
+       }
+       error_count += VERIFY( caught == true );
+     }
+
+     // Test abortf (output not checked)
+     if( opt_verbose > 1 ) {
+       try {
+         debugf("\n%4d Testing abortf\n", __LINE__);
+         abortf("%4d abortf test", __LINE__);
+         error_count += MUST_NOT(fail to abort);
+       } catch(...) {
+         error_count += MUST_NOT(fail to abort);
+       }
+       error_count += MUST_NOT(fail to abort);
+     }
+
      return error_count != 0;
    });
 
    //-------------------------------------------------------------------------
    // Run the test
+   setlocale(LC_NUMERIC, "");       // Activates ' thousand separator
+   opt_hcdm= HCDM;
+   opt_verbose= VERBOSE;
+
    return tc.run(argc, argv);
 }
