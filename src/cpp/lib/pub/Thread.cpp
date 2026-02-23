@@ -17,7 +17,7 @@
 //       Thread method implementations.
 //
 // Last change date-
-//       2026/02/20
+//       2026/02/23
 //
 // Implementation notes-
 //       Thread::tlss is used to maintain the Thread state. There are three
@@ -776,29 +776,6 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Thread::start_failure
-//
-// Purpose-
-//       Handle Thread::start failure
-//
-//----------------------------------------------------------------------------
-[[noreturn]]
-void
-   Thread::start_failure( void )    // Handle start failure
-{
-   if( USE_ITRACE )
-     Trace::trace(".THR", "-ERR", this, this->tlss_);
-
-   delete this->tlss_;
-   this->tlss_= nullptr;
-
-   log(LL_NONE, "Thread::start failure %d:%s\n", errno, strerror(errno));
-   throwf("Thread::start failure %d:%s\n", errno, strerror(errno));
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       Thread::start
 //
 // Purpose-
@@ -884,7 +861,19 @@ void
        }
      }
 
-     start_failure();
+     //= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+     // Start failure: EXCEPTION
+     if( USE_ITRACE )
+       Trace::trace(".THR", "-ERR", this, this->tlss_);
+
+     startable.post();              // Semaphore recovery
+
+     delete this->tlss_;            // TLSS storage recovery
+     this->tlss_= nullptr;
+
+     // Error diagnostic (throwf writes to console, so log doesn't need to)
+     log(LL_NONE, "Thread::start failure %d:%s\n", errno, strerror(errno));
+     throwf("Thread::start failure %d:%s\n", errno, strerror(errno));
    }
 
    _tlss->E->drive_initialized.wait(); // Wait for tl_tlss= _tlss

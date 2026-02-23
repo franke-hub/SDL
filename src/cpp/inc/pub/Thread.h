@@ -17,7 +17,7 @@
 //       Define the Thread control object.
 //
 // Last change date-
-//       2026/02/20
+//       2026/02/23
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_THREAD_H_INCLUDED
@@ -191,10 +191,6 @@ protected:
 static void*
    drive(                           // Drive (run)
      void*             _thread);    // This Thread
-
-[[noreturn]]
-void
-   start_failure( void );           // Handle start failure
 }; // class Thread
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_THREAD_H_INCLUDED
