@@ -17,7 +17,7 @@
 //       Test Thread function.
 //
 // Last change date-
-//       2026/02/20
+//       2026/02/24
 //
 // Implementation notes-
 //       We don't trace anything but can create a trace table for library use.
@@ -40,6 +40,7 @@
 #include "pub/Semaphore.h"          // For pub::Semaphore
 #include "pub/System.h"             // For pub::System
 #include "pub/Thread.h"             // For pub::Thread
+#include "pub/Trace.h"              // For pub::Trace (when debugging)
 #include "pub/Worker.h"             // For pub::Worker
 #include "pub/Wrapper.h"            // For pub::Wrapper
 #include "pub/utility.i"            // For pub::utility conversion routines
@@ -53,11 +54,13 @@ using PUB::Interval;
 using PUB::Mutex;
 using PUB::Named;
 using PUB::Semaphore;
+using PUB::Trace;                   // (When debugging)
 using PUB::Thread;
 using PUB::Worker;
 using PUB::WorkerPool;
 using PUB::Wrapper;
 using namespace PUB::debugging;
+using namespace PUB::System;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -79,7 +82,7 @@ static Mutex           alphaMutex;
 static std::mutex      betaMutex;
 static Semaphore       alphaSemaphore(1);
 static Semaphore       betaSemaphore(1);
-static Semaphore       blockedSemaphore(0);
+static Semaphore       timedSemaphore(0);
 static int             error_count= 0;
 static Interval        interval;
 static double          noisy_delay= 0.001; // Default noisy delay
@@ -92,11 +95,48 @@ static void*           table= nullptr; // The Trace table
 ////// int             opt_hcdm= HCDM;       // (Wrapper built-in)
 ////// int             opt_verbose= VERBOSE; // (Wrapper built-in)
 static int             opt_trace= 0; // --trace
+static int             opt_block= 0; // --block
 static struct option   opts[]=      // The getopt_long parameter: longopts
 {  {"********", required_argument, nullptr,    0} // --(ignored)
+,  {"block",    no_argument,       &opt_block, 1} // --block
+,  {"delay",    required_argument, nullptr,    0} // --delay
 ,  {"trace",    optional_argument, &opt_trace, 0x0040'0000} // --trace
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
+
+//----------------------------------------------------------------------------
+//
+// Class
+//       BasicThread
+//
+// Purpose-
+//       Define our base Thread
+//
+// Implementation note-
+//       Method start() does not return until running() has been invoked
+//
+//----------------------------------------------------------------------------
+class BasicThread : public Thread, public Named { // Basic Thread class
+Event                  is_running;  // (Set once, never reset)
+Event                  is_started;  // (Set once, never reset)
+
+public:
+   BasicThread(const char* name= "Basic")
+:  Thread(), Named(name), is_running(), is_started()
+{  }
+
+void
+   running( void )
+{  is_running.post(); is_started.wait(); }
+
+void
+   start( void )
+{
+   Thread::start();
+   is_running.wait();
+   is_started.post();
+}
+}; // class BasicThread
 
 //----------------------------------------------------------------------------
 //
@@ -134,30 +174,30 @@ virtual void
 //       Used for abnormal Thread termination testing.
 //
 //----------------------------------------------------------------------------
-class LoopyThread : public Thread, public Named {
+class LoopyThread : public BasicThread {
 public:
-Event                  started;     // (Set once, never reset)
 bool                   operational= false; // TRUE while operational
 bool                   self_delete= false; // Self-delete option
 bool                   self_detach= false; // Self-detach option
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    LoopyThread( void )
-:  Thread(), Named("LoopyThread")
-{  if( opt_hcdm || opt_verbose > 1 ) debugf("LoopyThread(%p)!\n", this); }
+:  BasicThread("LoopyThread")
+{  if( opt_verbose > 1 ) debugf("LoopyThread(%p)!\n", this); }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 virtual
    ~LoopyThread( void )
-{  if( opt_hcdm || opt_verbose > 1 ) debugf("LoopyThread(%p)~\n", this); }
+{  if( opt_verbose > 1 ) debugf("LoopyThread(%p)~\n", this); }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 virtual void
    run(void)
 {
-   started.post();
+   operational= true;
+   running();
 
-   if( opt_verbose > 1 )
+   if( opt_verbose > 2 )
      debugf("LoopyThread(%p).run...\n", this);
 
    while( operational ) {
@@ -178,7 +218,7 @@ virtual void
       delete this;
    }
 
-   if( opt_verbose > 1 )
+   if( opt_verbose > 2 )
      debugf("LoopyThread(%p)...run\n", this);
 }
 
@@ -191,15 +231,6 @@ void
    }); // LambdaWorker
 
    WorkerPool::work(&lw);
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void
-   safe_start(void)
-{
-   operational= true;
-   start();
-   started.wait();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -262,37 +293,79 @@ void
 //----------------------------------------------------------------------------
 //
 // Class
+//       MutexThread
+//
+// Purpose-
+//       Define a Thread used solely to test the Mutex object.
+//
+//----------------------------------------------------------------------------
+class MutexThread : public BasicThread { // Mutex Thread class
+public:
+   MutexThread()
+:  BasicThread("MutexThread") { }
+
+virtual void
+   run(void)
+{
+   running();
+
+   if( opt_verbose )
+     debugh("Before betaMutex.lock()\n");
+   betaMutex.lock();
+
+   {{{{
+     if( opt_verbose )
+       debugh("Before alphaMutex.lock()\n");
+     std::lock_guard<decltype(alphaMutex)> lock(alphaMutex);
+
+     if( opt_verbose )
+       debugh("Before alphaMutex.unlock()\n");
+   }}}}
+
+   if( opt_verbose )
+     debugh("sleep(1.0)...\n");
+   Thread::sleep(1.0);
+   if( opt_verbose )
+     debugh("...sleep(1.0)\n");
+
+   if( opt_verbose )
+     debugh("Before betaMutex.unlock()\n");
+   betaMutex.unlock();
+
+   if( opt_verbose )
+     debugh("done!\n");
+}
+}; // class MutexThread
+
+//----------------------------------------------------------------------------
+//
+// Class
 //       NoisyThread
 //
 // Purpose-
 //       Define a simple, but noisy, Thread
 //
 //----------------------------------------------------------------------------
-class NoisyThread : public Thread, public Named { // Noisy Thread class
+class NoisyThread : public BasicThread { // Noisy Thread class
 protected:
 double                 delay;       // Delay before exit
-Event                  started;
-
-public:
-int                    stateControl;
 
 public:
    NoisyThread(
      const char*       threadName,  // The Thread name
      double            delay= 0.001) // The exit delay
-:  Thread(), Named(threadName)
-,  delay(delay), stateControl(-1) { }
+:  BasicThread(threadName)
+,  delay(delay)
+{  }
 
 virtual void
    run(void)
 {
-   if( opt_verbose )
+   running();
+
+   if( opt_verbose > 2 )
      debugf("%12.6f NoisyThread(%p).run(%s)\n", interval.stop(), this
            , get_name().c_str());
-
-   // Indicate started
-   setState(4);
-   started.post();
 
    // Sleep (allow possible thread deletion)
    Thread::sleep(delay);
@@ -305,29 +378,6 @@ virtual void
    fflush(stdout);
 #endif
 }
-
-void
-   safeStart(void)
-{
-   setState(1);
-   started.reset();
-   setState(2);
-   start();
-   started.wait();
-
-   int stateControl= this->stateControl;
-   if( stateControl != 4 )          // If not in posted state
-   {
-     debugf("%4d ERROR: NoisyThread(%p) fsm(%d)\n", __LINE__,
-            this, stateControl);
-     ::exit(EXIT_FAILURE);
-   }
-}
-
-void
-   setState(
-     int               state)
-{  stateControl= state; }
 }; // class NoisyThread
 
 //----------------------------------------------------------------------------
@@ -338,11 +388,15 @@ void
 // Purpose-
 //       Define a simple, but quiet, Thread
 //
+// Implementatin notes-
+//       This Thread should not wait for start completion.
+//
 //----------------------------------------------------------------------------
 class QuietThread : public Thread { // Quiet Thread class
 public:
    QuietThread()
-:  Thread() { }
+:  Thread()
+{  }
 
 virtual void
    run(void)
@@ -364,18 +418,18 @@ virtual void
 //       This Thread is designed to run after being deleted.
 //
 //----------------------------------------------------------------------------
-class SelfDeletingThread : public Thread { // SelfDeleting Thread class
-public:
-Event                  started;     // Posted when started
-
+class SelfDeletingThread : public BasicThread { // SelfDeleting Thread class
 public:
    SelfDeletingThread( void )
-:  Thread(), started() {}
+:  BasicThread("SelfDeleting")
+{  }
 
 virtual void
    run(void)
 {
-   if( HCDM || opt_hcdm )
+   running();
+
+   if( opt_verbose > 2 )
      debugf("%12.6f SelfDeletingThread(%p).run()\n", interval.stop(), this);
 
    Thread* thread= Thread::current();  // The current Thread
@@ -386,9 +440,6 @@ virtual void
             this, thread);
      ::exit(EXIT_FAILURE);
    }
-
-   // Indicate started
-   started.post(0);
 
    // Test Thread::current
    thread= Thread::current();
@@ -410,7 +461,7 @@ virtual void
    delete this;
 
 // This pragma shouldn't be necessary.
-// We only use this as an address. We don't use this-> anything.
+// We only use this as an  address. We don't use this-> anything.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wuse-after-free"
    thread= Thread::current();
@@ -421,7 +472,7 @@ virtual void
    }
 
    // Show work being done on a deleted Thread
-   if( HCDM || opt_hcdm ) {
+   if( opt_verbose > 2 ) {
      debugf("%12.6f SelfDeletingThread(%p) exit\n", interval.stop(), this);
      fflush(stdout);
    }
@@ -432,94 +483,52 @@ virtual void
 //----------------------------------------------------------------------------
 //
 // Class
-//       MutexThread
-//
-// Purpose-
-//       Define a Thread used solely to test the Mutex object.
-//
-//----------------------------------------------------------------------------
-class MutexThread : public NoisyThread { // Mutex Thread class
-public:
-   MutexThread()
-:  NoisyThread("MutexThread") { }
-
-virtual void
-   run(void)
-{
-   if( HCDM || opt_hcdm )
-     debugh("Before betaMutex.lock()\n");
-   betaMutex.lock();
-
-   {{{{
-     if( HCDM || opt_hcdm )
-       debugh("Before alphaMutex.lock()\n");
-     std::lock_guard<decltype(alphaMutex)> lock(alphaMutex);
-
-     if( HCDM || opt_hcdm )
-       debugh("Before alphaMutex.unlock()\n");
-   }}}}
-
-   if( HCDM || opt_hcdm )
-     debugh("sleep(1.0)...\n");
-   Thread::sleep(1.0);
-   if( HCDM || opt_hcdm )
-     debugh("...sleep(1.0)\n");
-
-   if( HCDM || opt_hcdm )
-     debugh("Before betaMutex.unlock()\n");
-   betaMutex.unlock();
-
-   if( HCDM || opt_hcdm )
-     debugh("done!\n");
-}
-}; // class MutexThread
-
-//----------------------------------------------------------------------------
-//
-// Class
 //       SemaphoreThread
 //
 // Purpose-
 //       Define a Thread used solely to test the Semaphore object.
 //
 //----------------------------------------------------------------------------
-class SemaphoreThread : public NoisyThread { // Semaphore Thread class
+class SemaphoreThread : public BasicThread { // Semaphore Thread class
 public:
    SemaphoreThread()
-:  NoisyThread("SemaphoreThread") { }
+:  BasicThread("SemaphoreThread")
+{  }
 
 virtual void
    run(void)
 {
-   if( HCDM || opt_hcdm )
+   running();
+
+   if( opt_verbose )
      debugh("Before betaSemaphore.wait()\n");
    betaSemaphore.wait();
 
-   if( HCDM || opt_hcdm )
+   if( opt_verbose )
      debugh("Before alphaSemaphore.wait()\n");
    alphaSemaphore.wait();
 
-   if( HCDM || opt_hcdm )
+   if( opt_verbose )
      debugh("Before alphaSemaphore.post()\n");
    alphaSemaphore.post();
 
-   if( HCDM || opt_hcdm )
+   if( opt_verbose )
      debugh("sleep(1.0)...\n");
    Thread::sleep(1.0);
-   if( HCDM || opt_hcdm )
+   if( opt_verbose )
      debugh("...sleep(1.0)\n");
 
-   if( HCDM || opt_hcdm )
+   if( opt_verbose )
      debugh("Before betaSemaphore.post()\n");
    betaSemaphore.post();
 
-   if( HCDM || opt_hcdm )
-     debugh("Before blockedSemaphore.wait(3.5)...\n");
-   int rc= blockedSemaphore.wait(3.5);
-   if( HCDM || opt_hcdm )
-     debugh("...%d= blockedSemaphore.wait()\n", rc);
+   if( opt_verbose )
+     debugh("Before timedSemaphore.wait(3.5)...\n");
+   int rc= timedSemaphore.wait(3.5);
+   if( opt_verbose )
+     debugh("...%d= timedSemaphore.wait()\n", rc);
 
-   if( HCDM || opt_hcdm )
+   if( opt_verbose )
      debugh("done!\n");
 }
 }; // class SemaphoreThread
@@ -533,18 +542,20 @@ virtual void
 //       Define a Thread used solely to test the Thread::sleep() function
 //
 //----------------------------------------------------------------------------
-class SleepThread : public NoisyThread { // Sleep Thread class
+class SleepThread : public BasicThread { // Sleep Thread class
 public:
    SleepThread()
-:  NoisyThread("SleepThread") { }
+:  BasicThread("SleepThread") { }
 
 virtual void
    run(void)
 {
-   if( HCDM || opt_hcdm )
+   running();
+
+   if( opt_verbose )
      debugh("Before sleep(1.234)\n");
    sleep(1.234);
-   if( HCDM || opt_hcdm )
+   if( opt_verbose )
      debugh("*After sleep(1.234)\n");
 }
 }; // class SleepThread
@@ -558,15 +569,18 @@ virtual void
 //       Simple standard Thread. Verifies Thread::current()
 //
 //----------------------------------------------------------------------------
-class StandardThread : public Thread { // Standard Thread class
+class StandardThread : public BasicThread { // Standard Thread class
 public:
    StandardThread( void )
-:  Thread() { }
+:  BasicThread("Standard")
+{  }
 
 virtual void
    run(void)
 {
-   if( HCDM || opt_hcdm )
+   running();
+
+   if( opt_verbose > 2 )
      debugf("%12.6f StandardThread(%p).run()\n", interval.stop(), this);
 
    Thread* current= Thread::current(); // The current Thread
@@ -590,7 +604,7 @@ virtual void
      ::exit(EXIT_FAILURE);
    }
 
-   if( HCDM || opt_hcdm )
+   if( opt_verbose > 2 )
      debugf("%12.6f StandardThread(%p) exit\n", interval.stop(), this);
 }
 }; // class StandardThread
@@ -609,9 +623,7 @@ static void
    selfDeletingThread(void)
 {
    SelfDeletingThread* thread= new SelfDeletingThread();
-
    thread->start();
-   thread->started.wait();
 }
 
 //----------------------------------------------------------------------------
@@ -626,8 +638,7 @@ static void
 static inline void
    standardThread(void)
 {
-   StandardThread      standardThread;
-
+   StandardThread standardThread;
    standardThread.start();
    standardThread.join();
 }
@@ -644,17 +655,17 @@ static inline void
 static inline void
    test_Mutex(void)
 {
-   MutexThread         mutexThread;
+   MutexThread mutexThread;
 
    if( opt_verbose ) {
-     debugh("\n");
+     debugf("\n");
      debugh("test_Mutex\n");
      debugh("Before alphaMutex.lock()\n");
    }
    alphaMutex.lock();
 
    if( opt_verbose )
-     debugh("thread.start()\n");
+     debugh("MutexThread.start()\n");
    mutexThread.start();
 
    if( opt_verbose )
@@ -677,7 +688,7 @@ static inline void
    }}}}
 
    if( opt_verbose )
-     debugh("thread.join()\n");
+     debugh("mutexThread.join()\n");
    mutexThread.join();
 }
 
@@ -693,17 +704,17 @@ static inline void
 static inline void
    test_Semaphore(void)
 {
-   SemaphoreThread     semaphoreThread;
+   SemaphoreThread semaphoreThread;
 
    if( opt_verbose ) {
-     debugh("\n");
+     debugf("\n");
      debugh("test_Semaphore\n");
      debugh("Before alphaSemaphore.wait()\n");
    }
    alphaSemaphore.wait();
 
    if( opt_verbose )
-     debugh("thread.start()\n");
+     debugh("SemaphoreThread.start()\n");
    semaphoreThread.start();
 
    if( opt_verbose )
@@ -724,8 +735,14 @@ static inline void
      debugh("Before betaSemaphore.post()\n");
    betaSemaphore.post();
 
+   if( !opt_block ) {               // If not using timedSemaphore blocking
+     if( opt_verbose )
+       debugh("Before timedSemaphore.post()\n");
+     timedSemaphore.post();
+   }
+
    if( opt_verbose )
-     debugh("thread.join()\n");
+     debugh("SemaphoreThread.join()\n");
    semaphoreThread.join();
 }
 
@@ -741,8 +758,8 @@ static inline void
 static inline void
    test_Sleep(void)
 {
-   SleepThread         sleepThread;
-
+   // Test sleep in main SleepThread
+   SleepThread sleepThread;
    sleepThread.start();
    sleepThread.join();
 
@@ -772,31 +789,34 @@ static inline void
    double              begin;       // Begin interval
    double              prior;       // Prior interval
 
+   if( opt_verbose )
+     debugf("\ntest_Stress\n");
+
    // This test requires an unusually large number active Threads
    pub::Thread::set_max_threads(MAXNOISY + MAXQUIET + 1'000);
    try {
      for(int count= 0; count<TIMING; count++) { // Timing loop, normally once
        interval.start();
        if( opt_verbose )
-         debugf("\n%12.6f %4d Creating %d self deleting threads\n"
-               , interval.stop(), __LINE__, MAXDELETES);
+         debugf("%12.6f Creating %5d SelfDeleting threads\n"
+               , interval.stop(), MAXDELETES);
 
        for(int i=0; i<MAXDELETES; i++)
          selfDeletingThread();
 
        if( opt_verbose )
-         debugf("\n%12.6f %4d Creating %d Noisy threads\n", interval.stop()
-               , __LINE__, MAXNOISY);
+         debugf("%12.6f Creating %5d Noisy threads\n"
+               , interval.stop(), MAXNOISY);
 
        for(int i=0; i<MAXNOISY; i++) {
          sprintf(buffer, "%.4d", i);
          noisyArray[i]= new NoisyThread(buffer, noisy_delay);
-         noisyArray[i]->safeStart();
+         noisyArray[i]->start();
        }
 
        if( opt_verbose )
-         debugf("\n%12.6f Creating %d Quiet threads\n", interval.stop()
-               , MAXQUIET);
+         debugf("%12.6f Creating %5d Quiet threads\n"
+               , interval.stop(), MAXQUIET);
 
        for(int i=0; i<MAXQUIET; i++)
          quietArray[i]= new QuietThread();
@@ -809,7 +829,7 @@ static inline void
        prior= interval.stop();
        begin= prior;
        if( opt_verbose ) {
-         debugf("%12.6f Starting %d Quiet threads\n", interval.stop()
+         debugf("%12.6f Starting %5d Quiet threads\n", interval.stop()
                , MAXQUIET);
          fflush(stdout);
        }
@@ -822,12 +842,13 @@ static inline void
          prior= now;
          if( minstart > del ) minstart= del;
          if( maxstart < del ) maxstart= del;
-         if( opt_verbose ) {
+         if( opt_verbose > 1 ) {
            printf("%8d\r", i+1);
            if( (random() & 63) == 0 )
              fflush(stdout);        // CYGWIN: better performance if used
          }
        }
+       if( opt_verbose > 1 ) debugf("\n");
 
        prior= interval.stop();
        double totstart= prior - begin;
@@ -836,7 +857,7 @@ static inline void
        double maxjoin= 0.0;
        double minjoin= 99999.0;
        if( opt_verbose ) {
-         debugf("\n%12.6f Joining  %d Quiet threads\n", interval.stop()
+         debugf("%12.6f Joining  %5d Quiet threads\n", interval.stop()
                , MAXQUIET);
          fflush(stdout);
        }
@@ -849,29 +870,38 @@ static inline void
          prior= now;
          if( minjoin > del ) minjoin= del;
          if( maxjoin < del ) maxjoin= del;
-         if( opt_verbose ) {
+         if( opt_verbose > 1 ) {
            printf("%8d\r", i+1);
            if( (random() & 63) == 0 )
              fflush(stdout);        // CYGWIN: better performance if unused
          }
        }
        double totjoin= prior - begin;
+       if( opt_verbose > 1 ) debugf("\n");
 
        if( opt_verbose )
-         debugf("\n%12.6f Deleting Quiet threads\n", interval.stop());
+         debugf("%12.6f Deleting %5d Quiet threads\n", interval.stop()
+               , MAXQUIET);
 
        for(int i=0; i<MAXQUIET; i++)
          delete quietArray[i];
 
        if( opt_verbose )
-         debugf("%12.6f Joining Noisy threads\n", interval.stop());
+         debugf("%12.6f Joining  %5d Noisy threads\n", interval.stop()
+               , MAXNOISY);
        for(int i=0; i<MAXNOISY; i++) {
          noisyArray[i]->join();
          delete noisyArray[i];
+         if( opt_verbose > 1 ) {
+           printf("%8d\r", i+1);
+           if( (random() & 63) == 0 )
+             fflush(stdout);        // CYGWIN: better performance if unused
+         }
        }
+       if( opt_verbose > 1 ) debugf("\n");
 
        if( opt_verbose ) {
-         debugf("%12.6f All threads completed\n\n", interval.stop());
+         debugf("%12.6f Joining  complete\n\n", interval.stop());
          debugf("maxstart(%12.6f) minstart(%12.6f) avgstart(%12.6f)\n",
                 maxstart, minstart, (double)totstart / (double)MAXQUIET);
          debugf(" maxjoin(%12.6f)  minjoin(%12.6f)  avgjoin(%12.6f)\n",
@@ -904,12 +934,12 @@ static inline void
 {
    if( opt_verbose ) {
      debugf("\ntest_Termination\n");
-     PUB::System::set_log_level(PUB::System::LL_NONE); // Full stderr logging
+     set_log_level(LL_NONE);        // Full stderr logging
    } else {
-     PUB::System::set_log_level(PUB::System::LL_ALL); // No stderr logging
+     set_log_level(LL_ALL);         // No stderr logging
    }
-   PUB::System::log(PUB::System::LL_INFO, "\n");
-   PUB::System::log(PUB::System::LL_INFO, "Test_thr.cpp test_Termination\n");
+   log(LL_INFO, "\n");
+   log(LL_INFO, "Test_thr.cpp test_Termination\n");
 
    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    if( opt_verbose )
@@ -917,7 +947,7 @@ static inline void
 
    LoopyThread* loopy= new LoopyThread();
    loopy->set_self_delete();        // Delete before exit
-   loopy->safe_start();             // Start the LoopyThread (on this Thread)
+   loopy->start();                  // Start the LoopyThread (from this Thread)
    loopy->stop();                   // Stop the LoopyThread
    loopy= nullptr;                  // (The Thread self-deleted)
    Thread::sleep(2.0);              // Allow (plenty of) time for complete stop
@@ -930,7 +960,7 @@ static inline void
 
    LambdaWorker lw([&control](void) {
      LoopyThread& loopy= *control.loopy;
-     loopy.safe_start();            // Start the LoopyThread (on this Worker)
+     loopy.start();                 // Start the LoopyThread (from this Worker)
      control.init.post();           // Initialization complete
    }); // LambdaWorker lw
 
@@ -961,31 +991,38 @@ extern int
    Wrapper  tc= opts;               // The test case wrapper
    Wrapper* tr= &tc;                // A test case wrapper pointer
 
-   tc.on_init([](int argc, char* argv[])
-   {
-     if( HCDM ) opt_hcdm= true;
-     if( VERBOSE > opt_verbose ) opt_verbose= VERBOSE;
-
-     debug_set_head(Debug::HEAD_THREAD | Debug::HEAD_TIME);
-     if( opt_hcdm )
-       debug_set_mode(Debug::MODE_INTENSIVE);
-
-     if( optind < argc )
-       noisy_delay= atof(argv[optind]);
-
-     return 0;
-   });
-
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Help informational display
    tc.on_info([]()
    {
      fprintf(stderr,
+            "  --block\tDo not post timedSemaphore\n"
+            "  --delay\t=(double) NoisyThread exit delay\n"
             "  --trace\t{=size} Trace table size\n"
             );
    });
 
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Initialization
+   tc.on_init([tr](int, char**)
+   {
+     debug_set_head(Debug::HEAD_THREAD | Debug::HEAD_TIME);
+     if( opt_hcdm )
+       debug_set_mode(Debug::MODE_INTENSIVE);
+
+     if( opt_trace )
+       table= tr->init_trace("./trace.mem", opt_trace);
+
+     return 0;
+   });
+
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Parameter analysis
    tc.on_parm([tr](std::string P, const char* V)
    {
-     if( P == "trace" ) {
+     if( P == "delay" ) {
+       noisy_delay= tr->ptod(V);
+     } else if( P == "trace" ) {
        if( V )
          opt_trace= tr->ptoi(V);
      } else if( P == "********" ) {
@@ -998,28 +1035,16 @@ extern int
      return 0;
    });
 
-   tc.on_init([tr](int, char**)
-   {
-     debug_set_head(Debug::HEAD_THREAD | Debug::HEAD_TIME);
-     if( opt_hcdm )
-       debug_set_mode(Debug::MODE_INTENSIVE);
-
-     if( opt_trace )
-       table= tr->init_trace("./trace.mem", opt_trace);
-
-     setlocale(LC_NUMERIC, "");     // Activates ' thousand separator
-
-     return 0;
-   });
-
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Termination
    tc.on_term([tr]()
    {
      if( table )
        tr->term_trace(table, opt_trace);
    });
 
-   //-------------------------------------------------------------------------
-   // Define the tests
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Mainline code
    tc.on_main([tr](int, char*[])
    {
      if( opt_verbose )
@@ -1048,5 +1073,7 @@ extern int
    // Run the test
    opt_hcdm= HCDM;
    opt_verbose= VERBOSE;
+   setlocale(LC_NUMERIC, "");       // Activates ' thousand separator
+
    return tc.run(argc, argv);
 }
