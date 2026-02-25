@@ -892,7 +892,7 @@ tests for TimeDisp parameters that resulted in failure.
 A reboot and full library recompile fixed it.
     - Updated ~/bat/sys/.want-version to force full library recompiles.
 
-### <a id="last-change">2026/02/21 maint</a>
+### 2026/02/21 maint
 - ~/src/cpp/inc/pub/Latch.h, ~/src/cpp/lib/pub/Latch.cpp
   - The XCL_latch's Thread ID is moved to the SHR_latch.
   - Uses identical lock retry logic for all Latch types
@@ -943,3 +943,21 @@ Threads.
   - Documented the changed and new methods.
 - ~/doc/cpp/REFERENCE.md, ~/doc/cpp/Thread.md, ~/doc/cpp/pub_thread.md
   - Documented Thread.h (Preliminary version, work needed)
+
+### <a id="last-change">2026/02/25 maint/trunk</a>
+- ~/src/cpp/lib/pub/Test/Test_bug.cpp
+  - Added (optional) throwf and abortf tests
+- ~/src/cpp/lib/pub/Debug.cpp
+  - Updated methods throwf and abortf for consistency
+- ~/src/cpp/lib/pub/Thread.cpp
+  - Moved start_failure method to the only place where it was invoked
+- ~/src/cpp/lib/pub/Worker.cpp ~/src/cpp/inc/pub/Worker.h
+  - Added additional instrumentation
+  - Now use Event rather than Semaphore for WorkerThread stop/start
+- ~/src/cpp/lib/pub/Semaphore.cpp
+  - Simplified reset method
+  - Updated destructor while in use recovery
+- ~/src/cpp/lib/pub/Test/Test_thr.cpp
+  - More consistent formatting
+  - Added BasicThread for controlled start
+    - Prevent SelfDeletingThread use after delete
