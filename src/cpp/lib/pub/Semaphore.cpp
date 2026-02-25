@@ -17,7 +17,7 @@
 //       Semaphore object methods.
 //
 // Last change date-
-//       2026/02/09
+//       2026/02/24
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For namespace pub::debugging
@@ -69,9 +69,9 @@ namespace _LIBPUB_NAMESPACE {
    // find it. All bets are off if that's not true.
    int retry_count= 0;
    for(; retry_count < 16; ++retry_count) { // Wake up any and all waiters
-     reset(2);                      // Possible wake up one waiter
+     reset(32);                     // Wake possible waiters
      bool locked= wait(0.125);      // Wait (up to 1/8th second)
-     if( locked && count == 1 )     // If we were the only new waiter
+     if( locked && count == 31 )    // If we were the only new waiter
        break;                       // We're done
 
      if( retry_count ) {            // Should not occur
@@ -131,17 +131,8 @@ void
      size_t            _count)      // To this value
 {  std::unique_lock<decltype(mutex)> lock(mutex);
 
-   if( _count > count ) {           // If increased count
-     _count -= count;               // The increase
-     while( _count > 0 ) {          // For each increase
-       ++count;                     // Simulate post
-       cv.notify_one();             // "
-
-       --_count;
-     }
-   } else if( _count < count ) {    // If decreased count
-     count= _count;                 // Just update it
-   }                                // (If unchanged, no action required)
+   count= _count;                   // Reset the count
+   cv.notify_all();                 // Wake up all waiters
 }
 
 //----------------------------------------------------------------------------
