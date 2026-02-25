@@ -17,7 +17,7 @@
 //       Worker object methods.
 //
 // Last change date-
-//       2026/02/23
+//       2026/02/24
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<>
@@ -25,9 +25,9 @@
 #include <cstdlib>                  // For malloc, free
 
 #include <pub/Debug.h>              // For namespace pub::debugging
+#include "pub/Event.h"              // For pub::Event
 #include <pub/Exception.h>          // For pub::Exception
 #include "pub/Latch.h"              // For pub::Latch objects
-#include <pub/Semaphore.h>          // For pub::Semaphore
 #include "pub/Thread.h"             // For pub::Thread
 #include "pub/Trace.h"              // For pub::Trace
 #include "pub/Worker.h"             // For pub:: Worker, implemented
@@ -109,7 +109,7 @@ friend class WorkerPool;
 //----------------------------------------------------------------------------
 protected:
 bool                   operational; // TRUE while operational
-Semaphore              sem;         // State switch event Semaphore
+Event                  event;       // State switch Event
 Worker*                worker;      // The current Worker
 
 //----------------------------------------------------------------------------
@@ -118,7 +118,7 @@ Worker*                worker;      // The current Worker
 public:
    WorkerThread(                    // Constructor
      Worker*           _worker= nullptr) // Associated Worker
-:  Thread(), operational(true), sem(), worker(_worker)
+:  Thread(), operational(true), event(), worker(_worker)
 {  ++WorkerPool::new_workers;
 
    if( HCDM )
@@ -155,7 +155,6 @@ virtual void
      }
 
      debugf("..worker(%p) operational(%s)\n", info, b2c(operational));
-     sem.debug(info);
      Thread::debug(info);
    }}}}
 }
@@ -222,7 +221,7 @@ void
      Trace::trace(".WRK", "=USE", this, worker);
 
    this->worker= worker;
-   sem.post();
+   event.post();
 }
 
 //----------------------------------------------------------------------------
@@ -263,8 +262,8 @@ void
 
      worker= nullptr;
      done();
-     sem.wait();
-     sem.reset();
+     event.wait();
+     event.reset();
 
      if( HCDM )
        traceh("WorkerThread(%p).post(%p)\n", this, worker);
@@ -294,7 +293,7 @@ virtual void
      Trace::trace(".WRK", "STOP", this, worker);
 
    operational= false;
-   sem.post();
+   event.post();
 }
 }; // class WorkerThread
 
