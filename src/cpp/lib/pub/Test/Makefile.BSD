@@ -16,7 +16,7 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2025/01/28
+##       2025/02/26
 ##
 ##############################################################################
 
@@ -51,7 +51,7 @@ make.dir: $(MAKEXE)
 ## make.dir: Enviro
 
 .PHONY: make.all
-make.all: $(MAKEXE)
+make.all: configure $(MAKEXE)
 
 all: make.all
 

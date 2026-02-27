@@ -17,7 +17,7 @@
 //       Trace table storage allocator.
 //
 // Last change date-
-//       2026/01/28
+//       2026/02/27
 //
 // Usage notes-
 //       The Trace object allocates storage sequentially from itself, wrapping
@@ -103,6 +103,7 @@ size_t                 option;      // The option
    memcpy((char*)&option, c, s);
    if( s < sizeof(option) )
      memset((char*)&option + s, ' ', sizeof(option) - s);
+   option= be64toh(option);
 }
 
    opt_t(const void* v)

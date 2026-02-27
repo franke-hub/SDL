@@ -154,7 +154,8 @@ static atomic_size_t   started= 0;  // Number of started Threads
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Global initialization/termination
 namespace {                         // Anonymous namespace
-void
+[[noreturn]]
+static void
    sno(                             // Should Not Occur handler
      int               line,        // Failing line number
      const char*       op,          // Operation name
