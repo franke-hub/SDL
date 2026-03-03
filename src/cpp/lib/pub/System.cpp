@@ -17,7 +17,7 @@
 //       System method implementations.
 //
 // Last change date-
-//       2026/02/19
+//       2026/03/01
 //
 // Implementation note-
 //       The system logfile is "$HOME/.local/log/syslog.out"
@@ -25,16 +25,18 @@
 //----------------------------------------------------------------------------
 #include <atomic>                   // For atomic_uint64_t
 #include <string>                   // For std::string
+
 #include <cstdlib>                  // For getenv
 #include <ctime>                    // For time, localtime
 
 #include <sys/stat.h>               // For stat
 
-#include <pub/Debug.h>              // For debugging
-#include <pub/Reporter.h>           // For pub::Reporter::report, ...
+#include "pub/Debug.h"              // For debugging
+#include "pub/Latch.h"              // For pub::Latch::statistics, ...
+#include "pub/Reporter.h"           // For pub::Reporter::report, ...
 #include "pub/System.h"             // For pub::System, implemented
-#include <pub/Thread.h>             // For pub::Thread::static_debug
-#include <pub/Worker.h>             // For pub::WorkerPool::debug
+#include "pub/Thread.h"             // For pub::Thread::static_debug
+#include "pub/Worker.h"             // For pub::WorkerPool::debug
 
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB::debugging;     // For debugging methods
@@ -82,18 +84,16 @@ const char* _month[]=
 // Global initialization/termination
 //----------------------------------------------------------------------------
 #if 0  // Not needed
+namespace {                         // Anonymous namespace
 static struct StaticGlobal {
    StaticGlobal( void )             // Static constructor
-{  if( HCDM ) debugf("System::StaticGlobal!\n");
-
-}
+{  if( HCDM ) debugf("System::StaticGlobal!\n"); }
 
    ~StaticGlobal( void )            // Static destructor
-{  if( HCDM ) debugf("System::StaticGlobal~\n");
-}
+{  if( HCDM ) debugf("System::StaticGlobal~\n"); }
 }  static_global;
 }  // Anonymous namespace
-#endif // Not needed
+#endif
 
 //----------------------------------------------------------------------------
 //
@@ -172,10 +172,16 @@ void
      debugf("\n");
      WorkerPool::debug(info);
 
+     // Latch report
+     #ifndef _PUBLIB_LATCH_INLINE   // Conditionally included
+       debugf("\n");
+       Latch::statistics(info);
+     #endif
+
      // Reporter report (If active Reporter)
      Reporter* reporter= Reporter::show();
      if( reporter ) {
-       debugf("\nReporter.report()\n");
+       debugf("\nReporter.report(%s)\n", info);
        reporter->report([](Reporter::Record& record) {
          string report= record.h_report();
          debugf("%s\n", report.c_str());
