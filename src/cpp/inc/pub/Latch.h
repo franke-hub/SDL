@@ -610,7 +610,6 @@ _IF_PUBLIB_LATCH_INLINE(
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // (Macro removal)
 #undef _IF_PUBLIB_LATCH_INLINE
-#undef _LOCK
 #undef MAX_SPIN
 #undef MIN_SPIN
 
