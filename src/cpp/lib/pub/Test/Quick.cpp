@@ -17,7 +17,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2026/02/08
+//       2026/03/03
 //
 //----------------------------------------------------------------------------
 #include <iostream>                 // For std::cout
@@ -40,6 +40,7 @@
 #include "pub/Signals.h"            // See test_Signals
 #include "pub/Statistic.h"          // For pub::Statistic
 #include "pub/String.h"             // For pub::String (Experimental)
+#include "pub/System.h"             // For pub::System::debug test
 #include "pub/Thread.h"             // For pub::Thread
 #include "pub/Trace.h"              // See test_Trace
 #include "pub/utility.h"            // For pub::utility
@@ -454,7 +455,7 @@ static inline int
    RecursiveLatch recursive;
 
    error_count += MUST_EQ(false, recursive.is_held());
-   tid= recursive.latch.load();
+   tid= recursive.owner.load();
    error_count += MUST_EQ(tid, null_id);
    error_count += MUST_EQ(recursive.count, 0);
 
@@ -471,7 +472,7 @@ static inline int
      error_count += MUST_EQ(true,  recursive.is_held());
    }}}}
    error_count += MUST_EQ(false, recursive.is_held());
-   tid= recursive.latch.load();
+   tid= recursive.owner.load();
    error_count += MUST_EQ(tid, null_id);
    error_count += MUST_EQ(recursive.count, 0);
 
@@ -536,7 +537,7 @@ static inline int
      error_count += MUST_EQ(true,  xcl.is_held());
    }}}}
    error_count += MUST_EQ(shr.count, 0);
-   error_count += MUST_EQ(shr.thread, null_id);
+   error_count += MUST_EQ(shr.owner, null_id);
    error_count += MUST_EQ(false, shr.is_held());
    error_count += MUST_EQ(false, xcl.is_held());
 
@@ -870,22 +871,30 @@ static inline int
 
    // Verify the report (Requires opt_verbose)
    if( opt_verbose ) {
-     // Report using three display methods.
+     // Report using multiple display methods.
 
      // Report defining a lambda function for output
+     debugf("\nVia lambda function\n");
      reporter.report([](Record& record) {
        std::cout << "lambda " << record.h_report() << "\n";
      }); // reporter.report
 
      // Report using a separate simple struct to define an operator() function.
      // (The simple struct is copy constructable)
+     debugf("\nVia simple struct\n");
      reporter.report(SampleReport());
 
      // Report using the operator() function in SampleRecord.
+     debugf("\nVia operator()\n");
      reporter.report(SampleRecord());
 
      // Report using pub::Reporter::Record::operator().
+     debugf("\nVia Reporter::Record::operator()\n");
      reporter.report(Reporter::Record());
+
+     // Report using System::debug
+     debugf("\nVia System::debug\n");
+     System::debug("System::debug Reporter test");
 
      std::cout << "\nRESET\n";
      Reporter::get()->reset();
