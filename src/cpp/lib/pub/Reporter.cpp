@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2022-2024 Frank Eskesen.
+//       Copyright (c) 2022-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Implement Reporter.h
 //
 // Last change date-
-//       2024/02/16
+//       2026/03/03
 //
 // Implementation notes-
 //       For some unknown reason, std::mutex does not operate properly when
@@ -232,15 +232,8 @@ void
      f_reporter        reporter)    // Using this reporter
 {  if( HCDM ) debugf("Reporter(%p)::report\n", this);
 
-   bool once= true;
-
    std::lock_guard<decltype(mutex)> lock(mutex);
    for(RecordItem* item= list.get_head(); item; item= item->get_next()) {
-     if( once ) {
-       once= false;
-       debugf("\nReporter::report()\n");
-     }
-
      reporter(*(item->record));
    }
 }
