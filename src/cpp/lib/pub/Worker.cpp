@@ -17,7 +17,7 @@
 //       Worker object methods.
 //
 // Last change date-
-//       2026/02/24
+//       2026/02/28
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<>
@@ -123,7 +123,7 @@ public:
 
    if( HCDM )
      traceh("WorkerThread(%p)!(%p)\n", this, worker);
-   else if( USE_ITRACE )
+   if( USE_ITRACE )
      Trace::trace(".WRK", "=NEW", this, worker);
 
    start(ITS_DETACHED);
@@ -135,7 +135,7 @@ virtual
 
    if( HCDM )
      traceh("WorkerThread(%p)~(%p)\n", this, worker);
-   else if( USE_ITRACE )
+   if( USE_ITRACE )
      Trace::trace(".WRK", "=DEL", this, worker);
 }
 
@@ -173,18 +173,19 @@ inline void
    done( void )                      // Work complete
 {  if( HCDM )
      traceh("WorkerThread(%p).done(%p)\n", this, worker);
-   else if( USE_ITRACE )
+   if( USE_ITRACE )
      Trace::trace(".WRK", "DONE", this, worker);
 
    WorkerThread* thread= this;
-   unsigned now_used= 0;
+   unsigned now_used= 0;            // (Avoids exchange if pool_size unchanged)
 
    if( USE_IDEBUG && !operational ) { // This condition should never occur
      // This is an internal logic error. A non-operational thread is going to
      // or already has deleted itself. If this occurs, debugging is needed.
      debugh("%4d %s (invalid state) !operational\n", __LINE__, __FILE__);
      throwf("Worker: (invalid state) !operational");
-   } else
+   }
+
    {{{{ // PERFORMANCE CRITICAL ==============================================
      std::lock_guard<decltype(pool_mutex)> lock(pool_mutex);
 
@@ -200,7 +201,7 @@ inline void
    else if( USE_ITRACE )
      Trace::trace(".WRK", "POOL", this);
 
-   size_t was_maxi= 0;              // (Avoids load if pool_size unchanged)
+   size_t was_maxi= 0;              // (Avoids exchange if pool_size unchanged)
    while( now_used > was_maxi ) {
      if( WorkerPool::max_used.compare_exchange_weak(was_maxi, now_used) )
        break;
@@ -217,7 +218,7 @@ void
      Worker*           worker)      // Using this Worker
 {  if( HCDM )
      traceh("WorkerThread(%p).reuse(%p)\n", this, worker);
-   else if( USE_ITRACE )
+   if( USE_ITRACE )
      Trace::trace(".WRK", "=USE", this, worker);
 
    this->worker= worker;
@@ -234,7 +235,7 @@ void
    run( void )                      // Operate the Thread
 {  if( HCDM )                       // (Trace first iteration)
      traceh("WorkerThread(%p).run(%p)\n", this, worker);
-   else if( USE_ITRACE )
+   if( USE_ITRACE )
      Trace::trace(".WRK", "=RUN", this, worker);
 
    WorkerPool::inc_threads();
@@ -267,13 +268,13 @@ void
 
      if( HCDM )
        traceh("WorkerThread(%p).post(%p)\n", this, worker);
-     else if( USE_ITRACE )
+     if( USE_ITRACE )
        Trace::trace(".WRK", "POST", this, worker);
    }
 
    if( HCDM )
      traceh("WorkerThread(%p).INOP(%p)\n", this, worker);
-   else if( USE_ITRACE )
+   if( USE_ITRACE )
      Trace::trace(".WRK", "INOP", this, worker);
 
    WorkerPool::dec_threads();
@@ -289,7 +290,7 @@ virtual void
    stop( void )                     // Terminate processing
 {  if( HCDM )
      traceh("WorkerThread(%p).stop(%p)\n", this, worker);
-   else if( USE_ITRACE )
+   if( USE_ITRACE )
      Trace::trace(".WRK", "STOP", this, worker);
 
    operational= false;
@@ -475,8 +476,8 @@ void
 
    if( HCDM )
      traceh("WorkerPool.work(%p) running(%zd)\n", worker, running.load());
-   else if( USE_ITRACE )
-     Trace::trace(".WRK", "WORK", worker, i2v(running.load()));
+   if( USE_ITRACE )
+     Trace::trace(".WRK", "WORK", worker, running.load());
 
    WorkerThread* thread= nullptr;
 
