@@ -17,7 +17,7 @@
 //       Define the Thread control object.
 //
 // Last change date-
-//       2026/02/23
+//       2026/03/01
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_THREAD_H_INCLUDED
@@ -28,8 +28,8 @@
 
 #include <pthread.h>                // For pthread
 
-#include "pub/Event.h"              // For pub::Event
-#include "pub/Latch.h"              // For pub::Latch
+#include "pub/Event.h"              // For pub::Yield_event
+#include "pub/Latch.h"              // For pub::Latch, pub::RecursiveLatch
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
@@ -46,21 +46,13 @@ public:
 //----------------------------------------------------------------------------
 // Thread::Typedefs and enumerations
 //----------------------------------------------------------------------------
-typedef pthread_t      handle_t;    // The tlss::handle_t
+typedef pthread_t         handle_t; // The tlss::handle_t
 
 // The start method parameter
 enum ITS                            // Initial Thread State
 {  ITS_JOINABLE= 0                  // Joinable (default)
 ,  ITS_DETACHED                     // Detached
 };
-
-//----------------------------------------------------------------------------
-// Thread::tlss_event || Thread Local Storage Struct Event container
-//----------------------------------------------------------------------------
-struct tlss_event {                 // TLSS startup events
-pub::Event             drive_initialized; // Thread::drive init complete
-pub::Event             start_completed; // Thread::start complete
-}; // struct tlss_event
 
 //----------------------------------------------------------------------------
 // Thread::tlss || Thread Local Storage Struct
@@ -75,9 +67,9 @@ int                    ___= 0;      // (For alignment)
 Thread*                thread= nullptr; // The current pub::Thread
 handle_t               handle= null_handle; // The associated pthread handle
 
-// The tlss_events are only used during startup.
-tlss_event*            E= nullptr;  // (Events only used during startup)
-char                   TES[sizeof(tlss_event)]; // The Event storage
+// These controls are only used for startup synchronization.
+Yield_event            drive_initialized; // Thread::drive initialized
+Yield_event            start_finalized;   // Thread::start finalized
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Constructor/destructor

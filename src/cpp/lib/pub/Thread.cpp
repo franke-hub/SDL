@@ -17,7 +17,7 @@
 //       Thread method implementations.
 //
 // Last change date-
-//       2026/02/23
+//       2026/03/01
 //
 // Implementation notes-
 //       Thread::tlss is used to maintain the Thread state. There are three
@@ -67,8 +67,9 @@
 #include <cstring>                  // For strerror, ...
 
 #include <pub/Debug.h>              // For debugging
+#include "pub/Event.h"              // For pub::Yield_event
 #include <pub/Exception.h>          // For debugging
-#include "pub/Latch.h"              // For pub::Latch
+#include "pub/Latch.h"              // For pub::Latch, pub::RecursiveLatch
 #include <pub/Named.h>              // For pub::Named
 #include "pub/Semaphore.h"          // For pub::Semaphore (max_threads)
 #include "pub/System.h"             // For namespace pub::System
@@ -125,10 +126,8 @@ enum                                // Generic enum
 //----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
-// The null handle, and id
-const handle_t         Thread::null_handle{}; // Native handle
-
 size_t                 Thread::max_threads= MAX_THREADS;
+const handle_t         Thread::null_handle{}; // Native handle
 
 //----------------------------------------------------------------------------
 // Internal data areas
@@ -141,18 +140,15 @@ static pthread_attr_t  attr_joinable; // Joinable attribute
 static Semaphore       startable(MAX_THREADS);
 
 // Statistics
-static atomic_size_t   completed= 0; // Number of completed Threads
+static atomic_size_t   complete= 0; // Number of complete Threads
 static atomic_size_t   detached= 0; // Number of detached Threads
 static atomic_size_t   max_run= 0;  // Maximum running Thread count
 static atomic_size_t   running= 0;  // Number of running Threads
 static atomic_size_t   started= 0;  // Number of started Threads
 
 //----------------------------------------------------------------------------
-// External data areas
-//----------------------------------------------------------------------------
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Global initialization/termination
+//----------------------------------------------------------------------------
 namespace {                         // Anonymous namespace
 [[noreturn]]
 static void
@@ -281,8 +277,6 @@ static inline const char*           // "free" || "held"
      traceh("Thread::tlss(%p)!(%p)\n", this, thread);
    else if( USE_ITRACE )
      Trace::trace(".NEW", "TLSS", this, thread);
-
-   E= new(TES) tlss_event();        // Construct the tlss_event section
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -311,6 +305,8 @@ void
 
    debugf("..mutex(%s) fsm(%s) thread(%p) handle(0x%zx)\n"
          , l2c(mutex), f2c(fsm), thread, intptr_t(handle));
+   debugf("..drive_initialized(%d) start_finalized(%d)\n"
+          , drive_initialized.latch.load(), start_finalized.latch.load());
 }
 
 //----------------------------------------------------------------------------
@@ -486,10 +482,10 @@ void
      debugf("Thread::static_debug(%s)\n", info);
      debugf("%'16zd max_running\n", max_run.load());
 
-     debugf("%'16zd started\n",   started.load());
-     debugf("%'16zd completed\n", completed.load());
-     debugf("%'16zd running\n",   running.load());
-     debugf("%'16zd detached\n",  detached.load());
+     debugf("%'16zd started\n",  started.load());
+     debugf("%'16zd complete\n", complete.load());
+     debugf("%'16zd running\n",  running.load());
+     debugf("%'16zd detached\n", detached.load());
    }}}}
 }
 
@@ -512,8 +508,8 @@ bool                                // TRUE if this thread is joinable
      std::lock_guard<decltype(tlss::mutex)> inner(_tlss->mutex);
 
      switch(_tlss->fsm) {
-       case FSM_DRIVE:              // Thread is running (default joinable)
-       case FSM_OWNER:              // Thread completed  (default joinable)
+       case FSM_DRIVE:              // Thread is running
+       case FSM_OWNER:              // Thread completed
          return true;
 
        // If in ~Thread destructor recovery, a message is warranted
@@ -623,7 +619,7 @@ void
      int fsm= _tlss->fsm;
      if( fsm != FSM_DRIVE ) {
        if( USE_ITRACE )
-         Trace::trace(".THR", "DREJ", this, i2v(fsm));
+         Trace::trace(".THR", "DREJ", this, fsm);
        throwf("Thread(%p)::detach rejected, FSM(%s)\n", this, f2c(fsm));
      }
 
@@ -691,7 +687,7 @@ void
        _tlss->set_fsm(FSM_JOINING);
      else if( fsm != FSM_OWNER ) {  // If the Thread hasn't completed
        if( USE_ITRACE )
-         Trace::trace(".THR", "JREJ", this, i2v(fsm));
+         Trace::trace(".THR", "JREJ", this, fsm);
 
        throwf("Thread(%p)::join rejected, FSM(%s)\n", this, f2c(fsm));
      }
@@ -786,7 +782,7 @@ void
 //       Synchronization between start() and drive() is tricky:
 //
 //       We need Thread::tlss_ initialized here in start() because we're using
-//       tlss::drive_initialized and tlss::start_completed here and in drive.
+//       tlss::drive_initialized and tlss::start_finalized here and in drive.
 //
 //       We can't set (thread local) tl_tlss until running drive() since
 //       before that we aren't actually running under the new thread.
@@ -796,23 +792,18 @@ void
 //       We discovered, however, that this wasn't enough.
 //
 //       We can't let start() continue after drive() posts drive_initialized,
-//       because the Thread can run to completion (deleting the tlss) before
+//       because the Thread can run to completion and delete the tlss before
 //       start()'s drive_initialized.wait() completes. If this should occur,
 //       _tlss->drive_initialized.wait() refers to undefined storage. Bad!
 //       >>>>>>>>>>>>>>>>>>>>>>>>>> THIS WAS A BUG. <<<<<<<<<<<<<<<<<<<<<<<<<<
-//       (It happened. This explains the fix and why fixing it was necessary.)
 //
-//       To prevent this, we added another Event in the tlss, start_completed.
-//       In start_completed.post(), once the post() action is performed the
-//       start() method won't access the tlss again. It doesn't matter how
-//       many instructions remain before start() exits or how long they take.
-//       The last tlss reference in start() is `_tlss->start_completed(post)`.
+//       To prevent this, we added the start_finalized event to the tlss.
+//       Method start invokes start_finalized.post as its final reference to
+//       the tlss and method drive waits for this event before invoking run.
 //
-//       Method drive() waits for this Event before invoking run().
-//
-//       We construct and destroy the startup Events separately from the tlss
-//       since they contain std::condition_variables and std::mutex objects.
-//       We deconstruct them early to release associated system resources.
+//       The drive_initialized and start_finalized are Yield_event structs.
+//       Each Yield_event struct contains a 32 bit latch, but doesn't require
+//       any other system resources while not in use.
 //
 //----------------------------------------------------------------------------
 void
@@ -835,7 +826,7 @@ void
        break;
 
      if( retry == 1 )               // If the first retry
-       debugh("Thread::start %zd threads already active\n", max_threads);
+       debugh("Thread::start %'zd threads already active\n", max_threads);
    }
 
    // Create/drive the Thread
@@ -877,10 +868,12 @@ void
      throwf("Thread::start failure %d:%s\n", errno, strerror(errno));
    }
 
-   _tlss->E->drive_initialized.wait(); // Wait for tl_tlss= _tlss
-   _tlss->E->start_completed.post();   // We are exiting now
+   //= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+   // Start successful: SYNCHRONIZE with drive()
+   _tlss->drive_initialized.wait();
+   _tlss->start_finalized.post();
 
-   // While the Thread and tlss cannot be referenced now, their addresses can)
+   // While the Thread and tlss cannot be referenced now, addresses can be.
    if( USE_ITRACE )                 // Start exit
      Trace::trace(".THR", "SXIT", this, _tlss);
 }
@@ -919,14 +912,8 @@ void*                               // (Always nullptr)
      _tlss->set_fsm(FSM_DRIVE);     // FSM_START => FSM_DRIVE (no locking)
    }
 
-   _tlss->E->drive_initialized.post(); // We've initialized tl_tlss= _tlss
-   _tlss->E->start_completed.wait(); // We can't continue until start completes
-
-   // Clean up the initialization events, releasing system resources.
-   _tlss->E->~tlss_event();
-   _tlss->E= nullptr;
-   if( HCDM || VERBOSE > 0 )        // (Might want this when using gdb)
-     memset(_tlss->TES, '\0', sizeof(_tlss->TES)); // (Not really needed)
+   _tlss->drive_initialized.post(); // SYNCHRONIZE with drive()
+   _tlss->start_finalized.wait();
 
    try {
      // Update statistics
@@ -955,12 +942,12 @@ void*                               // (Always nullptr)
      }
      int fsm= _tlss->fsm;
      if( USE_ITRACE )
-       Trace::trace(".THR", "<run", thread, i2v(fsm));
+       Trace::trace(".THR", "<run", thread, fsm);
 
      //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
      // Run return: fsm == (DRIVE || DETACHED || JOINING || DELETE)
      //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-     ++completed;                   // The Thread's completed and
+     ++complete;                    // The Thread's complete and
      --running;                     // It's done running
 
      if( HCDM && VERBOSE > 0 )      // (Debugging reminder)
@@ -1037,7 +1024,7 @@ void*                               // (Always nullptr)
    Thread::static_debug("Exception"); // (We don't know if thread is valid)
 
    if( USE_ITRACE )
-     Trace::trace(".THR", "HCDR", thread, i2v(__LINE__));
+     Trace::trace(".THR", "HCDR", thread, __LINE__);
    return nullptr;
 }
 } // namespace _LIBPUB_NAMESPACE
