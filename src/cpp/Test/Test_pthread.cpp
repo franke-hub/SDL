@@ -17,7 +17,7 @@
 //       Test: pthread stress test.
 //
 // Last change date-
-//       2026/02/26
+//       2026/03/03
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic
@@ -33,7 +33,6 @@
 #include <pub/TEST.H>               // For test functions and macros
 #include <pub/Clock.h>              // For pub::Clock::now
 #include <pub/Debug.h>              // For namespace pub::debugging
-#include <pub/Event.h>              // For pub::Event
 #include <pub/Latch.h>              // For pub::Latch
 #include <pub/Semaphore.h>          // For pub::Semaphore
 #include <pub/Trace.h>              // For pub::Trace
@@ -45,7 +44,6 @@
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB;
 using namespace PUB::debugging;
-using PUB::Event;
 using PUB::Latch;
 using PUB::Semaphore;
 using PUB::Wrapper;
@@ -77,6 +75,7 @@ enum
 }; // enum
 
 #define USE_DEBUG0 false            // Use DEBUG[0]? [[Latch v/ atomic ops]]
+#define USE_DEBUG1 false            // Use DEBUG[1]? [[Event v/ Event_yield
 #define USE_TLTASK false            // Use tl_task field?
 
 //----------------------------------------------------------------------------
@@ -97,9 +96,9 @@ static atomic_size_t   max_running(0);  // Maximum number of running Tasks
 static atomic_size_t   max_starting(0); // Maximum number of starting Tasks
 
 #if USE_DEBUG0
-static atomic_size_t   max_run_time(0); // Maximum run() time (nanoseconds)
-static atomic_size_t   min_run_time(B); // Minimum run() time (nanoseconds)
-static atomic_double   tot_run_time(0); // Total run() time (seconds)
+static size_t          max_run_time(0); // Maximum run() time (nanoseconds)
+static size_t          min_run_time(B); // Minimum run() time (nanoseconds)
+static double          tot_run_time(0); // Total run() time (seconds)
 
 static size_t          max_start_time=(0); // Maximum start() time (nanoseconds)
 static size_t          min_start_time=(B); // Minimum start() time (nanoseconds)
@@ -216,14 +215,14 @@ static void
 
 #if USE_DEBUG0
    debugf("\n");
-   debugf("%'16zd max_run_time\n", max_run_time.load());
-   debugf("%'16zd min_run_time\n", min_run_time.load());
-   debugf("%'16.3f tot_run_time\n", tot_run_time.load());
+   debugf("%'16zd max_run_time\n", max_run_time);
+   debugf("%'16zd min_run_time\n", min_run_time);
+   debugf("%'16.3f tot_run_time\n", tot_run_time);
 
    debugf("\n");
    debugf("%'16zd max_start_time\n", max_start_time);
    debugf("%'16zd min_start_time\n", min_start_time);
-   debugf("%'16.3f tot_start_time\n", tot_start_time.load());
+   debugf("%'16.3f tot_start_time\n", tot_start_time);
 #else
    debugf("\n");
    debugf("%'16zd max_run_time\n", max_run_time.load());
@@ -308,7 +307,7 @@ static inline void                  // (Might not be used)
    total += secs;
 }
 
-static void
+static inline void                  // (Might not be used)
    record_time(                     // Record maximum/minimum/total interval
      double            secs,        // The interval, in seconds
      atomic_size_t&    maxi,        // The maximum interval
@@ -403,8 +402,13 @@ static void
 //
 //----------------------------------------------------------------------------
 struct Task {
+#if USE_DEBUG1                      // Event switch
 Event                  is_running;  // Task is running
-Event                  is_started;  // Task is started
+Event                  is_started;  // Start has completed
+#else                                  // Event_yield switch
+Event_yield            is_running;  // Task is running
+Event_yield            is_started;  // Start has completed
+#endif
 
 pthread_t              pthread{};   // The pthread_t
 uint32_t               id= -1;      // The Task's identity
@@ -744,6 +748,12 @@ extern int
          option= "TRUE";
        #endif
        debugf("%16s USE_DEBUG0 [Latch v. Atomic]\n", option);
+
+       option= "FALSE";
+       #if USE_DEBUG1
+         option= "TRUE";
+       #endif
+       debugf("%16s USE_DEBUG1 [Event v. Event_yield]\n", option);
 
        option= "FALSE";
        if( USE_ITRACE )
