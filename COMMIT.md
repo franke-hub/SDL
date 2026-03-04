@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2026/02/21
+//       2026/03/03
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -944,7 +944,7 @@ Threads.
 - ~/doc/cpp/REFERENCE.md, ~/doc/cpp/Thread.md, ~/doc/cpp/pub_thread.md
   - Documented Thread.h (Preliminary version, work needed)
 
-### <a id="last-change">2026/02/25 maint/trunk</a>
+### 2026/02/25 maint/trunk
 - ~/src/cpp/lib/pub/Test/Test_bug.cpp
   - Added (optional) throwf and abortf tests
 - ~/src/cpp/lib/pub/Debug.cpp
@@ -961,3 +961,25 @@ Threads.
   - More consistent formatting
   - Added BasicThread for controlled start
     - Prevent SelfDeletingThread use after delete
+
+### <a id="last-change">2026/03/03 maint/trunk</a>
+- ~/src/cpp/Test/Test_cv_NG.cpp v. ~/src/cpp/Test_cv_OK.cpp
+  - Test: https://en.cppreference.com+condition_variable.html example code
+- ~/src/cpp/inc/pub/Event
+  - Added Event_yield. Event_yield.wait() yields until posted.
+- ~/src/cpp/inc/pub/Latch.h
+  - Removed _LOCK macro, using base class with spin method instead.
+- ~/src/cpp/Test/Test_pthread.cpp, ~/src/cpp/Test/Test_pthread.h
+  - New test designed for Cygwin Thread startup debugging analysis
+  - Test: Event v. Event_yield timing test
+- ~/src/cpp/lib/pub/Thread.cpp, ~/src/cpp/inc/pub/Thread.h
+  - Uses Event_yield instead of Event, getting around a Cygwin problem
+- ~/src/cpp/lib/pub/Worker.cpp
+  - Uses both HCDM and USE_ITRACE (compile-time) when both are specified
+- ~/src/cpp/lib/pub/System.cpp
+  - Added static Worker and Reporter debugging to System::debug
+- ~/src/cpp/lib/pub/Reporter.cpp
+  - Modified reporting formatting.
+- ~/src/cpp/lib/pub/Test/Quick.cpp
+  - Tests System::debug changes
+  - Updated for changes to Latch.h field name changes
