@@ -17,7 +17,7 @@
 //       System method implementations.
 //
 // Last change date-
-//       2026/03/01
+//       2026/03/08
 //
 // Implementation note-
 //       The system logfile is "$HOME/.local/log/syslog.out"
@@ -157,7 +157,8 @@ void
 //----------------------------------------------------------------------------
 void
    debug(                           // Debugging display
-     const char*       info)        // Caller information
+     const char*       info,        // Caller information
+     bool              detail)      // Add detailed information?
 {
    {{{{ // The Debug lock insures sequential debugf outputs
      std::lock_guard<Debug> debug(*Debug::get());
@@ -170,7 +171,7 @@ void
 
      // WorkerPool report
      debugf("\n");
-     WorkerPool::debug(info);
+     WorkerPool::debug(info, detail);
 
      // Latch report
      #ifndef _PUBLIB_LATCH_INLINE   // Conditionally included

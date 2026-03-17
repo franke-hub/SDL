@@ -17,7 +17,7 @@
 //       Thread method implementations.
 //
 // Last change date-
-//       2026/03/01
+//       2026/03/09
 //
 // Implementation notes-
 //       Thread::tlss is used to maintain the Thread state. There are three
@@ -275,7 +275,7 @@ static inline const char*           // "free" || "held"
 :  thread(_thread)
 {  if( HCDM )
      traceh("Thread::tlss(%p)!(%p)\n", this, thread);
-   else if( USE_ITRACE )
+   if( USE_ITRACE )
      Trace::trace(".NEW", "TLSS", this, thread);
 }
 
@@ -283,7 +283,7 @@ static inline const char*           // "free" || "held"
    Thread::tlss::~tlss( void )      // Destructor
 {  if( HCDM )
      traceh("Thread::tlss(%p)~\n", this);
-   else if( USE_ITRACE )
+   if( USE_ITRACE )
      Trace::trace(".DEL", "TLSS", this, thread);
 }
 
@@ -349,7 +349,7 @@ void
    Thread::Thread( void )           // Constructor
 {  if( HCDM )
      traceh("Thread(%p)!\n", this);
-   else if( USE_ITRACE )
+   if( USE_ITRACE )
      Trace::trace(".NEW", "=THR", this);
 }
 
@@ -598,7 +598,7 @@ void
    Thread::detach( void )           // Detach excution thread from this object
 {  if( HCDM )
      traceh("Thread(%p)::detach tl_tlss(%p)\n", this, tl_tlss);
-   else if( USE_ITRACE )
+   if( USE_ITRACE )
      Trace::trace(".THR", "=DET", this, this->tlss_);
 
    // The tlss_latch prevents interaction with join and possibly ~Thread
