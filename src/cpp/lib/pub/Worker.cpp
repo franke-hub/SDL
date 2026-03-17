@@ -17,15 +17,14 @@
 //       Worker object methods.
 //
 // Last change date-
-//       2026/02/28
+//       2026/03/09
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<>
-#include <mutex>                    // For std::lock_guard
+#include <mutex>                    // For std::lock_guard, std::mutex
 #include <cstdlib>                  // For malloc, free
 
 #include <pub/Debug.h>              // For namespace pub::debugging
-#include "pub/Event.h"              // For pub::Event
 #include <pub/Exception.h>          // For pub::Exception
 #include "pub/Latch.h"              // For pub::Latch objects
 #include "pub/Thread.h"             // For pub::Thread
@@ -49,7 +48,7 @@ enum                                // Generic enum
 
 // Production mode settings: USE_ITRACE= false;
 ,  USE_IDEBUG= true                 // Use internal debugging?
-,  USE_ITRACE= false                // Use internal trace?
+,  USE_ITRACE= true                 // Use internal trace?
 }; // (Generic) enum
 
 namespace _LIBPUB_NAMESPACE {
@@ -109,7 +108,7 @@ friend class WorkerPool;
 //----------------------------------------------------------------------------
 protected:
 bool                   operational; // TRUE while operational
-Event                  event;       // State switch Event
+std::mutex             mutex;       // State switch mutex
 Worker*                worker;      // The current Worker
 
 //----------------------------------------------------------------------------
@@ -118,7 +117,7 @@ Worker*                worker;      // The current Worker
 public:
    WorkerThread(                    // Constructor
      Worker*           _worker= nullptr) // Associated Worker
-:  Thread(), operational(true), event(), worker(_worker)
+:  Thread(), operational(true), mutex(), worker(_worker)
 {  ++WorkerPool::new_workers;
 
    if( HCDM )
@@ -222,7 +221,7 @@ void
      Trace::trace(".WRK", "=USE", this, worker);
 
    this->worker= worker;
-   event.post();
+   mutex.unlock();
 }
 
 //----------------------------------------------------------------------------
@@ -262,9 +261,11 @@ void
      }
 
      worker= nullptr;
+     mutex.lock();
      done();
-     event.wait();
-     event.reset();
+     {{{{
+       std::lock_guard<std::mutex> lock(mutex);
+     }}}}
 
      if( HCDM )
        traceh("WorkerThread(%p).post(%p)\n", this, worker);
@@ -294,7 +295,7 @@ virtual void
      Trace::trace(".WRK", "STOP", this, worker);
 
    operational= false;
-   event.post();
+   mutex.unlock();
 }
 }; // class WorkerThread
 
@@ -400,9 +401,9 @@ void
 //
 //----------------------------------------------------------------------------
 void
-   WorkerPool::debug(             // Debugging display
-     const char*       info,      // Caller information
-     bool              detail)    // Add pooled thread information?
+   WorkerPool::debug(               // Debugging display
+     const char*       info,        // Caller information
+     bool              detail)      // Add pooled thread information?
 {
    debugf("WorkerPool::debug(%s)\n", info ? info : "");
 
