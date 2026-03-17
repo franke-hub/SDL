@@ -17,18 +17,49 @@
 //       Latch.h reference manual: XCL_latch
 //
 // Last change date-
-//       2026/02/08
+//       2026/03/04
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Latch.h>
 
 ## <a id=shr_latch>pub::XCL_latch</a>
 
-Use the XCL_latch to obtain exclusive access to a SHR_latch.
-(This Latch requires construction.)
 
-All XCL_latch state is completely maintained in the SHR_latch.
-Multiple XCL_latch objects may reference the same SHR_latch.
+The XCL_latch is an exclusive spin Latch with thread affinity. Method lock and
+unlock must be invoked by the same thread.
+
+The XCL_latch references and shares state with a SHR_latch. Multple
+XCL_latches may reference the same SHR_latch.
+
+XCL_latches control the `reserved` state of a SHR_latch, which includes one
+bit in the SHR_latch counter and the thread id of the thread holding the
+reservation.
+
+Restrictions:
+- Application threads *MUST NOT* recursively hold the SHR_latch. Doing so
+*might* create a livelock.
+- Application threads *MUST NOT* hold the SHR_latch while invoking XCL_latch's
+lock method. Doing so *will always* create a livelock.
+
+Implementation notes:
+- Method lock uses spin logic waiting for try_lock to return true
+- Method try_lock returns false unless try_reserve returns true
+- Method try_reserve
+  - Returns false if the latch is already reserved (but throws an exception if
+the running thread holds the latch)
+  - Returns false if the latch cannot be atomically reserved
+  - Sets the thread owner to the current thread and returns true
+- In try_lock, once try_reserve return true, it spins waiting until the share
+lock count is zero
+
+Usage note: Applications *MUST NOT* hold a corresponding SHR_latch when
+invoking XCL_Latch's lock method. There's no way for that SHR_latch to be
+released and there's no way to release the reservation.
+
+An exception is thrown if:
+- Method lock or try_lock is invoked while a reservation is held by the same
+thread
+- Method unlock is invoked from a thread that does not hold the reservation
 
 <!-- ===================================================================== -->
 ---
@@ -44,7 +75,7 @@ The destructor *DOES NOTHING*. It neither downgrades nor unlocks the Latch.
 ---
 #### <a id=downgrade>void pub::XCL_latch::downgrade</a>
 
-This method must only be invoked with the XCL_latch held.
+The caller *MUST ALREADY HOLD* XCL_latch.
 
 Releases the exclusive Latch, leaving the SHR_latch singly held.
 The SHR_latch's unlock method must be invoked to release shared access.
@@ -58,7 +89,12 @@ which Thread holds the Latch.
 ---
 #### <a id=lock>void pub::XCL_latch::lock</a>
 
-Obtains the (exclusive) Latch.
+(Compare to XCL_latch::upgrade.)
+
+Obtains the latch reservation, then (spins) waiting for all SHR_latches to be
+unlocked.
+
+An exception is thrown if the reservation is already held by the same thread.
 
 ---
 #### <a id=reset>void pub::XCL_latch::reset</a>
@@ -92,23 +128,38 @@ This results in Thread one spinning waiting for Thread two and Thread two
 spinning waiting for Thread one.
 
 ---
-#### <a id=try_wait>void pub::XCL_latch::try_wait</a>
+#### <a id=try_reserve>void pub::XCL_latch::try_reserve</a>
 
-Waits for *ALL* SHR_latch locks to be released.
+Obtains the Latch reservation if it's available.
 
-Called after try_lock succeeds to insure no SHR_latch locks are held.
+An exception is thrown if the reservation is already held by the same thread.
 
 ---
 #### <a id=unlock>void pub::XCL_latch::unlock</a>
 
 Releases the (exclusive) Latch, leaving no SHR_latch held.
 
+An exception is thrown if the current thread didn't lock the Latch.
+
 ---
 #### <a id=upgrade>void pub::XCL_latch::upgrade</a>
 
-This method must only be invoked with the SHR_latch singly held and
-without XCL_latch being held by the same Thread..
+(Compare to XCL_latch::lock.)
 
-Obtains the exclusive Latch.
+Requirements:
+- The SHR_latch *MUST BE* singly held.
+- The XCL_latch *MUST NOT* be held by the invoking thread
 
-Must be followed by downgrade or unlock.
+Upgrade invokes try_reserve, and returns false when try_reserve returns false.
+When this occurs, the application *MUST INVOKE* SHR_latch::unlock. This allows
+the thread holding the reservation to continue. (It will generally in a spin
+loop until SHR_latches are unlocked.)
+
+Other than the SHR_latch unlock recovery is application-dependent, usually
+requiring some form of transaction recovery.
+
+Generally, the next application step after invoking SHR_latch\::unlock would
+be to invoke XCL_latch::lock, but that's not an upgrade  might not be appropriate
+
+If the upgrade succeeds the latch is in the locked state, and remains locked
+until invoking either downgrade or unlock.

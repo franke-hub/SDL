@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (c) 2025 Frank Eskesen.
+//       Copyright (c) 2025-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under cc by-sa version 4.0
 //       with attribution required.
@@ -17,23 +17,29 @@
 //       Latch.h reference manual: SHR_latch
 //
 // Last change date-
-//       2025/11/04
+//       2026/03/04
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Latch.h>
 
 ## <a id=shr_latch>pub::SHR_latch</a>
 
-The SHR_latch is a spin Latch that may be held by multiple threads in shared
-mode or by one thread in exclusive mode.
-The XCL_latch is used to obtain exclusive mode access.
+The SHR_latch is a spin Latch counter. Method lock increments the counter and
+method unlock decrements it.
+
+The counter's high-order bit indicates exclusive latch reservation. While
+reserved, the SHR_latch's try_lock returns failure and method lock spins,
+waiting for the reserve to be released.
+
+Applications *MUST NOT* lock the SHR_latch recursively. Doing so can result
+in a livelock between the SHR_latch and an XCL_latch.
 
 <!-- ===================================================================== -->
 ---
 #### <a id=is_held>void pub::SHR_latch::is_held</a>
 
 Returns TRUE if the latch is held, without regard to which Thread holds
-the Latch.
+the Latch or whether the latch is held in shared or exclusive mode.
 
 ---
 #### <a id=lock>void pub::SHR_latch::lock</a>

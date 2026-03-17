@@ -17,7 +17,7 @@
 //       Document difficult to debug problems.
 //
 // Last change date-
-//       2026/02/20
+//       2026/03/16
 //
 -------------------------------------------------------------------------- -->
 
@@ -211,6 +211,43 @@ Thread::start exited.
 To fix this, we added a Semaphore that limits the number of concurrent Threads.
 While this did not control handle growth, TimeDisp with a runtime of four
 hours ran without error.
+
+**That did not fix the problem**
+
+TimeDisp now ran for about seven and a half hours before failing.
+
+I created a new test `~/src/cpp/Test/Test_pthread.cpp` to duplicate Thread.cpp
+operation while minimizing pub library usage.
+This used the same sequencing logic between starting a thread and running it,
+duplicating and using the pub Event logic.
+It had the same Cygwin handle growth problem.
+
+On a hunch (and since I don't understand the underlying mechanisms used by
+std::condition_variable and std::mutex,) I created a new Event type,
+Event_yield, which uses an atomic variable and uses std::this_thread::yield()
+as its wait mechanism.
+I replaced the (mutex/condition_variable) Event with the Event_yield, and the
+handle growth problem disappeared in the test.
+
+It did not disappear when using the pub library code.
+The pub library code used another (mutex/condition_variable) Event in
+Worker.cpp's WorkerThread, where it waits for a reuse/termination signal.
+
+Changing Worker.cpp to use a std::mutex rather than an Event did not solve the
+problem either.
+
+Further modifications to ~/src/cpp/Test/Test_pthread.cpp to isolate the
+problem showed that the problem occurs for any allocated object that contains
+a std::mutex, as is still the case in Worker.cpp's WorkerThread (and Event.h)
+
+This is a Cygwin implementation bug. A bug report was sent to the Cygwin
+mailing list.
+
+To work around this problem, set the worker pool size large enough to avoid
+WorkerThread allocation.
+Note that pub::System::debug() provide relevants information.
+TimeDisp.cpp invokes pub::System::debug when option --verbose=2 (or higher) is
+specified.
 
 ----
 

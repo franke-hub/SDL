@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (c) 2025 Frank Eskesen.
+//       Copyright (c) 2025-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under cc by-sa version 4.0
 //       with attribution required.
@@ -17,14 +17,19 @@
 //       Latch.h reference manual: Latch
 //
 // Last change date-
-//       2025/11/04
+//       2026/03/04
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Latch.h>
 
 ## <a id=latch>pub::Latch</a>
 
-The Latch is an exclusive spin Latch.
+The Latch is an exclusive spin Latch with thread affinity. Method lock and
+unlock must be invoked by the same thread.
+
+An exception is thrown if:
+- Method lock or try_lock is invoked while the lock is held by the same thread
+- Method unlock is invoked from a thread that does not hold the lock
 
 <!-- ===================================================================== -->
 ---

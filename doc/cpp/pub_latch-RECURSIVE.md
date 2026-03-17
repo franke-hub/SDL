@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (c) 2025 Frank Eskesen.
+//       Copyright (c) 2025-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under cc by-sa version 4.0
 //       with attribution required.
@@ -17,16 +17,17 @@
 //       Latch.h reference manual: RecursiveLatch
 //
 // Last change date-
-//       2025/11/04
+//       2026/03/04
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Latch.h>
 
 ## <a id=recursive_latch>pub::RecursiveLatch</a>
 
-The RecursiveLatch is a spin Latch that may be obtained recursively by the
-same Thread.
-The Latch must be unlocked for each time that it's locked.
+The Recursive Latch is an exclusive counting spin Latch with thread affinity.
+Methods lock and unlock must be invoked by the same thread. Locking while the
+latch is held increments a use counter. Unlocking decrements the use counter.
+When the use counter decrements to zero, the latch becomes available.
 
 <!-- ===================================================================== -->
 ---
