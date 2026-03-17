@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2026/03/03
+//       2026/03/17
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -41,7 +41,7 @@ Commits are now sorted in date order rather than reverse date order.
 ----
 
 <!-- --------------------------------------------------------------------- -->
-### mm/dd/yyyy [The most recent change](#last-change)
+### [The most recent change](#last-change)
 
 ### 01/23/2023 maint commit
 Distribution test: ~/src/java/Webapp/*
@@ -962,7 +962,7 @@ Threads.
   - Added BasicThread for controlled start
     - Prevent SelfDeletingThread use after delete
 
-### <a id="last-change">2026/03/03 maint/trunk</a>
+### 2026/03/03 maint/trunk
 - ~/src/cpp/Test/Test_cv_NG.cpp v. ~/src/cpp/Test_cv_OK.cpp
   - Test: https://en.cppreference.com+condition_variable.html example code
 - ~/src/cpp/inc/pub/Event
@@ -983,3 +983,18 @@ Threads.
 - ~/src/cpp/lib/pub/Test/Quick.cpp
   - Tests System::debug changes
   - Updated for changes to Latch.h field name changes
+
+### <a id="last-change">2026/03/17 maint/trunk</a>
+- ~/src/cpp/Test/Test_mutex.cpp
+  - Demonstration of Cygwin std::mutex bug
+  - (This bug occurs running 'TimeDisp --size=0' after about seven hours.)
+- ~/doc/Journal/Debugging.md
+  - Description of Cygwin std::mutex bug
+- ~/doc/cpp/Latch.md, ~/doc/cpp/pub_latch-*.md
+  - Updated Latch documentation
+- ~/src/cpp/lib/Worker.cpp
+  - Now uses std::mutex rather than Event for locking
+- ~/src/cpp/lib/pub/Test/TimeDisp.cpp
+  - Added additional diagnostics
+- ~/src/cpp/lib/dev/*.cpp
+  - Defaulted internal trace off
