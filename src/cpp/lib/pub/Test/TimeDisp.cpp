@@ -17,7 +17,7 @@
 //       Dispatcher timing test.
 //
 // Last change date-
-//       2026/02/23
+//       2026/03/08
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic
@@ -61,10 +61,11 @@ enum
 ,  OPT_TASKS= 8                     // Default number of Tasks
 
 // These compile-time options are independent of the --trace parameter option.
-,  USE_IDEBUG= false                // Enable internal debugging?
-,  USE_ITRACE= false                // Enable internal tracing?
-
-,  USE_XTRACE= false                // Enable extended internal tracing?
+// When setting USE_QTRACE==true always set USE_ITRACE==true
+,  USE_DETAIL= false                // Use detailed debugging?
+,  USE_ICHECK= false                // Enable internal checking?
+,  USE_ITRACE= true                 // Enable internal tracing?
+,  USE_QTRACE= false                // Enable method queue tracing?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -77,6 +78,13 @@ class TimerTask;                    // For TimerTask*
 // Forward method references
 //----------------------------------------------------------------------------
 static void sig_handler(int);       // The signal handler
+
+static void
+   queue(                           // Enqueue TimerItem onto TimerTask
+     int               line,        // Caller's line number
+     TimerTask*        this_task,   // The running task, nullptr if TimerThread
+     TimerTask*        next_task,   // Next TimerTask
+     TimerItem*        next_item);  // Next TimerItem
 
 //----------------------------------------------------------------------------
 // Internal data areas
@@ -163,16 +171,17 @@ void*
    Record(                          // Initialize the trace entry
      const char*       ident,       // The trace identiier (4 characters)
      uint32_t          line,        // The line number
-     const char*       op,          // Operation
-     uint16_t          task,        // Associated Task identifier
-     uint16_t          item)        // Associated Item identifier
+     const char*       op,          // Operation (max char[8])
+     uint16_t          this_task_ix, // Associated Task identifier
+     uint16_t          this_item_ix) // Associated Item identifier
 {
    memset(value, ' ', 8);           // Blank fill value operation
-   memcpy(value, op, 5);               // Set operation type
+   memcpy(value, op, strlen(op));   // Set operation type
 
-   uint64_t task_item= uint64_t(task) << 32 | item;
+   uint64_t task_info= (uint64_t(this_task_ix) << 48)
+                     | (uint64_t(this_item_ix) << 32);
    uint64_t* ptr_item= (uint64_t*)(value+8);
-   *ptr_item= htobe64(task_item);
+   *ptr_item= htobe64(task_info);
 
    trace(ident, line);
 }
@@ -180,19 +189,22 @@ void*
    Record(                          // Initialize the trace entry
      const char*       ident,       // The trace identiier (4 characters)
      uint32_t          line,        // The line number
-     const char*       op,          // Operation
-     uint16_t          task,        // Associated Task identifier
-     uint16_t          item,        // Associated Item identifier
-     uint16_t          next_task,   // Next Task scheduled
-     uint16_t          last_item)   // Last Item processed
+     const char*       op,          // Operation (max char[8])
+     uint16_t          this_task_ix, // Associated Task identifier
+     uint16_t          this_item_ix, // Associated Item identifier
+     uint16_t          next_task_ix, // Next Task identifier
+     uint16_t          next_item_ix) // Next Item identifier
+
 {
    memset(value, ' ', 8);           // Blank fill value operation
-   memcpy(value, op, 5);            // Set operation type
+   memcpy(value, op, strlen(op));   // Set operation type
 
-   uint64_t task_item= uint64_t(task) << 32 | item;
-   task_item |= uint64_t(next_task)   << 16 | last_item;
+   uint64_t task_info= (uint64_t(this_task_ix) << 48)
+                     | (uint64_t(this_item_ix) << 32)
+                     | (uint64_t(next_task_ix) << 16)
+                     | (uint64_t(next_item_ix));
    uint64_t* ptr_item= (uint64_t*)(value+8);
-   *ptr_item= htobe64(task_item);
+   *ptr_item= htobe64(task_info);
 
    trace(ident, line);
 }
@@ -202,11 +214,11 @@ static inline void
    trace(                           // Allocate and initialize trace Record
      const char*       ident,       // The trace identiier (4 characters)
      uint32_t          line,        // The line number
-     const char*       op,          // Operation
-     uint16_t          task,        // Associated Task identifier
-     uint16_t          item)        // Associated Item identifier
+     const char*       op,          // Operation (max char[8])
+     uint16_t          this_task_ix, // Current Task identifier
+     uint16_t          this_item_ix) // Current Item identifier
 {  if( USE_ITRACE ) {               // If tracing active
-     Record* record= new Record(ident, line, op, task, item);
+     Record* record= new Record(ident, line, op, this_task_ix, this_item_ix);
      (void)record;
    }
 }
@@ -215,14 +227,14 @@ static inline void
    trace(                           // Allocate and initialize trace Record
      const char*       ident,       // The trace identiier (4 characters)
      uint32_t          line,        // The line number
-     const char*       op,          // Operation
-     uint16_t          task,        // Associated Task identifier
-     uint16_t          item,        // Associated Item identifier
-     uint16_t          next_task,   // Next Task scheduled
-     uint16_t          last_item)   // Last Item processed
+     const char*       op,          // Operation (max char[8])
+     uint16_t          this_task_ix, // Current Task identifier
+     uint16_t          this_item_ix, // Current Item identifier
+     uint16_t          next_task_ix, // Next Task identifier
+     uint16_t          next_item_ix) // Next Item identifier
 {  if( USE_ITRACE ) {               // If tracing active
-     Record* record= new Record(ident, line, op, task, item
-                               , next_task, last_item);
+     Record* record= new Record(ident, line, op, this_task_ix, this_item_ix
+                               , next_task_ix, next_item_ix);
      (void)record;
    }
 }
@@ -361,8 +373,10 @@ virtual void
 {
    TimerItem* timer_item= (TimerItem*)item; // (We only get TimerItems)
 
-   // Verify enqueued for this Task; Record last Item processed
-   if( USE_IDEBUG ) {
+   trace(".TST", __LINE__, "WORK", identity, timer_item->identity);
+
+   // Verify Item enqueued for this Task; Record last Item processed
+   if( USE_ICHECK ) {
      error_count += VERIFY(timer_item->next_task == identity);
      last_item= timer_item->identity;
    }
@@ -372,10 +386,9 @@ virtual void
      if( opt_hcdm )
        tracef("%4d Task[%3d] Item[%3d] POST\n", __LINE__
              , identity, timer_item->identity);
-     else if( USE_XTRACE )
-       trace(".TST", __LINE__, "POST ", identity, timer_item->identity);
+     trace(".TST", __LINE__, "POST", identity, timer_item->identity);
 
-     if( USE_IDEBUG )
+     if( USE_ICHECK )
        timer_item->next_task= -identity; // Indicate POSTED (by this Task)
 
      item->post();                  // Post the Item
@@ -383,19 +396,12 @@ virtual void
    }
 
    // Count this work item
-   if( USE_XTRACE )
-     trace(".TST", __LINE__, "COUNT", identity, timer_item->identity);
    ++timer_item->task_count[identity]; // The Item saw us
    ++item_count[timer_item->identity]; // We saw the Item
 
    // Enqueue on next Task
    uint32_t next= random.modulus((uint32_t)opt_tasks);
-   if( USE_IDEBUG )
-     timer_item->next_task= next;
-   if( USE_XTRACE )
-     trace(".TST", __LINE__, "QUEUE", identity, timer_item->identity
-          , next, last_item);
-   task_array[next]->enqueue(item);
+   queue(__LINE__, this, task_array[next], timer_item);
 }
 }; // struct TimerTask
 
@@ -405,27 +411,63 @@ virtual void
 //       BINGO
 //
 // Purpose-
-//       Test everything we can. (Invoke from GDB)
+//       DEBUG everything we can.
 //
 //----------------------------------------------------------------------------
-extern const char*                  // Return something
-   BINGO( void );                   // Test
-const char*                         // Return something
-   BINGO( void )                    // Timing test
+static void
+   BINGO( void )                    // Debug everything
 {
-   PUB::WorkerPool::debug("BINGO");
-   PUB::Thread::static_debug("BINGO");
+   System::debug("BINGO", USE_DETAIL);
 
-   debugf("\n");
-   for(int task_ix= 0; task_ix < opt_tasks; ++task_ix)
-     task_array[task_ix]->debug("TASKS");
+   if( USE_DETAIL ) {
+     debugf("\n");
+     for(int task_ix= 0; task_ix < opt_tasks; ++task_ix)
+       task_array[task_ix]->debug("TASKS");
 
-   debugf("\n");
-   for(int item_ix= 0; item_ix < opt_items; ++item_ix)
-     item_array[item_ix]->debug("ITEMS");
+     debugf("\n");
+     for(int item_ix= 0; item_ix < opt_items; ++item_ix)
+       item_array[item_ix]->debug("ITEMS");
+   }
+}
 
-   return "BANGO";
-};
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       queue
+//
+// Purpose-
+//       Enqueue TimerItem onto TimerTask
+//
+//----------------------------------------------------------------------------
+static void
+   queue(                           // Enqueue TimerItem onto TimerTask
+     int               line,        // Caller's line number
+     TimerTask*        this_task,   // The running task, nullptr if TimerThread
+     TimerTask*        next_task,   // Next TimerTask
+     TimerItem*        next_item)   // Next TimerItem
+{
+   if( USE_QTRACE ) {
+     int this_task_ix= -1;
+     int this_item_ix= -1;
+     if( this_task ) {
+       this_task_ix= this_task->identity;
+       this_item_ix= this_task->last_item;
+     }
+     int next_task_ix= next_task->identity;
+     int next_item_ix= next_item->identity;
+
+     const char* status= "QUEUE-R"; // (Usually) already running
+     if( !next_task->is_running() )
+       status= "QUEUE-S";           // (Usually) requires start
+     trace(".TST", line, status, this_task_ix, this_item_ix
+                 , next_task_ix, next_item_ix);
+   }
+
+   if( USE_ICHECK )
+     next_item->next_task= next_task->identity;
+
+   next_task->enqueue(next_item);
+}
 
 //----------------------------------------------------------------------------
 //
@@ -440,30 +482,32 @@ static void
    sig_handler(                     // Handle signals
      int               id)          // The signal identifier
 {
+   const char* signame= "SIG????";
+   if( id == SIGINT ) signame= "SIGINT";
+   else if( id == SIGSEGV ) signame= "SIGSEGV";
+   else if( id == SIGUSR1 ) signame= "SIGUSR1";
+   else if( id == SIGUSR2 ) signame= "SIGUSR2";
+
    static int recursion= 0;         // Signal recursion depth
    if( recursion ) {                // If signal recursion
-     fprintf(stderr, "sig_handler(%d) recursion\n", id);
+     Trace::trace(".TST", ">SIG", id, signame);
+     fprintf(stderr, "sig_handler(%d:%s) recursion\n", id, signame);
      fflush(stderr);
      exit(EXIT_FAILURE);
    }
 
    // Handle signal
-   recursion++;                     // Disallow recursion
-   const char* signame= "<<Unexpected>>";
-   if( id == SIGINT ) signame= "SIGINT";
-   else if( id == SIGSEGV ) signame= "SIGSEGV";
-   else if( id == SIGUSR1 ) signame= "SIGUSR1";
-   else if( id == SIGUSR2 ) signame= "SIGUSR2";
-   errorf("sig_handler(%d) %s\n", id, signame);
+   recursion= 1;                    // Disallow recursion
+   errorf("sig_handler(%d:%s)\n", id, signame);
+   Trace::trace(".TST", "=SIG", id, signame);
 
    switch(id) {                     // Handle the signal
      case SIGINT:                   // (Console CTRL-C)
-       running= false;
+       BINGO();                     // Debug everything
        exit(2);                     // Immediate exit
        break;
 
      case SIGSEGV:                  // (Program fault)
-       Trace::trace(".BUG", __LINE__, signame);
        debug_set_mode(Debug::MODE_INTENSIVE);
        debug_backtrace();
        debugf("..terminated..\n");
@@ -471,7 +515,6 @@ static void
        break;
 
      default:                       // (SIGUSR1 || SIGUSR2)
-       Trace::trace(".SIG", __LINE__, signame);
        Debug::Mode mode= debug_get_mode();
 
        debug_set_mode(Debug::MODE_INTENSIVE);
@@ -480,8 +523,7 @@ static void
        debug_set_mode(mode);
        break;                       // (No configured action)
    }
-
-   recursion--;
+   recursion= 0;
 }
 
 //----------------------------------------------------------------------------
@@ -517,10 +559,9 @@ virtual void
      if( task_ix >= opt_tasks )
        task_ix= 0;
 
-     trace(".TST", __LINE__, "QUEUE", item_ix, task_ix);
-     item_array[item_ix]->next_task= task_ix;
-     task_array[task_ix++]->enqueue(item_array[item_ix++]);
+     queue(__LINE__, nullptr, task_array[task_ix++], item_array[item_ix++]);
    }
+
    if( opt_hcdm || opt_verbose > 2 ) // (Distribution doesn't take much time)
      debugh("%'10.3f All Items distributed\n", PUB::Clock::now() - then);
 
@@ -534,6 +575,9 @@ virtual void
    running= false;                  // (But the test isn't 100% complete)
    if( opt_hcdm || opt_verbose > 1 )
      debugh("%'10.3f running= false\n", PUB::Clock::now() - then);
+
+   if( USE_ITRACE )
+     Trace::trace(".TST", __LINE__, "RUNNING=FALSE");
 }
 }; // class TimerThread
 static TimerThread timer_thread;    // *THE* TimerThread
@@ -608,8 +652,7 @@ static int
    for(int item_ix= 0; item_ix<opt_items; ++item_ix) {
      if( opt_hcdm )
        tracef("%4d Task[%3d] Item[%3d] WAIT\n", __LINE__, -1, item_ix);
-     else if( USE_XTRACE )
-       trace(".TST", __LINE__, "WAIT ", -1, item_ix);
+     trace(".TST", __LINE__, "WAIT ", -1, item_ix);
      item_array[item_ix]->wait.wait();
    }
 
@@ -770,7 +813,7 @@ extern int
          return 1;
        }
      } else if( P == "trace" ) {
-       if( USE_ITRACE == false )
+       if( opt_verbose > 0 )
          errorf("Warning: --trace option used but USE_ITRACE == false\n");
 
        if( V ) {
