@@ -17,10 +17,11 @@
 //       Test: pthread stress test.
 //
 // Last change date-
-//       2026/03/03
+//       2026/03/16
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic
+#include <condition_variable>       // For std::condition_variable
 #include <exception>                // For std::exception
 #include <thread>                   // For std::this_thread::sleep_for
 #include <cinttypes>                // For integer types
@@ -75,7 +76,8 @@ enum
 }; // enum
 
 #define USE_DEBUG0 false            // Use DEBUG[0]? [[Latch v/ atomic ops]]
-#define USE_DEBUG1 false            // Use DEBUG[1]? [[Event v/ Event_yield
+#define USE_DEBUG1 false            // Use DEBUG[1]? [[Event v/ Event_yield]]
+#define USE_DEBUG2 true             // Use DEBUG[2]? [[Run do_somehing test?]]
 #define USE_TLTASK false            // Use tl_task field?
 
 //----------------------------------------------------------------------------
@@ -348,25 +350,26 @@ static void
    sig_handler(                     // Handle signals
      int               id)          // The signal identifier
 {
-   static int recursion= 0;         // Signal recursion depth
-   if( recursion ) {                // If signal recursion
-     fprintf(stderr, "sig_handler(%d) recursion\n", id);
-     fflush(stderr);
-     exit(EXIT_FAILURE);
-   }
-
-   // Handle signal
-   recursion++;                     // Disallow recursion
-   const char* signame= "<<Unexpected>>";
+   const char* signame= "SIG????";
    if( id == SIGINT ) signame= "SIGINT";
    else if( id == SIGSEGV ) signame= "SIGSEGV";
    else if( id == SIGUSR1 ) signame= "SIGUSR1";
    else if( id == SIGUSR2 ) signame= "SIGUSR2";
    errorf("sig_handler(%d) %s\n", id, signame);
 
+   static int recursion= 0;         // Signal recursion depth
+   if( recursion ) {                // If signal recursion
+     fprintf(stderr, "sig_handler(%d) recursion\n", id);
+     fflush(stderr);
+     exit(EXIT_FAILURE);
+   }
+   recursion= 1;                    // Disallow recursion
+
+   // Handle signal
    switch(id) {                     // Handle the signal
      case SIGINT:                   // (Console CTRL-C)
        running= false;
+       diagnose(signame);
        exit(2);                     // Immediate exit
        break;
 
@@ -389,7 +392,7 @@ static void
        break;
    }
 
-   recursion--;
+   recursion= 0;
 }
 
 //----------------------------------------------------------------------------
@@ -435,6 +438,18 @@ uint32_t               id= -1;      // The Task's identity
 }
 
 //----------------------------------------------------------------------------
+// Task::do_something: Do something that might cause CYGWIN handle growth
+void
+   do_something(void)               // Try to cause CYGWIN handle growth
+{
+#if USE_DEBUG2
+   std::mutex              mutex;       // Protects cv
+
+   std::lock_guard<decltype(mutex)> lock(mutex);
+#endif
+}
+
+//----------------------------------------------------------------------------
 // Task::run: Run the pthread Task
 Task*                               // (The next Task
    run(void)                        // Run the Task
@@ -447,6 +462,7 @@ Task*                               // (The next Task
 
    Task* next= nullptr;
    if( running ) {
+     do_something();
      next= new Task(id);
    } else {
      if( opt_verbose ) {

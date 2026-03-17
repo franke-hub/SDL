@@ -16,11 +16,29 @@
 ##       Subdirectory information.
 ##
 ## Last change date-
-##       2026/02/26
-##
-##############################################################################
+##       2026/03/16
 ##
 ## Implementation notes-
 ##       This subdirectory contains diagnostic tests
 ##
 ##############################################################################
+
+##############################################################################
+## Test_cv_NG.cpp
+##   Attempts to demonstrate that the example condition_variable code tests
+##   std::mutex more than it tests std::condition_variable.
+
+##############################################################################
+## Test_cv_OK.cpp
+##   Attempts to provide a better example condition_variable code test.
+
+##############################################################################
+## Test_pthread.*
+##   Used to diagnose a Cygwin problem where the library threading code caused
+##   uncontrolled Window handle growth.
+
+##############################################################################
+## Test_mutex.cpp
+##   Demonstrates that std::mutex use can cause uncontrolled Window handle
+##   growth. This occurs in practice for a mutex associated with a thread and
+##   these threads are rapidly created and deleted.
