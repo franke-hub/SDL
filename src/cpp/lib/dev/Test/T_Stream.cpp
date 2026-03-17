@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2025 Frank Eskesen.
+//       Copyright (C) 2022-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2025/01/22
+//       2026/03/17
 //
 // Arguments-
 //       With no arguments, --client defaulted
@@ -98,7 +98,7 @@ enum
 ,  PROT_RW= (PROT_READ | PROT_WRITE) // Read/write access mode
 ,  TRACE_SIZE= 0x00100000           // Default trace table size (1M)
 ,  USE_INTENSIVE= true              // Option: Use intensive debug mode
-,  USE_ITRACE= true                 // Use internal trace?
+,  USE_ITRACE= false                // Use internal trace?
 ,  USE_LOGGER= false                // Option: Use logger
 ,  USE_REPORT= false                // Option: Use event Reporter
 ,  USE_REPORT_ITERATION= 0          // Option: Event Reporter iteration count

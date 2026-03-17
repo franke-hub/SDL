@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2023 Frank Eskesen.
+//       Copyright (C) 2022-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Implement http/StreamSet.h
 //
 // Last change date-
-//       2023/07/29
+//       2026/03/17
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic
@@ -59,7 +59,7 @@ enum
 
 ,  BUFFER_SIZE= 8'096               // Input buffer size (Header collector)
 ,  POST_LIMIT= 1'048'576            // POST/PUT size limit
-,  USE_ITRACE= true                 // Use internal trace?
+,  USE_ITRACE= false                // Use internal trace?
 ,  USE_REPORT= false                // Use event Reporter?
 }; // enum
 

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2025 Frank Eskesen.
+//       Copyright (C) 2022-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Implement http/Server.h
 //
 // Last change date-
-//       2025/01/11
+//       2026/03/17
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<serialno_t>
@@ -78,7 +78,7 @@ enum
 // BUFFER_SIZE= 1'048'576           // Input buffer size
 ,  BUFFER_SIZE=     8'192           // Input buffer size
 
-,  USE_ITRACE= true                 // Use internal trace?
+,  USE_ITRACE= false                // Use internal trace?
 ,  USE_READ_ONCE= true              // Read once?
 ,  USE_REPORT= true                 // Use event Reporter?
 }; // enum

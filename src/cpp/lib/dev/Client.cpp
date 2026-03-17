@@ -17,7 +17,7 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2026/02/21
+//       2026/03/17
 //
 // Implmentation note-
 //       TODO: Test _read() disconnect (close processing)
@@ -89,7 +89,7 @@ enum
 // BUFFER_SIZE= 1'048'576           // Input buffer size
 ,  BUFFER_SIZE=     8'192           // Input buffer size
 
-,  USE_ITRACE= true                 // Use internal trace?
+,  USE_ITRACE= false                // Use internal trace?
 ,  USE_READ_ONCE= true              // Read once?
 ,  USE_REPORT= true                 // Use event Reporter?
 }; // enum

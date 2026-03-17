@@ -17,7 +17,7 @@
 //       Worker object methods.
 //
 // Last change date-
-//       2026/03/09
+//       2026/03/17
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<>
@@ -48,7 +48,7 @@ enum                                // Generic enum
 
 // Production mode settings: USE_ITRACE= false;
 ,  USE_IDEBUG= true                 // Use internal debugging?
-,  USE_ITRACE= true                 // Use internal trace?
+,  USE_ITRACE= false                // Use internal trace?
 }; // (Generic) enum
 
 namespace _LIBPUB_NAMESPACE {

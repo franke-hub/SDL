@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2025 Frank Eskesen.
+//       Copyright (C) 2022-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Implement http/Listen.h
 //
 // Last change date-
-//       2025/01/11
+//       2026/03/17
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -64,7 +64,7 @@ enum
 ,  VERBOSE= 1                       // Verbosity, higher is more verbose
 
 ,  DEFAULT_PORT= 8080               // Default port number
-,  USE_ITRACE= true                 // Use internal trace?
+,  USE_ITRACE= false                // Use internal trace?
 ,  USE_REPORT= true                 // Use event Reporter?
 }; // enum
 

@@ -17,7 +17,7 @@
 //       Dispatcher timing test.
 //
 // Last change date-
-//       2026/03/08
+//       2026/03/17
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic
@@ -64,7 +64,7 @@ enum
 // When setting USE_QTRACE==true always set USE_ITRACE==true
 ,  USE_DETAIL= false                // Use detailed debugging?
 ,  USE_ICHECK= false                // Enable internal checking?
-,  USE_ITRACE= true                 // Enable internal tracing?
+,  USE_ITRACE= false                // Enable internal tracing?
 ,  USE_QTRACE= false                // Enable method queue tracing?
 }; // enum
 
