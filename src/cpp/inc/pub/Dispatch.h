@@ -288,6 +288,11 @@ void
      WorkerPool::work(this);        // Schedule this Task
 }
 
+// This method has limited utility: Status may change before method returns
+bool                                // The instantaneous running status
+   is_running( void )               // Get instantaneous running status
+{  return itemList.get_tail() != nullptr; }
+
 protected:
 virtual void                        // (IMPLEMENT this method)
    work(                            // Process

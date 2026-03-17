@@ -17,7 +17,7 @@
 //       Define the System namespace
 //
 // Last change date-
-//       2026/02/19
+//       2026/03/08
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_SYSTEM_H_INCLUDED
@@ -92,7 +92,8 @@ extern void
 //----------------------------------------------------------------------------
 extern void
    debug(                           // System debugging display
-     const char*      info="");     // Caller information
+     const char*      info="",      // Caller information
+     bool             detail= false); // Add detailed information?
 
 //----------------------------------------------------------------------------
 //
