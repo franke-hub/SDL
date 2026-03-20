@@ -17,7 +17,7 @@
 //       Dispatcher timing test.
 //
 // Last change date-
-//       2026/03/17
+//       2026/03/20
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic
@@ -603,11 +603,13 @@ static int
    if( opt_hcdm || opt_verbose > 1 ) {
      time_t gt= time(nullptr);
      struct tm* lt= localtime(&gt);
+     const char* host= getenv("HOST");
 
-     debugf("Compiled: %s %s %s\n Started: %3s %2d %4d %.2d:%.2d:%.2d\n"
+     debugf("Compiled: %s %s %s\n"
+            " Started: %3s %2d %4d %.2d:%.2d:%.2d HOST: %s\n"
            , __DATE__, __TIME__, __FILE__
            , _month[lt->tm_mon], lt->tm_mday, lt->tm_year + 1900
-           , lt->tm_hour, lt->tm_min, lt->tm_sec);
+           , lt->tm_hour, lt->tm_min, lt->tm_sec, host);
      debugf("%16d opt_hcdm\n", opt_hcdm);
      debugf("%16d opt_verbose\n", opt_verbose);
      debugf("%6s0x%.8x opt_trace (%'d)\n", "", opt_trace, opt_trace);
