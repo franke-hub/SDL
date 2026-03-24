@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2023 Frank Eskesen.
+//       Copyright (C) 2022-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,16 +17,15 @@
 //       HTTP StreamSet object.
 //
 // Last change date-
-//       2023/06/04
+//       2026/03/23
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_STREAMSET_H_INCLUDED
 #define _LIBPUB_HTTP_STREAMSET_H_INCLUDED
 
 #include <memory>                   // For std::shared_ptr
-#include <mutex>                    // For std::mutex
 
-#include "dev/bits/devconfig.h"     // For HTTP config controls
+#include "pub/mutex.h"              // For pub::mutex, ...
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 namespace http {
@@ -96,7 +95,7 @@ typedef map_t::const_iterator       const_iterator;
 //----------------------------------------------------------------------------
 // StreamSet::Attributes
 //----------------------------------------------------------------------------
-mutable std::mutex     mutex;       // The SteamSet mutex
+mutable pub::mutex     mutex;       // The SteamSet mutex
 map_t                  map;         // The (Stream) Node map
 Node*                  root= nullptr; // The root Node
 

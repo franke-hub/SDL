@@ -17,7 +17,7 @@
 //       Thread method implementations.
 //
 // Last change date-
-//       2026/03/09
+//       2026/03/23
 //
 // Implementation notes-
 //       Thread::tlss is used to maintain the Thread state. There are three
@@ -60,7 +60,6 @@
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<> statistics
 #include <chrono>                   // For std::chrono::microseconds
-#include <mutex>                    // For std::lock_guard, mutex
 #include <stdexcept>                // For std::runtime_error
 #include <string>                   // For std::string
 #include <cerrno>                   // For errno, perror
@@ -70,6 +69,7 @@
 #include "pub/Event.h"              // For pub::Yield_event
 #include <pub/Exception.h>          // For debugging
 #include "pub/Latch.h"              // For pub::Latch, pub::RecursiveLatch
+#include "pub/mutex.h"              // For pub::mutex, std::lock_guard
 #include <pub/Named.h>              // For pub::Named
 #include "pub/Semaphore.h"          // For pub::Semaphore (max_threads)
 #include "pub/System.h"             // For namespace pub::System
@@ -546,7 +546,7 @@ void
    Thread::set_max_threads(         // Set the maximum Thread count
      size_t            count)       // The new maximum Thread count
 {
-   static std::mutex   mutex;       // (Only guards this method)
+   static pub::mutex   mutex;       // (Only guards this method)
    std::lock_guard<decltype(mutex)> lock(mutex);
 
    if( count > max_threads ) {      // If increasing the count

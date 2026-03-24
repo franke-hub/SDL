@@ -25,7 +25,6 @@
 
 #include <functional>               // For std::function
 #include <memory>                   // For std::shared_ptr
-#include <mutex>                    // For std::mutex
 #include <string>                   // For std::string
 #include <cstdlib>                  // For size_t
 

@@ -21,7 +21,6 @@
 //
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::invalid_argument
-#include <mutex>                    // For std::mutex, std::lock_guard
 #include <cassert>                  // For assert
 #include <cctype>                   // For isdigit, ...
 #include <cerrno>                   // For errno
@@ -39,6 +38,7 @@
 #include "pub/Console.h"            // For pub::Console, implemented
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Event.h>              // For pub::Event
+#include "pub/mutex.h"              // For pub::mutex, std::lock_guard
 #include "pub/Trace.h"              // For pub::Trace
 #include <pub/utility.h>            // For namespace pub::utility
 #include "pub/utility.i"            // For conversion routines
@@ -73,7 +73,7 @@ enum { UNI_REPLACEMENT= 0x00'FFFD }; // The Unicode error replacement character
 // Internal data areas
 //----------------------------------------------------------------------------
 static Event           event;       // Termination wait event
-static std::mutex      mutex;       // Protects static attributes
+static mutex           _mutex;      // Protects static attributes
 static struct termios  oldattr;     // The attributes to restore
 
 static string          inp_buffer;  // Enqueued input string
@@ -358,7 +358,7 @@ int                                 // The next input character
      used_trace= true;
    }
 
-   static std::mutex   mutex;       // (getch uses a separate mutex)
+   static mutex        _mutex;      // (getch uses a separate mutex)
    static bool         once= true;  // (Only set restore attributes once)
    int                 C= -1;       // (Used inside and outside of mutex)
 
@@ -369,7 +369,7 @@ int                                 // The next input character
      timeout= 25500;
 
    {{{{
-     std::lock_guard<decltype(mutex)> lock(mutex); // One user at a time
+     std::lock_guard<decltype(_mutex)> lock(_mutex); // One user at a time
 
      if( once ) {                   // (Requires mutex protection)
        tcgetattr(STDIN_FILENO, &oldattr); // Set restore attributes
@@ -687,7 +687,7 @@ void
 void
    Console::start( void )           // Start the Console
 {
-   std::lock_guard<decltype(mutex)> lock(mutex); // One user at a time
+   std::lock_guard<decltype(_mutex)> lock(_mutex); // One user at a time
 
    if( !isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO) )
      throwf("Console only supports terminal input/output");
@@ -716,7 +716,7 @@ void
    Console::stop( void )            // Stop the Console
 {  if( HCDM ) traceh("\n\npub::Console::stop operational(%d)\n", operational);
 
-   std::lock_guard<decltype(mutex)> lock(mutex); // One user at a time
+   std::lock_guard<decltype(_mutex)> lock(_mutex); // One user at a time
 
    if( operational > 0 ) {
      operational--;

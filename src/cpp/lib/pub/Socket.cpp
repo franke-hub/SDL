@@ -26,7 +26,7 @@
 
 #define OPENSSL_API_COMPAT 30000    // Deprecate OSSL functions < 3.0.0
 
-#include <mutex>                    // For std::mutex, std::lock_guard, ...
+#include <mutex>                    // For std::lock_guard, ...
 #include <new>                      // For std::bad_alloc
 #include <stdexcept>                // For std::runtime_error
 #include <cassert>                  // For assert
@@ -50,6 +50,7 @@
 #include <pub/Data.h>               // For namespace pub::data
 #include <pub/Debug.h>              // For debugging
 #include <pub/Must.h>               // For pub::must::malloc
+#include <pub/mutex.h>              // For pub::mutex
 #include "pub/Socket.h"             // For pub::Socket, implemented
 #include <pub/Tokenizer.h>          // For pub::Tokenizer
 #include "pub/Trace.h"              // For pub::Trace

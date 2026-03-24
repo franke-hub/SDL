@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2023 Frank Eskesen.
+//       Copyright (C) 2022-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Implement diag-shared_ptr.h.
 //
 // Last change date-
-//       2023/12/05
+//       2026/03/23
 //
 // Implementation notes-
 //       Depending on global initialization ordering, static shared_ptr
@@ -29,11 +29,11 @@
 //----------------------------------------------------------------------------
 #include <map>                      // For std::map
 #include <memory>                   // For std::shared_ptr, ...
-#include <mutex>                    // For std::lock_guard
 #include <string>                   // For std::string
 
 #include <pub/Debug.h>              // For namespace pub::debugging methods
 #include "pub/diag-shared_ptr.h"    // For shared_ptr diagnostics, implemented
+#include <pub/mutex.h>              // For pub::mutex, std::lock_guard
 
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB;
@@ -62,9 +62,9 @@ typedef intptr_t       addr_t;
 typedef std::map<addr_t, string>    container_t; // Container*, Container name
 typedef std::map<addr_t, addr_t>    reference_t; // Get*, Ref*
 
-std::mutex             i_mutex;     // Protects map_init, map_term
-std::mutex             c_mutex;     // Protects c_map modification
-std::mutex             r_mutex;     // Protects r_map modification
+pub::mutex             i_mutex;     // Protects map_init, map_term
+pub::mutex             c_mutex;     // Protects c_map modification
+pub::mutex             r_mutex;     // Protects r_map modification
 container_t*           c_map= nullptr; // The container map
 reference_t*           r_map= nullptr; // The reference map
 

@@ -17,12 +17,12 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2026/03/03
+//       2026/03/22
 //
 //----------------------------------------------------------------------------
 #include <iostream>                 // For std::cout
 #include <string>                   // For std::string
-#include <thread>                   // For std::thread::id
+#include <thread>                   // For std::thread, std::thread::id
 #include <cctype>                   // For isprint()
 #include <cerrno>                   // For errno, ...
 #include <climits>                  // For INT_MIN, INT_MAX, ...
@@ -35,6 +35,7 @@
 #include "pub/Dictionary.h"         // For pub::Dictionary
 #include "pub/Exception.h"          // For pub::Exception
 #include "pub/Latch.h"              // See test_Latch
+#include "pub/mutex.h"              // See test_mutex
 #include "pub/Named.h"              // For pub::Named
 #include "pub/Reporter.h"           // For pub::Reporter
 #include "pub/Signals.h"            // See test_Signals
@@ -86,6 +87,7 @@ static int             opt_diag= false; // (Only set if --all)
 static int             opt_dump= false; // --dump
 static int             opt_latch= false; // --latch
 static int             opt_misc= false; // --misc
+static int             opt_mutex= false; // --mutex
 static int             opt_report= false; // --report
 static int             opt_signals= false; // --signals
 static int             opt_string= false; // (Only set if --all)
@@ -96,6 +98,7 @@ static struct option   opts[]=      // Options
 ,  {"dump",    no_argument,       &opt_dump,    true}
 ,  {"latch",   no_argument,       &opt_latch,   true}
 ,  {"misc",    no_argument,       &opt_misc,    true}
+,  {"mutex",   no_argument,       &opt_mutex,   true}
 ,  {"report",  no_argument,       &opt_report,  true}
 ,  {"signals", no_argument,       &opt_signals, true}
 ,  {"trace",   no_argument,       &opt_trace,   true}
@@ -249,7 +252,7 @@ static inline int
 //       test_dict
 //
 // Purpose-
-//       Test Diagnostic.h
+//       Test Dictionary.h
 //
 //----------------------------------------------------------------------------
 static inline int
@@ -330,11 +333,11 @@ static inline int
 //
 //----------------------------------------------------------------------------
 static inline void
-   test_dump(                         // Test utility::dump.h
-     const char*       buffer,        // The test buffer
-     unsigned int      origin,        // The dump origin
-     unsigned int      length,        // The dump length
-     unsigned int      offset)        // The (virtual) origin
+   test_dump(                       // Test utility::dump.h
+     const char*       buffer,      // The test buffer
+     unsigned int      origin,      // The dump origin
+     unsigned int      length,      // The dump length
+     unsigned int      offset)      // The (virtual) origin
 {
    using PUB::utility::dump;
 
@@ -352,10 +355,10 @@ static inline void
 }
 
 static inline void
-   test_dump(                         // Test utility::dump.h
-     const char*       buffer,        // The test buffer
-     unsigned int      origin,        // The dump origin
-     unsigned int      length)        // The dump length
+   test_dump(                       // Test utility::dump.h
+     const char*       buffer,      // The test buffer
+     unsigned int      origin,      // The dump origin
+     unsigned int      length)      // The dump length
 {
    using PUB::utility::dump;
 
@@ -371,7 +374,7 @@ static inline void
 
 
 static inline int
-   test_dump( void )                  // Test utility::dump
+   test_dump( void )                // Test utility::dump
 {
    if( opt_verbose )
      debugf("\ntest_dump (See: debug.out)");
@@ -415,7 +418,7 @@ static inline int
 //
 //----------------------------------------------------------------------------
 static inline int
-   test_Latch( void )                 // Test Latch.h
+   test_Latch( void )               // Test Latch.h
 {
    if( opt_verbose )
      debugf("\ntest_Latch\n");
@@ -423,7 +426,7 @@ static inline int
    int                 error_count= 0; // Number of errors encountered
 
    std::thread::id null_id= std::thread::id();
-   std::thread::id tid;               // The current recursive.latch.load()
+   std::thread::id tid;             // The current recursive.latch.load()
 
    //-------------------------------------------------------------------------
    if( opt_verbose )
@@ -664,7 +667,7 @@ static inline int
 //
 //----------------------------------------------------------------------------
 static inline int
-   test_Misc( void )                  // Miscellaneous tests
+   test_Misc( void )                // Miscellaneous tests
 {
    if( opt_verbose )
      debugf("\ntest_Misc\n");
@@ -678,7 +681,7 @@ static inline int
    using PUB::utility::atox;
    using PUB::utility::demangle;
 
-   errno= 0;                          // No error
+   errno= 0;                        // No error
 
    // Test atoi, atol, atox --------------------------------------------------
    error_count += MUST_EQ(atoi("1234567890"), 1234567890);
@@ -832,6 +835,85 @@ static constexpr const char* const good=
      printf("demangle type(%s)\n", type.name());
      printf("demangle name(%s)\n", demangle(type).c_str());
    }
+
+   return error_count;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       test_mutex
+//
+// Purpose-
+//       Test mutex.h
+//
+//----------------------------------------------------------------------------
+static PUB::mutex f1_mutex;         //
+
+static void f1(PUB::mutex* mutex)   // The waiter thread
+{  if( opt_verbose )
+     debugf("f1(%p)\n", mutex);
+
+   mutex->lock();
+   f1_mutex.unlock();
+}
+
+static void f2(PUB::mutex* mutex)   // The poster thread
+{  if( opt_verbose )
+     debugf("f2(%p)\n", mutex);
+
+   f1_mutex.lock();
+
+   mutex->unlock();
+}
+
+static inline int
+   test_mutex( void )               // Test mutex.h
+{
+   if( opt_verbose )
+     debugf("\ntest_mutex\n");
+
+   int                 error_count= 0; // Number of errors encountered
+
+   {{{{
+     PUB::mutex mutex;
+
+     if( opt_verbose ) {
+       debugf("Initial state:\n");
+       dump(&mutex, sizeof(mutex));
+     }
+
+     mutex.lock();
+     if( opt_verbose ) {
+       debugf("\nLocked (via lock) state:\n");
+       dump(&mutex, sizeof(mutex));
+     }
+
+     error_count += VERIFY( mutex.try_lock() == false );
+
+     mutex.unlock();
+     if( opt_verbose ) {
+       debugf("\nUnlocked state again:\n");
+       dump(&mutex, sizeof(mutex));
+     }
+
+     error_count += VERIFY( mutex.try_lock() == true );
+     if( opt_verbose ) {
+       debugf("\nLocked (via try_lock) state:\n");
+       dump(&mutex, sizeof(mutex));
+     }
+   }}}} // (Invokes mutex destructor, tests exit while locked)
+
+   // Verify unlock by an alternate thread
+   PUB::mutex local_mutex;         // For inter-thread unlock test
+   f1_mutex.lock();
+
+   std::thread t1(f1, &local_mutex);
+   std::thread t2(f2, &local_mutex);
+   t2.join();                       // Wait for thread[2]
+   t1.join();                       // Wait for thread[1]
+
+   error_count += VERIFY( local_mutex.try_lock() == true );
 
    return error_count;
 }
@@ -1231,7 +1313,7 @@ static inline int
 //
 //----------------------------------------------------------------------------
 static inline int
-   test_TEST( void )                  // Test TEST.H
+   test_TEST( void )                // Test TEST.H
 {
    if( opt_verbose )
      debugf("\ntest_TEST\n");
@@ -1504,6 +1586,7 @@ extern int                          // Return code
        // opt_dump= true;           // Select separately (needs validation)
        opt_latch= true;
        opt_misc= true;
+       opt_mutex= true;
        opt_report= true;
        opt_signals= true;
        opt_string= true;
@@ -1531,6 +1614,7 @@ extern int                          // Return code
      if( opt_dump )    error_count += test_dump();
      if( opt_latch )   error_count += test_Latch();
      if( opt_misc )    error_count += test_Misc();
+     if( opt_mutex )   error_count += test_mutex();
      if( opt_report)   error_count += test_Reporter();
      if( opt_signals ) error_count += test_Signals();
      if( opt_string )  error_count += test_String();

@@ -21,10 +21,12 @@
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
-#include <mutex>                    // For std::mutex
+#include <mutex>                    // For std::lock_guard
 
 #include <cstdio>                   // For printf
 #include <ctime>                    // For timespec, clock_gettime
+
+#include "pub/mutex.h"              // For pub::mutex
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -61,7 +63,7 @@ static double                       // Seconds since the PC epoch
 //
 // Implementation notes-
 //       If the mutex is static, there is no handle growth. The non-static
-//       std::mutex simulates
+//       pub::mutex simulates
 //
 //       mutex.lock() with or without unlock causes CYGWIN handle growth, and
 //       an exception is thrown at about 16.880 million handles.
@@ -73,12 +75,12 @@ static double                       // Seconds since the PC epoch
 //       at about 16.880 million handles.
 //
 //----------------------------------------------------------------------------
-class Thing {
-std::mutex             mutex;
+class Thing {                       // Thing descriptor
+std::mutex             mutex;       // Protects cv
 
 public:
-   Thing() = default;
-   ~Thing() = default;
+   Thing() = default;               // Default constructor
+   ~Thing() = default;              // Destructor
 
 bool try_lock() { return mutex.try_lock(); }
 void lock()     { mutex.lock(); }
@@ -98,7 +100,7 @@ static inline void
 static void
    do_something(void)               // Try to cause CYGWIN handle growth
 {
-   std::mutex mutex;
+   pub::mutex mutex;
 
    mutex.lock();
    mutex.unlock();
@@ -111,7 +113,7 @@ static void
 //       test_mutex
 //
 // Purpose-
-//       std::mutex stress test.
+//       pub::mutex stress test.
 //
 //----------------------------------------------------------------------------
 static inline void

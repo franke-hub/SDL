@@ -19,12 +19,6 @@
 // Last change date-
 //       2026/03/03
 //
-// Implementation notes-
-//       For some unknown reason, std::mutex does not operate properly when
-//       used in static global initialization. The lock_guard in Reporter::get
-//       is called recursively, eventually throwing std::system_error.
-//       (This problem found testing on Cygwin. Not tested on Linux systems.)
-//
 //----------------------------------------------------------------------------
 #include <iostream>                 // For std::cout
 #include <string>                   // For std::string

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2022 Frank Eskesen.
+//       Copyright (c) 2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -11,54 +11,75 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       Mutex.h
+//       mutex.h
 //
 // Purpose-
-//       Define the Mutex Object, combining std::mutex and Object
+//       Definition and implementation of pub:mutex struct
 //
 // Last change date-
-//       2022/09/02
+//       2026/03/23
+//
+// Implementation notes-
+//       This mutex can be locked by one thread and unlocked by another.
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_MUTEX_H_INCLUDED
 #define _LIBPUB_MUTEX_H_INCLUDED
 
-#include <mutex>                    // For std::mutex base class
+#include <mutex>                    // For std::lock_guard, ...
+#include <cerrno>                   // For errno
 
-#include <pub/Object.h>             // For pub::Object, base class
+#include <pthread.h>                // For pthread_cond_t, pthread_mutex_t, ...
+
+#include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Class-
-//       Mutex
+//       pub::mutex
 //
 // Purpose-
-//       A std::mutex Object.
+//       Minimal mutex descriptor
 //
 // Implementation notes-
-//       No Object methods are overridden.
-//
-//       No std::mutex methods are overriddern.
-//         lock(), try_lock(), unlock(), and native_handle()
-//       Used with lock_guard exactly like a std::mutex
-//         using _LIBPUB_NAMESPACE::Mutex
-//         Mutex instance;
-//         std::lock_guard<decltype(instance)> lock(instance);
+//       We use an *unchecked* pthread_mutex_t
+//       This allows (doesn't check for) unlock by a different thread.
 //
 //----------------------------------------------------------------------------
-class Mutex : public std::mutex, public Object { // The Mutex Object
+class mutex {                       // The Mimimal mutex descriptor
 //----------------------------------------------------------------------------
-// Mutex::Constructors/Destructors
+// pub::mutex::Attributes
+//----------------------------------------------------------------------------
+protected:
+pthread_mutex_t        _mutex=      // The mutex
+                         PTHREAD_MUTEX_INITIALIZER;
+
+//----------------------------------------------------------------------------
+// pub::mutex::Constructors/Destructor
 //----------------------------------------------------------------------------
 public:
-virtual
-   ~Mutex( void ) {};
-   Mutex( void ) : std::mutex(), Object() {};
+   mutex( void );
+
+   ~mutex( void );
 
 // Disallowed: Copy constructor, assignment operator
-   Mutex(const Mutex&) = delete;
-Mutex& operator=(const Mutex&) = delete;
-}; // class Mutex
+   mutex(const mutex&) = delete;
+mutex& operator=(const mutex&) = delete;
+
+//----------------------------------------------------------------------------
+// pub::mutex::Methods
+//----------------------------------------------------------------------------
+void
+   lock( void );                    // Obtain the mutex
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool
+   try_lock( void );                // Conditionally obtain the mutex
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void
+   unlock( void );                  // Release the mutex
+}; // class pub::mutex
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_MUTEX_H_INCLUDED

@@ -48,7 +48,7 @@
 #include <pub/TEST.H>               // For test functions and macros
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include "pub/Dispatch.h"           // For pub::dispatch objects, tested
-#include <pub/Event.h>              // For pub::Event
+#include "pub/Event.h"              // For pub::Event
 #include <pub/Interval.h>           // For pub::Interval
 #include "pub/Thread.h"             // For pub::Thread
 #include <pub/Trace.h>              // For pub::Trace

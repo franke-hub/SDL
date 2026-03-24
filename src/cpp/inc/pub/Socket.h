@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2024 Frank Eskesen.
+//       Copyright (c) 2019-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Standard socket (including openssl sockets) wrapper.
 //
 // Last change date-
-//       2024/12/20
+//       2026/03/23
 //
 // Implementation notes-
 //       Error recovery is the user's responsibility.
@@ -31,7 +31,6 @@
 
 #include <atomic>                   // For std::atomic
 #include <functional>               // For std::function
-#include <mutex>                    // For std::mutex
 #include <string>                   // For std::string
 
 #include <fcntl.h>                  // For fcntl
@@ -43,6 +42,7 @@
 
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Object.h>             // For base class, ...
+#include <pub/mutex.h>              // For pub::mutex
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
@@ -130,7 +130,7 @@ typedef std::function<void(int)>    f_select; // Select event handler type
 // Socket::Attributes
 //----------------------------------------------------------------------------
 protected:
-std::mutex             mutex;       // Open/close mutex
+pub::mutex             mutex;       // Open/close mutex
 f_select               h_select;    // Selection event handler
 
 int                    handle= CLOSED; // The socket handle (handle)

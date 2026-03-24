@@ -17,7 +17,7 @@
 //       Test Thread function.
 //
 // Last change date-
-//       2026/02/24
+//       2026/03/23
 //
 // Implementation notes-
 //       We don't trace anything but can create a trace table for library use.
@@ -35,7 +35,7 @@
 #include "pub/Event.h"              // For pub::Event
 #include "pub/Exception.h"          // For pub::Exception
 #include <pub/Interval.h>           // For pub::Interval (performance debugging)
-#include "pub/Mutex.h"              // For pub::Mutex
+#include "pub/mutex.h"              // For pub::mutex
 #include "pub/Named.h"              // For pub::Named (Threads)
 #include "pub/Semaphore.h"          // For pub::Semaphore
 #include "pub/System.h"             // For pub::System
@@ -51,7 +51,7 @@ using PUB::Debug;
 using PUB::Event;
 using PUB::Exception;
 using PUB::Interval;
-using PUB::Mutex;
+using PUB::mutex;
 using PUB::Named;
 using PUB::Semaphore;
 using PUB::Trace;                   // (When debugging)
@@ -78,8 +78,8 @@ enum // Generic enum
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-static Mutex           alphaMutex;
-static std::mutex      betaMutex;
+static pub::mutex      alphaMutex;
+static pub::mutex      betaMutex;
 static Semaphore       alphaSemaphore(1);
 static Semaphore       betaSemaphore(1);
 static Semaphore       timedSemaphore(0);

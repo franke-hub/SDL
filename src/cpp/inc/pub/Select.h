@@ -24,7 +24,7 @@
 #define _LIBPUB_SELECT_H_INCLUDED
 
 #include <functional>               // For std::function
-#include <mutex>                    // For std::mutex
+#include <mutex>                    // For std::lock_guard
 #include <string>                   // For std::string
 #include <cerrno>                   // For errno, EINVAL ...
 

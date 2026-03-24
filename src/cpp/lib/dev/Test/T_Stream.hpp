@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2025 Frank Eskesen.
+//       Copyright (C) 2022-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2025/05/06
+//       2026/03/23
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
@@ -198,7 +198,7 @@ public:
 std::shared_ptr<Client>client;      // The Client
 
 std::atomic_size_t     cur_op_count= 0; // The number of running requests
-std::mutex             mutex;       // Protects client
+pub::mutex             mutex;       // Protects client
 
 pub::Event             ready;       // Thread ready event
 pub::Event             send_end;    // Send completion event (for run_one)

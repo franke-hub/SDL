@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2024 Frank Eskesen.
+//       Copyright (C) 2018-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Compile header files that have no associated library module.
 //
 // Last change date-
-//       2024/12/20
+//       2026/03/23
 //
 // Implementation note-
 //       For dependency testing, include the file to be tested first.
@@ -32,7 +32,7 @@
 #include "pub/Interval.h"
 #include "pub/Ioda.h"
 #include "pub/Latch.h"
-#include "pub/Mutex.h"
+#include "pub/mutex.h"
 #include "pub/Semaphore.h"
 #include "pub/Signals.h"
 #include "pub/Statistic.h"

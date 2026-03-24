@@ -27,7 +27,7 @@
 #include <list>                     // For std::list
 #include <map>                      // For std::map
 #include <memory>                   // For std::shared_ptr
-#include <mutex>                    // For std::mutex, std::lock_guard
+#include <mutex>                    // For std::lock_guard, ...
 #include <string>                   // For std::string
 #include <cstdlib>                  // For size_t
 #include <cstring>                  // For memcmp

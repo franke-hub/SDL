@@ -17,11 +17,10 @@
 //       Implement http/Server.h
 //
 // Last change date-
-//       2026/03/17
+//       2026/03/23
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<serialno_t>
-#include <mutex>                    // For std::mutex, ..., base class
 #include <new>                      // For std::bad_alloc
 #include <stdexcept>                // For std::out_of_range, ...
 #include <string>                   // For std::string
@@ -35,6 +34,7 @@
 #include <pub/Event.h>              // For pub::Event
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Ioda.h>               // For pub::Ioda
+#include "pub/mutex.h"              // For pub::mutex, ..., base class
 #include <pub/Select.h>             // For pub::Select
 #include <pub/Socket.h>             // For pub::Socket
 #include <pub/Statistic.h>          // For pub::Active_record
@@ -267,7 +267,7 @@ virtual void
    Server::Server(                  // Constructor
      Listen*           listen,      // The creating Listener
      Socket*           socket)      // The server Socket
-:  std::mutex()
+:  pub::mutex()
 ,  listen(listen)
 ,  size_inp(BUFFER_SIZE)
 ,  size_out(BUFFER_SIZE)

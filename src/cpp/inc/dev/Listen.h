@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2025 Frank Eskesen.
+//       Copyright (C) 2022-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       HTTP Listen object.
 //
 // Last change date-
-//       2025/01/11
+//       2026/03/23
 //
 // Implementation notes-
 //       The Listen object is the Server analog to a Client Agent.
@@ -31,12 +31,13 @@
 #include <functional>               // For std::function
 #include <map>                      // For std::map
 #include <memory>                   // For std::shared_ptr
-#include <mutex>                    // For std::mutex
+#include <mutex>                    // For std::lock_guard
 #include <string>                   // For std::string
 #include <cstdlib>                  // For size_t
 #include <cstring>                  // For memcmp
 
 #include <pub/Debug.h>              // For pub::Debug
+#include <pub/mutex.h>              // For pub::mutex
 #include <pub/Select.h>             // For pub::Select
 #include <pub/Socket.h>             // For pub::Socket
 #include "pub/http/Options.h"       // For pub::http::Options
@@ -96,7 +97,7 @@ ListenAgent*           agent;       // Our owning Agent
 
 Socket                 listen;      // The listen Socket
 Map_t                  map;         // The Server map
-std::mutex             mutex;       // The Server map mutex
+pub::mutex             mutex;       // The Server map mutex
 
 Debug                  log;         // The logger object
 Options                opts;        // The Listen Options

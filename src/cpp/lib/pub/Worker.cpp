@@ -17,16 +17,16 @@
 //       Worker object methods.
 //
 // Last change date-
-//       2026/03/17
+//       2026/03/23
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<>
-#include <mutex>                    // For std::lock_guard, std::mutex
 #include <cstdlib>                  // For malloc, free
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
 #include "pub/Latch.h"              // For pub::Latch objects
+#include "pub/mutex.h"              // For pub::mutex, std::lock_guard
 #include "pub/Thread.h"             // For pub::Thread
 #include "pub/Trace.h"              // For pub::Trace
 #include "pub/Worker.h"             // For pub:: Worker, implemented
@@ -108,7 +108,7 @@ friend class WorkerPool;
 //----------------------------------------------------------------------------
 protected:
 bool                   operational; // TRUE while operational
-std::mutex             mutex;       // State switch mutex
+pub::mutex             mutex;       // State switch mutex
 Worker*                worker;      // The current Worker
 
 //----------------------------------------------------------------------------
@@ -264,7 +264,7 @@ void
      mutex.lock();
      done();
      {{{{
-       std::lock_guard<std::mutex> lock(mutex);
+       std::lock_guard<pub::mutex> lock(mutex);
      }}}}
 
      if( HCDM )

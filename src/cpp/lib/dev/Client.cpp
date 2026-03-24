@@ -17,7 +17,7 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2026/03/17
+//       2026/03/23
 //
 // Implmentation note-
 //       TODO: Test _read() disconnect (close processing)
@@ -45,6 +45,7 @@
 #include <pub/Event.h>              // For pub::Event
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Ioda.h>               // For pub::Ioda
+#include <pub/mutex.h>              // For pub::mutex
 #include <pub/Named.h>              // For pub::Named
 #include <pub/Statistic.h>          // For pub::Active_record
 #include <pub/Thread.h>             // For pub::Thread
@@ -232,7 +233,7 @@ static int                          // Actual password length
 static inline void
    initialize_SSL( void )           // Initialize SSL
 {
-static std::mutex      mutex;       // Latch protecting initialized
+static pub::mutex      mutex;       // Latch protecting initialized
 static bool            initialized= false; // TRUE when initialized
 
    std::lock_guard<decltype(mutex)> lock(mutex);
@@ -395,7 +396,7 @@ virtual void
 //----------------------------------------------------------------------------
    Client::Client(                  // Constructor
      ClientAgent*      owner)       // Our ClientAgent
-:  std::mutex()
+:  pub::mutex()
 ,  agent(owner)
 ,  proto_id(proto[HTTP_H1])
 ,  size_inp(BUFFER_SIZE)

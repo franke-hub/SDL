@@ -26,7 +26,7 @@
 
 #include <atomic>                   // For std::atomic
 #include <new>                      // For std::bad_alloc
-#include <mutex>                    // For std::mutex, std::lock_guard, ...
+#include <mutex>                    // For std::lock_guard, ...
 #include <stdexcept>                // For std::runtime_error
 #include <cassert>                  // For assert
 #include <cerrno>                   // For errno
