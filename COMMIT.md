@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2026/03/17
+//       2026/03/24
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -984,7 +984,7 @@ Threads.
   - Tests System::debug changes
   - Updated for changes to Latch.h field name changes
 
-### <a id="last-change">2026/03/17 maint/trunk</a>
+### 2026/03/17 maint/trunk
 - ~/src/cpp/Test/Test_mutex.cpp
   - Demonstration of Cygwin std::mutex bug
   - (This bug occurs running 'TimeDisp --size=0' after about seven hours.)
@@ -998,3 +998,9 @@ Threads.
   - Added additional diagnostics
 - ~/src/cpp/lib/dev/*.cpp
   - Defaulted internal trace off
+
+### <a id="last-change">2026/03/24 maint/trunk</a>
+- Created a new mutex type, pub::mutex, using it where possible
+  - Didn't change Event.h or Semaphore.h (This would required changing the
+condition_variable to condition_variable_any. Performance stress test
+measurement found this would degrade performance by about 20 percent.)
