@@ -17,7 +17,7 @@
 //       Mutex stress test.
 //
 // Last change date-
-//       2026/03/16
+//       2026/03/30
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -32,6 +32,12 @@
 // Constants for parameterization
 //----------------------------------------------------------------------------
 static double          opt_runtime= 60.0;
+
+enum                                // Generic enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
+};
+#define USE_FIXED_MUTEX false       // Use corrected mutex?
 
 //----------------------------------------------------------------------------
 //
@@ -100,7 +106,11 @@ static inline void
 static void
    do_something(void)               // Try to cause CYGWIN handle growth
 {
-   pub::mutex mutex;
+   #if( USE_FIXED_MUTEX )
+     pub::mutex mutex;
+   #else
+     std::mutex mutex;
+   #endif
 
    mutex.lock();
    mutex.unlock();
