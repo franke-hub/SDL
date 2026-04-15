@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2008-2020 Frank Eskesen.
+//       Copyright (C) 2008-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       URL Reader.
 //
 // Last change date-
-//       2020/01/15
+//       2026/04/06
 //
 //----------------------------------------------------------------------------
 import java.io.*;
@@ -61,7 +61,8 @@ public static HttpURLConnection     // Resultant HttpURLConnection
    URL                 url;         // URL
    HttpURLConnection   conn;        // URLConnection
 
-   url= new URL(urlString);
+// url= new URL(urlString);         // [deprecated]
+   url= new URI(urlString).toURL();
 // HttpURLConnection.setFollowRedirects(false); // Not allowed in Applets
    conn= (HttpURLConnection)url.openConnection();
    conn.setRequestMethod(method);

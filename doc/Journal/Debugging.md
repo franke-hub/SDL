@@ -17,7 +17,7 @@
 //       Document difficult to debug problems.
 //
 // Last change date-
-//       2026/03/16
+//       2026/03/30
 //
 -------------------------------------------------------------------------- -->
 
@@ -248,6 +248,25 @@ WorkerThread allocation.
 Note that pub::System::debug() provide relevants information.
 TimeDisp.cpp invokes pub::System::debug when option --verbose=2 (or higher) is
 specified.
+
+**(03/24/2026) An actual fix for the problem**
+
+We created a substitute mutex, pub::mutex, based on pthread which invokes
+pthread_mutex_destroy in its destructor. This was missing in Cygwin's
+std::mutex implementation.
+
+Note: We didn't correct Event.h or Semaphore.h.
+These both use a std::condition_variable and a std::mutex.
+To correct them, we would need to use std::condition_variable_any. Timing
+measurements indicate this takes about 20% more time.
+
+Our flow control Semaphore is static, so it's not deleted until the process
+exits and, in TimeDisp.cpp, we only  wait for Events once when the test is
+complete.
+
+Applications that use temporary pub::Event, pub::Semaphore, or
+pub::dispatch::Wait objects (which use Event objects internally) are still
+subject to the handle growth problem until the Cygwin fix becomes available.
 
 ----
 

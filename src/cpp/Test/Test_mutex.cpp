@@ -19,6 +19,9 @@
 // Last change date-
 //       2026/03/30
 //
+// Implementation notes-
+//       Parameters are ignored.
+//
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
 #include <mutex>                    // For std::lock_guard

@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2026/03/24
+//       2026/04/15
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -999,8 +999,14 @@ Threads.
 - ~/src/cpp/lib/dev/*.cpp
   - Defaulted internal trace off
 
-### <a id="last-change">2026/03/24 maint/trunk</a>
+### 2026/03/24 maint/trunk
 - Created a new mutex type, pub::mutex, using it where possible
   - Didn't change Event.h or Semaphore.h (This would required changing the
 condition_variable to condition_variable_any. Performance stress test
 measurement found this would degrade performance by about 20 percent.)
+
+### <a id="last-change">2026/04/15 maint/trunk</a>
+- ~/doc/Journal/Debugging.md
+  - Added documentation of Cygwin std::mutex fix.
+- ~/src/java/Webapp/usr/fne/appled/UrlReader.java
+  - Fixed deprecated URL(String) constructor
