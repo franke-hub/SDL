@@ -17,7 +17,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2026/03/23
+//       2026/04/22
 //
 // Arguments-
 //       With no arguments, --client defaulted
@@ -488,7 +488,8 @@ static int                          // Return code, 0 expected
    Debug::set(debug);
    if( opt_hcdm || USE_INTENSIVE ) { // If Hard Core INTENSIVE Debug Mode
      debug_set_mode(Debug::MODE_INTENSIVE);
-     debugh("HCDM: MODE_INTENSIVE\n");
+     if( opt_verbose )
+       debugh("HCDM: MODE_INTENSIVE\n");
    }
    debug_set_head(Debug::HEAD_THREAD | Debug::HEAD_TIME);
 
@@ -843,7 +844,7 @@ extern int
      debugf("%5s: Protocol (unencrypted)\n", "HTTP1");
      debugf("%5d: --major%s\n", opt_major, major_name());
      debugf("%5d: --minor%s\n", opt_minor, minor_name());
-     debugf("\n\n");
+     debugf("\n");
    }
 
    //-------------------------------------------------------------------------
@@ -901,14 +902,16 @@ extern int
 // Testing complete
 //----------------------------------------------------------------------------
    Thread::sleep(0.5);              // (Delay to allow cleanup)
-   debugf("\n");
-   if( error_count == 0 )
-     debugf("NO errors detected\n");
-   else if( error_count == 1 )
-     debugf("1 error detected\n");
-   else {
-     debugf("%zd errors detected\n", error_count.load());
-     error_count= 1;
+   if( opt_verbose || error_count != 0 ) {
+     debugf("\n");
+     if( error_count == 0 )
+       debugf("NO errors detected\n");
+     else if( error_count == 1 )
+       debugf("1 error detected\n");
+     else {
+       debugf("%zd errors detected\n", error_count.load());
+       error_count= 1;
+     }
    }
 
    term();                          // Terminate

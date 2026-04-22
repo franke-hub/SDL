@@ -17,7 +17,7 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2026/03/23
+//       2026/04/22
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
@@ -936,6 +936,8 @@ public:
    opts.insert("cert", cert_file);  // The public certificate file
    opts.insert("key",  priv_file);  // The private key file
    opts.insert("http1", "true");    // HTTP1 allowed
+   if( opt_verbose )
+     opts.insert("VERBOSE", "true");
 
    listen= listen_agent->connect(port, AF_INET, &opts); // Create Listener
    if( listen.get() == nullptr ) {
