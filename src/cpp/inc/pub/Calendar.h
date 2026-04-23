@@ -214,7 +214,7 @@ void
    set( void );                     // Set the Calendar from current time
 
 void
-   setYMD(                           // Set the Calendar
+   setYMD(                          // Set the Calendar
      int64_t           year,        // The year
      unsigned int      month,       // The month, range 1..12
      unsigned int      day)         // The day of the month, range 1..31
