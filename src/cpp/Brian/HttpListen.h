@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2025 Frank Eskesen.
+//       Copyright (C) 2022-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       The HTTP Listen object.
 //
 // Last change date-
-//       2025/01/20
+//       2026/04/23
 //
 //----------------------------------------------------------------------------
 #ifndef HTTPLISTEN_H_INCLUDED
@@ -60,7 +60,6 @@ typedef Map_t::iterator                       Map_iterator_t;
 
 typedef pub::Socket                 Socket_t;
 typedef pub::dispatch::Task         Task_t;
-typedef pub::dispatch::Work_i       Work_i;
 
 //----------------------------------------------------------------------------
 // HttpListen::Attributes
