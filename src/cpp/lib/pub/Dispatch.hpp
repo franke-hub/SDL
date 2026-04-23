@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2024 Frank Eskesen.
+//       Copyright (C) 2018-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Work dispatcher, including local definitions.
 //
 // Last change date-
-//       2024/12/20
+//       2026/04/23
 //
 // Implementation note-
 //       *ONLY* included from Dispatch.cpp (in namespace pub::dispatch)
@@ -122,7 +122,7 @@ virtual
 // Timers::Methods
 //----------------------------------------------------------------------------
 public:
-void
+bool                                // TRUE iff cancelled
    cancel(                          // Cancel
      void*             token)       // This timer event
 {  if( HCDM ) traceh("dispatch::Timers::cancel(%p)\n", token);
@@ -135,9 +135,11 @@ void
        list.remove(link, link);
        link->item->post(Item::CC_PURGE);
        delete link;
-       break;
+       return true;
      }
    }
+
+   return false;
 }
 
 void*                               // Cancellation token
