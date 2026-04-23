@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2012 Frank Eskesen.
+//       Copyright (c) 2012-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -14,64 +14,51 @@
 //       format.cpp
 //
 // Purpose-
-//       Format an input file.
+//       Format stdin, writing to stdout.
 //
 // Last change date-
-//       2012/01/01
+//       2026/04/20
+//
+// Implementation notes-
+//       Trailing blanks are *always* removed.
 //
 // Options-
-//       -fix:blank  [Remove empty lines]
-//       -fix:bs     [Change "C\b\C", "_\bC", and "C\b_" sequences to "C"]
-//       -mode:dos   [End each line with "\r\n"]
-//       -mode:unix  [End each line with "\n"]
+//       --hcdm        [Hard Core Debug Mode]
+//       --verbose{:n} [Verbosity, higher is more verbose]
+//
+//       --fix:empty   [Remove completely blank lines]
+//       // -fix:bs    [Change "C\b\C", "_\bC", and "C\b_" sequences to "C"]
+//       --mode:dos    [End each line with "\r\n"]
+//       --mode:unix   [End each line with "\n"]
 //
 //----------------------------------------------------------------------------
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-
-#include <com/define.h>
+#include <cstdio>                   // For fprintf
+#include <cstdlib>                  // For atoi, exit
+#include <cstring>                  // For strcmp
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
+enum                                // Generic enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
+}; // Generic enum
+
 enum MODE                           // Output mode
 {  MODE_NONE                        // No conversion
 ,  MODE_DOS                         // Convert to DOS format
 ,  MODE_UNIX                        // Convert to UNIX format
 }; // enum MODE
 
-enum FIX                            // Repair mode
-{  FIX_NONE                         // No conversion
-,  FIX_BLANK                        // Remove blank lines
-,  FIX_BS                           // Convert "C\bC" into "C"
-}; // enum MODE
-
 //----------------------------------------------------------------------------
 // Local data areas
 //----------------------------------------------------------------------------
-static int             fix=  FIX_NONE;  // Repair mode
-static int             mode= MODE_NONE; // Convertion mode
+static int             mode= MODE_NONE; // Conversion mode
 
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       fixName
-//
-// Purpose-
-//       Name associated with -fix parameter
-//
-//----------------------------------------------------------------------------
-static const char*                  // -fix: parameter
-   fixName( void )                  // Get -fix parameter name
-{
-   if( fix == FIX_BLANK )
-     return "BLANK";
-   if( fix == FIX_BS )
-     return "BS";
+static int             opt_hcdm= HCDM; // --hcdm
+static int             opt_verbose= VERBOSE; // --verbose
 
-   return "NONE";
-}
+static int             opt_empty= false; // --fix:empty
 
 //----------------------------------------------------------------------------
 //
@@ -87,10 +74,8 @@ static const char*                  // -mode: parameter
 {
    if( mode == MODE_DOS )
      return "DOS";
-
    if( mode == MODE_UNIX )
      return "UNIX";
-
    return "NONE";
 }
 
@@ -106,13 +91,21 @@ static const char*                  // -mode: parameter
 static void
    info( void )                     // Parameter fault exit
 {
-   fprintf(stderr, "format {options} <input >output\n");
-   fprintf(stderr, "\n");
-   fprintf(stderr, "Options:\n");
-   fprintf(stderr, "  -fix:blank Remove empty lines\n");
-   fprintf(stderr, "  -fix:bs    Convert \"C\\bC\", \"_\\bC\", or \"C\\b_\",  into \"C\"\n");
-   fprintf(stderr, "  -mode:dos  End each line with \\r\\n\n");
-   fprintf(stderr, "  -mode:unix End each line with \\n\n");
+   fprintf(stderr, "format {options}\n"
+           "  Copy stdin to stdout (with optional formatting)\n"
+           "  (Trailing blanks are *always* removed)\n"
+           "\n"
+           "Options:\n"
+           "  --hcdm\tHard Core Debug Mode\n"
+           "  --verbose{:n}\tVerbosity, higher is more verbose\n"
+           "\n"
+           "  --fix:empty\tRemove empty lines\n"
+//         "  --fix:bs\t"
+//         "Convert \"C\\bC\", \"_\\bC\", or \"C\\b_\",  into \"C\"\n"
+           "\n"
+           "  --mode:dos\tEnd each line with \\r\\n\n"
+           "  --mode:unix\tEnd each line with \\n\n"
+          );
    exit(EXIT_FAILURE);
 }
 
@@ -133,42 +126,39 @@ static void
    char*               argp;        // Argument pointer
    int                 argi;        // Argument index
 
-   int                 error;       // Error encountered indicator
-   int                 verify;      // Verification control
-
-   //-------------------------------------------------------------------------
-   // Defaults
-   //-------------------------------------------------------------------------
-   error= FALSE;                    // Default, no errors found
-   verify= 0;                       // Default, no verification
+   int                 help= false; // Help needed
 
    //-------------------------------------------------------------------------
    // Argument analysis
    //-------------------------------------------------------------------------
-   for( argi=1; argi<argc; argi++ ) // Analyze variable controls
-   {
+   for( argi=1; argi<argc; ++argi ) { // Analyze variable controls
      argp= argv[argi];              // Address the parameter
-     if( strcmp(argp, "-help") == 0 )
-       error= TRUE;
-
-     else if( strcmp(argp, "-verify") == 0 )
-       verify= TRUE;
-
-     else if( strcmp(argp, "-fix:blank") == 0 )
-       fix= FIX_BLANK;
-
-     else if( strcmp(argp, "-fix:bs") == 0 || strcmp(argp, "-fix:BS") == 0 )
-       fix= FIX_BS;
-
-     else if( strcmp(argp, "-mode:dos") == 0 || strcmp(argp, "-mode:DOS") == 0 )
+     if( strcmp(argp, "--help") == 0 )
+       help= true;
+     else if( strcmp(argp, "--hcdm") == 0 )
+       opt_hcdm= true;
+     else if( memcmp(argp, "--verbose", 9) == 0 ) {
+       opt_verbose= true;
+       if( strlen(argp) > 9 ) {     // If parameter specified
+         if( strlen(argp) == 10 || argp[9] != ':' ) { // If malformed
+           help= true;
+           fprintf(stderr, "Invalid parameter '%s'\n", argp);
+           continue;
+         } else {
+           opt_verbose= atoi(argp+10);
+         }
+       }
+     }
+//   else if( strcasecmp(argp, "--fix:bs") == 0 )
+//     fix= fix_bs;
+     else if( strcasecmp(argp, "--fix:empty") == 0 )
+       opt_empty= true;
+     else if( strcasecmp(argp, "--mode:dos") == 0 )
        mode= MODE_DOS;
-
-     else if( strcmp(argp, "-mode:unix") == 0 || strcmp(argp, "-mode:UNIX") == 0 )
+     else if( strcasecmp(argp, "--mode:unix") == 0 )
        mode= MODE_UNIX;
-
-     else
-     {
-       error= TRUE;
+     else {
+       help= true;
        fprintf(stderr, "Invalid parameter '%s'\n", argp);
      }
    }
@@ -176,13 +166,15 @@ static void
    //-------------------------------------------------------------------------
    // Completion analysis
    //-------------------------------------------------------------------------
-   if( error )                      // If error encountered
+   if( help )                       // If assistance required
      info();
 
-   if( verify )
-   {
-     fprintf(stderr, "-fix:%s\n",  fixName());
-     fprintf(stderr, "-mode:%s\n", modeName());
+   if( opt_verbose ) {
+     fprintf(stderr, "%5s --hcdm\n",    opt_hcdm ? "TRUE" : "FALSE");
+     fprintf(stderr, "%5d --verbose\n", opt_verbose);
+
+     fprintf(stderr, "%5s -fix:empty\n", opt_empty ? "TRUE" : "FALSE");
+     fprintf(stderr, "%5s --mode\n", modeName());
    }
 }
 
@@ -198,126 +190,87 @@ static void
 static void
    inp2out( void )                  // Copy stdin to stdout
 {
-   int                 blankCount;  // Number of skipped blanks
-
-   int P= getchar();                // Get first character
-   if( mode != MODE_NONE && P == '\r' )
-   {
-     while( P == '\r' )
-       P= getchar();
-   }
-
+   int blankCount= 0;               // Clear blank counter
    int O= '\n';                     // Last output character
-   blankCount= 0;                   // Clear blank counter
-   for(;;)
-   {
-     if( P < 0 )
+   int I= getchar();                // Current input character
+   for(;;) {
+     if( I < 0 )
        break;
 
-     if( P == '\r' )
-     {
+     if( I == '\r' ) {
        if( mode == MODE_NONE )
-       {
-         O= P;
-         putchar(P);
-       }
+         putchar(I);
 
-       P= getchar();
+       I= getchar();
        continue;
      }
 
-     if( P == '\n' )
-     {
+     if( I == '\n' ) {
        blankCount= 0;
 
-       if( fix == FIX_BLANK )
-       {
-         if( O == '\n' )
-         {
-           P= getchar();
+       if( opt_empty ) {
+         if( O == '\n' ) {
+           I= getchar();
            continue;
          }
        }
 
-       if( mode != MODE_DOS )
-         putchar(P);
-       else
-       {
+       if( mode == MODE_DOS )
          putchar('\r');
-         putchar(P);
-       }
 
-       O= P;
-       P= getchar();
+       putchar(I);
+
+       O= I;
+       I= getchar();
        continue;
      }
 
-     if( fix == FIX_BLANK )
-     {
-       if( O == '\n' )              // If still scanning
-       {
-         if( P == ' ' )
-         {
-           blankCount++;
+     if( I == ' ' ) {
+       ++blankCount;
 
-           P= getchar();
-           continue;
-         }
-         else                       // Non-blank found
-         {
-           while( blankCount > 0 )
-           {
-             putchar(' ');
-             blankCount--;
-           }
-         }
-       }
+       I= getchar();
+       continue;
      }
 
-     else if( fix == FIX_BS )
-     {
+     // The current character isn't '\r', '\n', or ' '
+     while( blankCount > 0 ) {
+       putchar(' ');
+       --blankCount;
+     }
+
+     // Handle backspace
+     if( false ) {                  // Not sure what's wanted here
        int C= getchar();
-       if( C == '\b' )
-       {
+       if( C == '\b' ) {
          C= getchar();
-         if( P == '\b' )
-         {
-           putchar(P);
-           O= P;
-           P= C;
-         }
-
-         else if( P == '_' || C == '_' || P == C )
-         {
-           if( P == '_' )
-             P= C;
-         }
-
-         else
-         {
-           putchar(P);
+         if( I == '\b' ) {
+           putchar(I);
+           O= I;
+           I= C;
+         } else if( I == '_' || C == '_' || I == C ) {
+           if( I == '_' )
+             I= C;
+         } else {
+           putchar(I);
            putchar('\b');
            O= '\b';
-           P= C;
+           I= C;
          }
-       }
-       else
-       {
-         putchar(P);
-         O= P;
-         P= C;
+       } else {
+         putchar(I);
+         O= I;
+         I= C;
        }
 
        continue;
      }
 
-     putchar(P);
-     O= P;
-     P= getchar();
+     putchar(I);
+     O= I;
+     I= getchar();
    }
 
-   if( O != '\n' )
-   {
+   if( O != '\n' ) {
      if( mode == MODE_DOS )
        putchar('\r');
 
