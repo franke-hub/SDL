@@ -17,7 +17,7 @@
 //       The HTTP Server object.
 //
 // Last change date-
-//       2026/04/23
+//       2026/04/24
 //
 //----------------------------------------------------------------------------
 #ifndef HTTPSERVER_H_INCLUDED
@@ -59,7 +59,7 @@ typedef   std::weak_ptr<HttpServer> Server_wt;
 typedef pub::Ioda                   Ioda_t;
 typedef pub::Socket                 Socket_t;
 typedef pub::dispatch::LambdaTask   Task_t;
-typedef pub::dispatch::Work_if      Work_if;
+typedef Task_t::Work_if             Work_if;
 
 typedef StaticCommon::Event_t       Event_t;
 typedef pub::signals::Connector     Connector;

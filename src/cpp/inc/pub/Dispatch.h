@@ -17,7 +17,7 @@
 //       Work dispatcher.
 //
 // Last change date-
-//       2026/04/23
+//       2026/04/25
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_DISPATCH_H_INCLUDED
@@ -200,12 +200,14 @@ Done*                  done= nullptr; // Completion callback
 
    Item(                            // Constructor
      Done*             done)        // -> Done callback object
-:  done(done) { }
+:  done(done)
+{  }
 
    Item(                            // Constructor
      int               fc,          // Function code
      Done*             done= nullptr) // -> Done callback object
-:  fc(fc), done(done) { }
+:  fc(fc), done(done)
+{  }
 
 virtual
    ~Item( void ) = default;         // Destructor
@@ -292,7 +294,7 @@ virtual void                        // (IMPLEMENT this method)
      Item*             item);       // This work Item
 
 private:
-void                                // The Worker interface
+virtual void                        // The Worker interface
    work( void ) final;              // Drain work from Task
 }; // class pub::dispatch::Task
 
@@ -325,13 +327,14 @@ Event                  event;       // For wait/post
 // pub::dispatch::Wait::Constructors/destructor
 //----------------------------------------------------------------------------
 public:
-   Wait( void ) : Done() {}         // Constructor
+   Wait( void ) : Done()            // Default constructor
+{  }
 
    Wait(const Wait&) = delete;      // Disallowed copy constructor
    Wait& operator=(const Wait&) = delete; // Disallowed assignment operator
 
 virtual
-   ~Wait( void ) {}                 // Destructor
+   ~Wait( void ) = default;         // Destructor
 
 //----------------------------------------------------------------------------
 // pub::dispatch::Wait::Methods
@@ -353,18 +356,6 @@ virtual void
 
 //----------------------------------------------------------------------------
 //
-// Typedef-
-//       pub::dispatch::Work_if
-//
-// Purpose-
-//       Work method interface
-//
-//----------------------------------------------------------------------------
-typedef std::function<void(Item*)>
-                        Work_if;    // The work method interface
-
-//----------------------------------------------------------------------------
-//
 // Class-
 //       pub::dispatch::LambdaDone
 //
@@ -377,7 +368,7 @@ typedef std::function<void(Item*)>
 //       The original done() method now "belongs" to LambdaDone.
 //
 // Sample usage (which performs the default action)-
-//       LambdaDone done([this](Item* item) {
+//       LambdaDone done([](Item* item) {
 //         // Your code goes here
 //         item->post();
 //      });
@@ -387,8 +378,12 @@ class LambdaDone : public Done {    // The dispatch::LambdaDone callback Object
 //----------------------------------------------------------------------------
 // pub::dispatch::LambdaDone::Attributes
 //----------------------------------------------------------------------------
+public:
+typedef std::function<void(Item*)>
+                       Done_if;     // The done method interface
+
 protected:
-Work_if                do_done;     // The completion handler
+Done_if                do_done;     // The completion handler
 
 //----------------------------------------------------------------------------
 // pub::dispatch::LambdaDone::Constructors/destructor
@@ -398,8 +393,9 @@ public:
 :  Done()                           // (Callback not initialized)
 {  }
 
-   LambdaDone(Work_if f)            // Constructor
-:  Done(), do_done(f) {}
+   LambdaDone(Done_if f)            // Constructor
+:  Done(), do_done(f)
+{  }
 
 virtual
    ~LambdaDone( void ) = default;   // Destructor
@@ -408,7 +404,7 @@ virtual
 // pub::dispatch::LambdaDone::Methods
 //----------------------------------------------------------------------------
 void
-   on_done(Work_if f)               // Replace do_done
+   on_done(Done_if f)               // Replace do_done
 {  do_done= f; }
 
 virtual void
@@ -431,13 +427,17 @@ virtual void
 //       The original work() method now "belongs" to LambdaTask.
 //
 // Sample usage (which performs the default action)-
-//       LambdaTask task([this](Item* item) {
+//       LambdaTask task([](Item* item) {
 //         // Your code goes here
 //         item->post();
 //      });
 //
 //----------------------------------------------------------------------------
 class LambdaTask : public Task {    // Dispatch Lambda Task
+public:
+typedef std::function<void(Item*)>
+                       Work_if;     // The Task's work method interface
+
 protected:
 Work_if                do_work;     // The Work item handler
 
@@ -448,7 +448,8 @@ public:
 
    LambdaTask(                      // Instantiate work method
      Work_if           f)           // With this lambda function
-:  Task(), do_work(f) {}
+:  Task(), do_work(f)
+{  }
 
 virtual
    ~LambdaTask( void ) = default;   // Destructor
