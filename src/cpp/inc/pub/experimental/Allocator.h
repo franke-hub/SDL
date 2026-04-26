@@ -19,6 +19,9 @@
 // Last change date-
 //       2022/09/02
 //
+// Implementation notes-
+//       Moved to ~/src/cpp/inc/pub/experimental. Not ready for distribution.
+//
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_ALLOCATOR_H_INCLUDED
 #define _LIBPUB_ALLOCATOR_H_INCLUDED

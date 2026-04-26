@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2022 Frank Eskesen.
+//       Copyright (C) 2020-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -14,10 +14,13 @@
 //       Allocator.cpp
 //
 // Purpose-
-//       Allocator method implementations.
+//       Implement pub/experimental/Allocator.h
 //
 // Last change date-
-//       2022/09/02
+//       2026/04/26
+//
+// Implementation note-
+//       Allocator.h moved to experimental: This isn't ready for distribution.
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::bad_alloc, ...
@@ -25,7 +28,7 @@
 #include <cstdlib>                  // For malloc, free
 
 #include <pub/Debug.h>              // For pub::Debug, namespace pub::debugging
-#include "pub/Allocator.h"          // For pub::Allocator, implemented
+#include "pub/experimental/Allocator.h" // For pub::Allocator, implemented
 
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB::debugging;     // For debugging functions

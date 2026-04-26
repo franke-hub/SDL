@@ -28,7 +28,7 @@
 
 #include <cstdlib>                  // For size_t
 
-#include "pub/Allocator.h"          // For Allocator (base class)
+#include "pub/experimental/Allocator.h" // For Allocator (base class)
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
