@@ -17,7 +17,7 @@
 //       Test time functions: Calendar, Clock, Julian
 //
 // Last change date-
-//       2025/04/02
+//       2025/04/26
 //
 //----------------------------------------------------------------------------
 #include <clocale>                  // For setlocale
@@ -111,12 +111,13 @@ static inline void
 //       verify_day
 //
 // Purpose-
-//       Verify Julian date and calendar/clock consitency
+//       Verify Julian date and calendar/clock consistency
 //
 //----------------------------------------------------------------------------
 static inline bool                  // TRUE if values are (approximately) equal
    verify_day(                      // Verify                                     // Cut/paste source
-     double            date)        // This Julian date
+     double            date,        // This Julian date
+     int               verbosity= opt_verbose)
 {
    bool                OK= true;    // (So far, so good)
 
@@ -124,7 +125,7 @@ static inline bool                  // TRUE if values are (approximately) equal
    Calendar calendar(rhj);
    Julian lhj= (Julian)calendar;
 
-   double PRECISION= 1000000.0;     // Day to Calendar to Day precision
+   double PRECISION= 1000000.0;     // Require microsecond precision
    int64_t lhi= int64_t( (double)lhj * PRECISION );
    int64_t rhi= int64_t( (double)rhj * PRECISION );
    if( lhi != rhi ) {
@@ -137,7 +138,6 @@ static inline bool                  // TRUE if values are (approximately) equal
    Julian julian(rhc);
    Clock lhc= (Clock)julian;
 
-   PRECISION= 10000.0;              // Clock to Day to Clock precision
    lhi= int64_t( (double)lhc * PRECISION );
    rhi= int64_t( (double)rhc * PRECISION );
    if( abs(lhi - rhi) > 1 ) {
@@ -147,8 +147,8 @@ static inline bool                  // TRUE if values are (approximately) equal
            , lhi / PRECISION, julian.get(), rhi / PRECISION);
      OK= false;
    }
-   if( OK && (opt_hcdm || opt_verbose > 1) ) {
-     debugf("verify_day OK: %02d/%02d/%04zd%s  %'16.6f  %'20.3f\n"
+   if( OK && (verbosity > 1) ) {
+     debugf("verify_day OK: %02d/%02d/%04zd%s  %'18.8f  %'20.3f\n"
            , calendar.get_month(), calendar.get_day(), calendar.get_year()
            , calendar.get_year() >= -999 ? " " : ""
            , lhj.get(), rhc.get());
@@ -177,51 +177,79 @@ static inline int
    // Verify the Calendar range -5000 .. 5000
    double MIN_JULIAN= -105192;      // 1/1/-5000 Julian
    double MAX_JULIAN= 3547273;      // 1/1/+5000 Gregorian
-   int old_verbose= opt_verbose;
-   if( opt_verbose > 1 || opt_display )
+   int verbosity= opt_verbose;
+   if( verbosity > 1 || opt_display ) {
      debugf("\nVerifying Calendar day range:\n");
+     debugf("               --- year --   -- Julian date --  ---- Clock time ----\n");
+   }
 
    for(int64_t day= MIN_JULIAN; day <MAX_JULIAN; ++day) {
+     int v_verbosity= verbosity;    // Verification verbosity
      if( opt_display ) {
-       opt_verbose= old_verbose;
-       if( day < (MIN_JULIAN + 15) ) opt_verbose= 2;
-       if( day > (MAX_JULIAN - 15) ) opt_verbose= 2;
+       if( day < (MIN_JULIAN + 15) ) v_verbosity= 2;
+       if( day > (MAX_JULIAN - 15) ) v_verbosity= 2;
      }
 
-     error_count += VERIFY( verify_day(day) );
+     error_count += VERIFY( verify_day(day, v_verbosity) );
      if( error_count > 16 )         // (Broken code escape)
        break;
    }
 
    // Verify the time of day 0.0 .. 1.0
-   if( opt_verbose > 1 || opt_display )
+   if( verbosity > 1 || opt_display ) {
      debugf("\nVerifying Calendar time of day range:\n");
+     debugf("               --- year --   -- Julian date --  ---- Clock time ----\n");
+   }
 
-   double increment= 0.123456789 / 86400.0;
-   for(double tod= 0.0; tod < 1.0; tod += increment) {
+   double increment= 0.123456789 / 864000.0;
+   for(double tod= increment; tod < 1.0; tod += increment) {
+     int v_verbosity= verbosity;    // Verification verbosity
      if( opt_display ) {
-       opt_verbose= old_verbose;
-       if( tod <= 0.0 + increment * 15 ) opt_verbose= 2;
-       if( tod >= 1.0 - increment * 15 ) opt_verbose= 2;
+       if( tod <= 0.0 + increment * 15 ) v_verbosity= 2;
+       if( tod >= 1.0 - increment * 15 ) v_verbosity= 2;
      }
 
-     error_count += VERIFY( verify_day(MIN_JULIAN + tod) );
-     error_count += VERIFY( verify_day(MAX_JULIAN - tod) );
+     error_count += VERIFY( verify_day(MIN_JULIAN - tod, v_verbosity) );
      if( error_count > 16 )         // (Broken code escape)
        break;
    }
 
-   if( opt_verbose > 1 || opt_display )
-     debugf("\n");
    for(double tod= 0.0; tod < 1.0; tod += increment) {
+     int v_verbosity= verbosity;    // Verification verbosity
      if( opt_display ) {
-       opt_verbose= old_verbose;
-       if( tod <= 0.0 + increment * 15 ) opt_verbose= 2;
-       if( tod >= 1.0 - increment * 15 ) opt_verbose= 2;
+       if( tod <= 0.0 + increment * 15 ) v_verbosity= 2;
+       if( tod >= 1.0 - increment * 15 ) v_verbosity= 2;
      }
 
-     error_count += VERIFY( verify_day(MIN_JULIAN - tod) );
-     error_count += VERIFY( verify_day(MAX_JULIAN + tod) );
+     error_count += VERIFY( verify_day(MIN_JULIAN + tod, v_verbosity) );
+     if( error_count > 16 )         // (Broken code escape)
+       break;
+   }
+
+   if( verbosity > 1 || opt_display ) {
+     debugf("\n");
+     debugf("               --- year --   -- Julian date --  ---- Clock time ----\n");
+   }
+   for(double tod= increment; tod < 1.0; tod += increment) {
+     int v_verbosity= verbosity;    // Verification verbosity
+     if( opt_display ) {
+       if( tod <= 0.0 + increment * 15 ) v_verbosity= 2;
+       if( tod >= 1.0 - increment * 15 ) v_verbosity= 2;
+     }
+
+     error_count += VERIFY( verify_day(MAX_JULIAN - tod, v_verbosity) );
+     if( error_count > 16 )         // (Broken code escape)
+       break;
+   }
+
+   for(double tod= 0.0; tod < 1.0; tod += increment) {
+     int v_verbosity= verbosity;    // Verification verbosity
+     if( opt_display ) {
+       if( tod <= 0.0 + increment * 15 ) v_verbosity= 2;
+       if( tod >= 1.0 - increment * 15 ) v_verbosity= 2;
+     }
+
+     error_count += VERIFY( verify_day(MAX_JULIAN + tod, v_verbosity) );
      if( error_count > 16 )         // (Broken code escape)
        break;
    }
@@ -579,6 +607,7 @@ extern int                          // Return code
    tc.on_info([]() {
      fprintf(stderr, "  --all\t\tRun Calendar.h, Clock.h, and Julian.h tests\n");
      fprintf(stderr, "  --dirty\tRun dirty test\n");
+     fprintf(stderr, "  --display\tDisplay boundary verification results\n");
      fprintf(stderr, "  --size\tRun object size test\n");
      fprintf(stderr, "  --calendar\tRun Calender.h tests\n");
      fprintf(stderr, "  --clock\tRun Clock.h tests\n");
