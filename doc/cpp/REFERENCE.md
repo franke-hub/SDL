@@ -17,7 +17,7 @@
 //       SDL Distribution reference manual
 //
 // Last change date-
-//       2026/02/20
+//       2026/04/26
 //
 -------------------------------------------------------------------------- -->
 # Software Development Lab (SDL) C++ Library Reference Manual
@@ -37,10 +37,13 @@ distribution.
 The COM (common) library uses namespace `com`.
 It defines general-purpose utility objects.
 
-While this library is still maintined, much of its functionality has been
+While this library is still maintained, much of its functionality has been
 moved to the PUB library.
 
-The source code provides the only documentation.
+The source code currently provides the only documentation.
+
+This library is compile tested, but not regression tested. That is, the
+library and test programs are compiled but not executed.
 
 ### The DEV Library
 
@@ -54,20 +57,28 @@ It is currently experimental.
 The source code currently provides the only documentation.
 When ready, documentation will be added here.
 
+This library is regression tested.
+
 ### The GUI Library
 
 The GUI (Graphical User Interface) library uses namespace `gui`.
 It defines GUI objects used by the XCB editor (~/src/cpp/Edit/Xcb/*,)
 replacing the library now in ~/src/cpp/inc/.OBSOLETE/gui.
 
-The source code provides the only documentation.
+The source code currently provides the only documentation.
+
+This library is compile tested, but not regression tested. That is, the
+library and test programs are compiled but (usually) not executed.
 
 ### The OBJ Library
 
 The OBJ (object) library uses namespace `obj`.
 It defines automatic thread-safe storage management capabilities.
 
-The source code provides the only documentation.
+The source code currently provides the only documentation.
+
+This library is compile tested, but not regression tested. That is, the
+library and test programs are compiled but not executed.
 
 ### The PUB Library
 
@@ -77,12 +88,12 @@ It defines general-purpose utility objects.
 While a smattering of Doxygen source documentation exists, it will be removed
 after completing this documentation.
 
+This library is regression tested for every trunk release.
+
 __TODO__ Update in progress.
 
-- [Allocator.h:](./Allocator.md) An experimental storage allocator.
-(It's use is not currently recommended.)
 - [ASCII.h:](../../src/cpp/inc/pub/ASCII.h) A list of ASCII characters.
-This is intended as a reference rather than an include file.
+This is intended for use as a reference rather than an include file.
 - [Clock.h:](./Clock.md) An epoch-offset clock, represented as a double.
 - [config.h:](./config.md) Provides a (minimal) set of user macros.
 The SDL libraries avoid using macros, preferring `enum` where possible.
@@ -91,13 +102,13 @@ collisions.)
 - [Console.h:](./Console.md) Wrappers for console I/O functions.
 - [Debug.h:](./Debug.md) Debugging tools
 - [diag-shared_ptr.h:](./diag-shared_ptr.md) A diagnostic tool for debugging
-std::shared_ptr and std::weak_ptr usage problems.
+std\::shared_ptr and std\::weak_ptr usage problems.
 - [diag-pristine.h:](./diag-pristine.md) A diagnostic tool for debugging
 "wild store" problems.
 - [Dispatch.h:](./Dispatch.md) Provides lock-free multi-threading control
 mechanisms.
 - Event.h: Provides a wait/post event handling mechanism.
-- Exception.h: (to be removed?) Provides a base Exception.
+- Exception.h: (to be removed?) Provides a base pub\::Exception.
 - Fileman.h: Provides file handling utility functions.
 - Hardware.h: Mechanisms for reading the link pointer, stack pointer, and
 timestamp counter.
@@ -125,9 +136,15 @@ overhead than a mutex.
   - [Sort:](./pub_list-SORT.md) An alias for DHDL_sort.
 - Lock.h: Provides a process-wide named lock.
 - memory.h: Implements atomic_shared_ptr<class T>, currently via boost.
-- Must.h: Provides utility routines that throw std::bad_alloc instead of
+- Must.h: Provides utility routines that throw std\::bad_alloc instead of
 returning nullptr.
-- Mutex.h: (This is simply a std::mutex and an Object.)
+- mutex.h: Defines pub::mutex, replacing std::mutex
+  - This mutex *guarantees* that it can be locked in one thread and unlocked
+by another.
+  - In Cygwin, std::mutex has a bug which causes the Windows handle count to
+grow until it's unable to allocate another handle and throws an exception.
+(This problem has been reported and will be fixed.)
+    - pub::mutex does not have the bug.
 - Named.h: Adds the capability for a class to have a name.
 - Number.h: Number holds a numeric integer value of any (byte) length > 8.
 - Object.h: A base class for Objects providing utility functions.
@@ -152,6 +169,11 @@ with a memory-mapped file, handy for debugging multi-threading problems.
 - [Worker.h:](./Worker.md) Worker is an interface class that provides thread
 scheduling via WorkerPool, a thread pool manager.
 - Wrapper.h: A generic program wrapper with user lambda functions exits.
+
+#### Library features
+
+- [Multi-threading Management](./Multi-threading.md)
+- [Time Management](./Time-representation.md)
 
 ---
 [Back](../index.md)

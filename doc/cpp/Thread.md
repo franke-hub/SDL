@@ -17,7 +17,7 @@
 //       Thread.h reference manual
 //
 // Last change date-
-//       2026/02/20
+//       2026/04/17
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Thread.h>
@@ -58,3 +58,26 @@ Method Thread::current uses this to quickly locate the current Thread.
 | [start](./pub_thread.md#start)             | Start the Thread              |
 | [drive](./pub_thread.md#drive)             | Drive the Thread              |
 | [start_failure](./pub_thread.md#failure)   | Handle start failure          |
+
+#### Example
+
+```cpp
+#include <cstdio>
+#include <pub/Thread.h>
+
+class MyThread : public pub::Thread {
+public:
+    void run() override {
+        printf("Hello from thread\n");
+    }
+};
+
+int main() {
+    MyThread t;
+    t.start();
+    t.join();
+}
+```
+
+`start()` launches the thread and returns immediately.
+`join()` blocks until `run()` returns.
