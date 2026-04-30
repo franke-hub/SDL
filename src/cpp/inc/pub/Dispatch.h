@@ -160,7 +160,7 @@ virtual void                        // OVERRIDE this method
 //
 // Implementation notes-
 //       All negative function codes are handled internally by the Dispatcher.
-//       They are not passed to DispatchTask::work().
+//       They are not passed to Task::work().
 //
 //       When post() is invoked:
 //         if done != nullptr, done->done(this) is invoked.

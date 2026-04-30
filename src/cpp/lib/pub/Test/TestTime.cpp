@@ -17,7 +17,7 @@
 //       Test time functions: Calendar, Clock, Julian
 //
 // Last change date-
-//       2025/04/26
+//       2025/04/29
 //
 //----------------------------------------------------------------------------
 #include <clocale>                  // For setlocale
@@ -51,6 +51,15 @@ enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 }; // enum
+
+static const double    MICRODAY= 0.000001; // Microday precison
+static const double    SPD= 86'400; // Seconds Per Day
+
+// Verification (Julian) date ranges
+static double          MIN_GREGOR= 2458850; // 1/1/2020
+static double          MAX_GREGOR= 2462503; // 1/1/2030
+static double          MIN_JULIAN= -105192; // 1/1/-5000 Julian
+static double          MAX_JULIAN= 3547273; // 1/1/+5000 Gregorian
 
 //----------------------------------------------------------------------------
 // Internal data areas
@@ -108,51 +117,138 @@ static inline void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       D2C
+//
+// Purpose-
+//       Convert double to Clock
+//
+//----------------------------------------------------------------------------
+
+static inline Clock                 // Associated Clock
+   D2C(                             // Convert Julian date to Clock
+     double            date)        // The Clock time
+{  Clock clock(date);  return clock; }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       verify_day
 //
 // Purpose-
-//       Verify Julian date and calendar/clock consistency
+//       Verify Julian and Calendar/Clock consistency
+//
+// Implementation notes:
+//       Checks: Julian=>Calendar=>Julian
+//       Checks: Clock=>Julian=>Clock
 //
 //----------------------------------------------------------------------------
 static inline bool                  // TRUE if values are (approximately) equal
-   verify_day(                      // Verify                                     // Cut/paste source
-     double            date,        // This Julian date
+   verify_day(                      // Verify
+     const Julian&     rhj,         // This Julian date
+     double            precision,   // To this precision
      int               verbosity= opt_verbose)
 {
    bool                OK= true;    // (So far, so good)
 
-   Julian rhj(date);
-   Calendar calendar(rhj);
-   Julian lhj= (Julian)calendar;
+   // Julian=>Calendar=>Julian
+   Calendar rhy(rhj);               // Julian=>Calendar
+   Clock    rhc(rhj);               // Julian=>Clock
+   Julian   lhj(rhy);               // Julian=>Calendar=>Julian
 
-   double PRECISION= 1000000.0;     // Require microsecond precision
-   int64_t lhi= int64_t( (double)lhj * PRECISION );
-   int64_t rhi= int64_t( (double)rhj * PRECISION );
-   if( lhi != rhi ) {
-     debugf("%4d verify_day NG: %'14.6f = %s = %'14.6f\n", __LINE__
-           , lhi / PRECISION, s2c((string)calendar), rhi / PRECISION);
+   if( fabs((double)lhj - (double)rhj) > precision ) {
+     debugf("verify_day NG: %02d/%02d/%04zd%s  %'18.8f  %'23.6f\n"
+           , rhy.get_month(), rhy.get_day(), rhy.get_year()
+           , rhy.get_year() >= -999 ? " " : ""
+           , rhj.get(), rhc.get());
+     debugf("Julian: %'14.6f != %'14.6f; Julian=>Calendar=>Julian\n"
+           , (double)lhj, (double)rhj);
      OK= false;
    }
 
-   Clock rhc= (Clock)rhj;
-   Julian julian(rhc);
-   Clock lhc= (Clock)julian;
+   // Clock=>Julian=>Clock
+   lhj=     rhc;                    // (Julian=>)Clock=>Julian
+   Clock    lhc(lhj);               // (Julian=>)Clock=>Julian=>Clock
 
-   lhi= int64_t( (double)lhc * PRECISION );
-   rhi= int64_t( (double)rhc * PRECISION );
-   if( abs(lhi - rhi) > 1 ) {
-     debugf("%4d verify_day NG: %s\n"
-            "     Clock(%'.3f) = Julian(%'.6f) = Clock(%'.3f)\n", __LINE__
-           , s2c((string)calendar)
-           , lhi / PRECISION, julian.get(), rhi / PRECISION);
+   if( fabs((double)lhc - (double)rhc) > precision ) {
+     debugf("verify_day NG: %02d/%02d/%04zd%s  %'18.8f  %'23.6f\n"
+           , rhy.get_month(), rhy.get_day(), rhy.get_year()
+           , rhy.get_year() >= -999 ? " " : ""
+           , rhj.get(), rhc.get());
+     debugf("Clock: %'14.6f != %'14.6f; Julian=>Clock=>Julian=>Clock\n"
+           , (double)lhc, (double)rhc);
      OK= false;
    }
+
    if( OK && (verbosity > 1) ) {
-     debugf("verify_day OK: %02d/%02d/%04zd%s  %'18.8f  %'20.3f\n"
-           , calendar.get_month(), calendar.get_day(), calendar.get_year()
-           , calendar.get_year() >= -999 ? " " : ""
-           , lhj.get(), rhc.get());
+     debugf("verify_day OK: %02d/%02d/%04zd%s  %'18.8f  %'23.6f\n"
+           , rhy.get_month(), rhy.get_day(), rhy.get_year()
+           , rhy.get_year() >= -999 ? " " : ""
+           , lhj.get(), lhc.get());
    }
+
+   return OK;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       verify_tod
+//
+// Purpose-
+//       Verify Clock and Calendar/Julian consistency
+//
+// Implementation notes:
+//       Checks: Clock=>Calendar=>Clock
+//       Checks: Julian=>Clock=>Julian
+//
+//----------------------------------------------------------------------------
+static inline bool                  // TRUE if values are (approximately) equal
+   verify_tod(                      // Verify
+     const Clock&      rhc,         // This Clock time
+     double            precision,   // To this precision
+     int               verbosity= opt_verbose)
+{
+   bool                OK= true;    // (So far, so good)
+
+   // Clock=>Calendar=>Clock
+   Calendar rhy(rhc);               // Clock=>Calendar
+   Julian   rhj(rhc);               // Clock=>Julian
+   Clock    lhc= (Clock)rhy;        // Clock=>Calendar=>Clock
+
+   if( abs((double)lhc - (double)rhc) > precision ) {
+     debugf("verify_tod NG: %02d/%02d/%04zd%s  %'18.8f  %'23.6f\n"
+           , rhy.get_month(), rhy.get_day(), rhy.get_year()
+           , rhy.get_year() >= -999 ? " " : ""
+           , rhj.get(), rhc.get());
+     debugf("Clock: %'14.8f != %'14.8f; Clock=>Calendar=>Clock\n"
+           , (double)lhc, (double)rhc);
+     debugf("Clock: %'14.8f != %'14.8f; Clock=>Calendar=>Clock\n"
+           , (double)lhc, (double)rhc);
+     OK= false;
+   }
+
+   // (Clock=>)Julian=>Clock=>Julian
+   lhc= (Clock)rhj;                 // (Clock=>)Julian=>Clock
+   Julian   lhj(lhc);               // (Clock=>)Julian=>Clock=>Julian
+   if( abs((double)lhj - (double)rhj) > precision ) {
+     debugf("verify_tod NG: %02d/%02d/%04zd%s  %'18.8f  %'23.6f\n"
+           , rhy.get_month(), rhy.get_day(), rhy.get_year()
+           , rhy.get_year() >= -999 ? " " : ""
+           , rhj.get(), rhc.get());
+     debugf("Julian: %'14.8f != %'14.8f; Clock=>Julian=>Clock=>Julian\n"
+           , (double)lhj, (double)rhj);
+     OK= false;
+   }
+
+   if( OK && (verbosity > 1) ) {
+     debugf("verify_tod OK: %02d/%02d/%04zd%s  %'18.8f  %'23.6f\n"
+           , rhy.get_month(), rhy.get_day(), rhy.get_year()
+           , rhy.get_year() >= -999 ? " " : ""
+           , (double)rhj, (double)rhc);
+   }
+
+   // Why does this work? (Converts Calendar=>Julian=>Clock)
+   Clock foo(rhy);
 
    return OK;
 }
@@ -174,34 +270,48 @@ static inline int
 
    int error_count= 0;
 
-   // Verify the Calendar range -5000 .. 5000
-   double MIN_JULIAN= -105192;      // 1/1/-5000 Julian
-   double MAX_JULIAN= 3547273;      // 1/1/+5000 Gregorian
    int verbosity= opt_verbose;
    if( verbosity > 1 || opt_display ) {
-     debugf("\nVerifying Calendar day range:\n");
-     debugf("               --- year --   -- Julian date --  ---- Clock time ----\n");
+     debugf("\nVerifying Calendar day:\n");
+     debugf("               --- year --  --- Julian date --"
+            "  ------ Clock time -----\n");
    }
 
    for(int64_t day= MIN_JULIAN; day <MAX_JULIAN; ++day) {
      int v_verbosity= verbosity;    // Verification verbosity
      if( opt_display ) {
        if( day < (MIN_JULIAN + 15) ) v_verbosity= 2;
+       if( day >= MIN_GREGOR && day <= MAX_GREGOR ) {
+         if( day <= (MIN_GREGOR + 15) ) v_verbosity= 2;
+         if( day >= (MAX_GREGOR - 15) ) v_verbosity= 2;
+       }
        if( day > (MAX_JULIAN - 15) ) v_verbosity= 2;
      }
+     if( v_verbosity > 1 && (day == MIN_GREGOR
+                          || day == (MAX_GREGOR - 15)) )
+       debugf("\n");
 
-     error_count += VERIFY( verify_day(day, v_verbosity) );
+     error_count += VERIFY( verify_day(Julian(day), MICRODAY, v_verbosity) );
      if( error_count > 16 )         // (Broken code escape)
        break;
+
+     if( v_verbosity > 1 && day == MAX_GREGOR )
+       debugf("\n");
    }
 
-   // Verify the time of day 0.0 .. 1.0
+   //-------------------------------------------------------------------------
+   // Verify the Julian time of day 0.0 .. 1.0
    if( verbosity > 1 || opt_display ) {
-     debugf("\nVerifying Calendar time of day range:\n");
-     debugf("               --- year --   -- Julian date --  ---- Clock time ----\n");
+     debugf("\nVerifying Julian time of day range: (micro-day precision)\n");
+     debugf("               --- year --  --- Julian date --"
+            "  ------ Clock time -----\n");
    }
 
-   double increment= 0.123456789 / 864000.0;
+   // Test one hundred times per second with sub-microday resolution
+   // A micro-day is 0.0864 seconds. (86'400 / 1'000'000)
+   double increment= 0.010'000'123'456'789;
+
+   // MIN-JULIAN
    for(double tod= increment; tod < 1.0; tod += increment) {
      int v_verbosity= verbosity;    // Verification verbosity
      if( opt_display ) {
@@ -209,7 +319,8 @@ static inline int
        if( tod >= 1.0 - increment * 15 ) v_verbosity= 2;
      }
 
-     error_count += VERIFY( verify_day(MIN_JULIAN - tod, v_verbosity) );
+     error_count += VERIFY( verify_day(Julian(MIN_JULIAN - tod), MICRODAY
+                                      , v_verbosity) );
      if( error_count > 16 )         // (Broken code escape)
        break;
    }
@@ -221,35 +332,155 @@ static inline int
        if( tod >= 1.0 - increment * 15 ) v_verbosity= 2;
      }
 
-     error_count += VERIFY( verify_day(MIN_JULIAN + tod, v_verbosity) );
+     error_count += VERIFY( verify_day(Julian(MIN_JULIAN + tod), MICRODAY
+                                      , v_verbosity) );
+     if( error_count > 16 )         // (Broken code escape)
+       break;
+   }
+
+   //-------------------------------------------------------------------------
+   // MIN-GREGORIAN
+   if( verbosity > 1 || opt_display ) {
+     debugf("\n");
+     debugf("               --- year --  --- Julian date --"
+            "  ------ Clock time -----\n");
+   }
+
+   for(double tod= 0.0; tod < 1.0; tod += increment) {
+     int v_verbosity= verbosity;    // Verification verbosity
+     if( opt_display ) {
+       if( tod <= 0.0 + increment * 15 ) v_verbosity= 2;
+       if( tod >= 1.0 - increment * 15 ) v_verbosity= 2;
+     }
+
+     error_count += VERIFY( verify_day(Julian(MIN_GREGOR + tod), MICRODAY
+                                      , v_verbosity) );
+     if( error_count > 16 )         // (Broken code escape)
+       break;
+   }
+
+   //-------------------------------------------------------------------------
+   // MAX-GREGORIAN
+   if( verbosity > 1 || opt_display ) {
+     debugf("\n");
+     debugf("               --- year --  --- Julian date --"
+            "  ------ Clock time -----\n");
+   }
+
+   for(double tod= 0.0; tod < 1.0; tod += increment) {
+     int v_verbosity= verbosity;    // Verification verbosity
+     if( opt_display ) {
+       if( tod <= 0.0 + increment * 15 ) v_verbosity= 2;
+       if( tod >= 1.0 - increment * 15 ) v_verbosity= 2;
+     }
+
+     error_count += VERIFY( verify_day(Julian(MAX_GREGOR + tod), MICRODAY
+                                      , v_verbosity) );
+     if( error_count > 16 )         // (Broken code escape)
+       break;
+   }
+
+   //-------------------------------------------------------------------------
+   // MAX-JULIAN
+   if( verbosity > 1 || opt_display ) {
+     debugf("\n");
+     debugf("               --- year --   -- Julian date --"
+            "  ------ Clock time -----\n");
+   }
+   for(double tod= increment; tod < 1.0; tod += increment) {
+     int v_verbosity= verbosity;    // Verification verbosity
+     if( opt_display ) {
+       if( tod <= 0.0 + increment * 15 ) v_verbosity= 2;
+       if( tod >= 1.0 - increment * 15 ) v_verbosity= 2;
+     }
+
+     error_count += VERIFY( verify_day(Julian(MAX_JULIAN - tod), MICRODAY
+                                      , v_verbosity) );
+     if( error_count > 16 )         // (Broken code escape)
+       break;
+   }
+
+   for(double tod= 0.0; tod < 1.0; tod += increment) {
+     int v_verbosity= verbosity;    // Verification verbosity
+     if( opt_display ) {
+       if( tod <= 0.0 + increment * 15 ) v_verbosity= 2;
+       if( tod >= 1.0 - increment * 15 ) v_verbosity= 2;
+     }
+
+     error_count += VERIFY( verify_day(Julian(MAX_JULIAN + tod), MICRODAY
+                                      , v_verbosity) );
+     if( error_count > 16 )         // (Broken code escape)
+       break;
+   }
+
+   //-------------------------------------------------------------------------
+   // Verify the Clock time of day 0.0 .. 86'400.0
+   double PRECISION= 0.000'100;
+          increment= 1.000'123'456'789;
+
+   if( verbosity > 1 || opt_display ) {
+     debugf("\nVerifying Clock time of day range: (precision %.6f second)\n"
+           , PRECISION);
+     debugf("               --- year --  --- Julian date --"
+            "  ------ Clock time -----\n");
+   }
+
+   Julian julian(MIN_GREGOR);
+   Clock  clock= (Clock)julian;
+   double day= (double)clock;
+   for(double tod= 0.0; tod < SPD; tod += increment) {
+     int v_verbosity= verbosity;    // Verification verbosity
+     if( opt_display ) {
+       if( tod <= 0.0 + increment * 15 ) v_verbosity= 2;
+       if( tod >= SPD - increment * 15 ) v_verbosity= 2;
+     }
+
+     error_count += VERIFY( verify_tod(D2C(day-SPD+tod), PRECISION
+                                      , v_verbosity) );
+     if( error_count > 16 )         // (Broken code escape)
+       break;
+   }
+
+   for(double tod= 0.0; tod < SPD; tod += increment) {
+     int v_verbosity= verbosity;    // Verification verbosity
+     if( opt_display ) {
+       if( tod <= 0.0 + increment * 15 ) v_verbosity= 2;
+       if( tod >= SPD - increment * 15 ) v_verbosity= 2;
+     }
+     error_count += VERIFY( verify_tod(D2C(day+tod), PRECISION, v_verbosity) );
      if( error_count > 16 )         // (Broken code escape)
        break;
    }
 
    if( verbosity > 1 || opt_display ) {
      debugf("\n");
-     debugf("               --- year --   -- Julian date --  ---- Clock time ----\n");
+     debugf("               --- year --  --- Julian date --"
+            "  ------ Clock time -----\n");
    }
-   for(double tod= increment; tod < 1.0; tod += increment) {
+
+   julian= MAX_GREGOR;
+   clock=  (Clock)julian;
+   day= (double)clock;
+   for(double tod= 0.0; tod < SPD; tod += increment) {
      int v_verbosity= verbosity;    // Verification verbosity
      if( opt_display ) {
        if( tod <= 0.0 + increment * 15 ) v_verbosity= 2;
-       if( tod >= 1.0 - increment * 15 ) v_verbosity= 2;
+       if( tod >= SPD - increment * 15 ) v_verbosity= 2;
      }
-
-     error_count += VERIFY( verify_day(MAX_JULIAN - tod, v_verbosity) );
+     error_count += VERIFY( verify_tod(D2C(day-SPD+tod), PRECISION
+                                      , v_verbosity) );
      if( error_count > 16 )         // (Broken code escape)
        break;
    }
 
-   for(double tod= 0.0; tod < 1.0; tod += increment) {
+   for(double tod= 0.0; tod < SPD; tod += increment) {
      int v_verbosity= verbosity;    // Verification verbosity
      if( opt_display ) {
        if( tod <= 0.0 + increment * 15 ) v_verbosity= 2;
-       if( tod >= 1.0 - increment * 15 ) v_verbosity= 2;
+       if( tod >= SPD - increment * 15 ) v_verbosity= 2;
      }
-
-     error_count += VERIFY( verify_day(MAX_JULIAN + tod, v_verbosity) );
+     error_count += VERIFY( verify_tod(D2C(day+tod), PRECISION
+                          , v_verbosity) );
      if( error_count > 16 )         // (Broken code escape)
        break;
    }
@@ -274,7 +505,7 @@ static inline int
 
    int error_count= 0;
 
-   Clock L= Clock::now();
+   Clock L;
    Clock R= L;
    error_count += VERIFY( R == L );
    error_count += VERIFY( R <= L && L <= R );
@@ -337,7 +568,7 @@ static inline int
 
    int error_count= 0;
 
-   Julian L= Julian::now();
+   Julian L;
    Julian R= L;
    error_count += VERIFY( R == L );
    error_count += VERIFY( R <= L && L <= R );
@@ -389,11 +620,11 @@ static inline int
 //       test_case
 //
 // Purpose-
-//       Cut/paste sample test.
+//       Sample testcase
 //
 //----------------------------------------------------------------------------
 static inline int
-   test_case( void )                // Cut/paste source
+   test_case( void )                // Test case
 {
    if( opt_verbose )
      debugf("\ntest_case:\n");
@@ -415,148 +646,134 @@ static inline int
 static inline int
    test_dirty( void )
 {
-   opt_verbose= true;
-   if( opt_verbose )
-     debugf("\ntest_dirty:\n");
+
+   int was_verbose= opt_verbose;
+   opt_verbose= 2;
+   debugf("\ntest_dirty:\n");
 
    int error_count= 0;
 
    //-------------------------------------------------------------------------
    // Special dates
    if( true ) {
-     opt_verbose= 1;
      Julian   julian(0.0);
      Calendar calendar(julian);
 
-     calendar.setYMDHMS(-5000,  1,  1); // Julian
+     calendar.setYMDHMS(-5000,  1, 1); // Julian
      julian= (Julian)calendar;
-     calendar.set(julian);
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
-     calendar.setYMDHMS(-4000,  1,  1); // Julian
+     calendar.setYMDHMS(-4000,  1, 1); // Julian
      julian= (Julian)calendar;
-     calendar.set(julian);
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
-     calendar.setYMDHMS(   -1,  1,  1); // Julian
+     calendar.setYMDHMS(   -1,  1, 1); // Julian
      julian= (Julian)calendar;
-     calendar.set(julian);
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
-     calendar.setYMDHMS(    0,  1,  1); // Julian
+     calendar.setYMDHMS(    0,  1, 1); // Julian
      julian= (Julian)calendar;
-     calendar.set(julian);
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
-     calendar.setYMDHMS(    1,  1,  1); // Julian
+     calendar.setYMDHMS(    1,  1, 1); // Julian
      julian= (Julian)calendar;
-     calendar.set(julian);
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
-     calendar.setYMDHMS( 1000,  1,  1); // Julian
+     calendar.setYMDHMS( 1000,  1, 1); // Julian
      julian= (Julian)calendar;
-     calendar.set(julian);
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
-     calendar.setYMDHMS( 1600,  1,  1); // Gregorian
+     calendar.setYMDHMS( 1600,  1, 1); // Gregorian
      julian= (Julian)calendar;
-     calendar.set(julian);
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
-     calendar.setYMDHMS( 1700,  1,  1); // Gregorian
+     calendar.setYMDHMS( 1700,  1, 1); // Gregorian
      julian= (Julian)calendar;
-     calendar.set(julian);
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
-     calendar.setYMDHMS( 1800,  2,  1); // Gregorian
+     calendar.setYMDHMS( 1800,  2, 1); // Gregorian
      julian= (Julian)calendar;
-     calendar.set(julian);
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
-     calendar.setYMDHMS( 1900,  1,  1); // Gregorian
+     calendar.setYMDHMS( 1900,  1, 1); // Gregorian
      julian= (Julian)calendar;
-     calendar.set(julian);
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
-     calendar.setYMDHMS( 2000,  1,  1); // Gregorian
+     calendar.setYMDHMS( 2000,  1, 1); // Gregorian
      julian= (Julian)calendar;
-     calendar.set(julian);
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
-     calendar.setYMDHMS( 3000,  1,  1); // Gregorian
+     calendar.setYMDHMS( 3000,  1, 1); // Gregorian
      julian= (Julian)calendar;
-     calendar.set(julian);
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
-     calendar.setYMDHMS( 4000,  1,  1); // Gregorian
+     calendar.setYMDHMS( 4000,  1, 1); // Gregorian
      julian= (Julian)calendar;
-     calendar.set(julian);
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
      calendar.setYMDHMS( 9999, 12, 31); // Gregorian
      julian= (Julian)calendar;
-     calendar.set(julian);
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
-     calendar.setYMDHMS(10000,  1,  1); // Gregorian
+     calendar.setYMDHMS(10000,  1, 1); // Gregorian
      julian= (Julian)calendar;
-     calendar.set(julian);
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
    }
 
-   if( false ) {
-     opt_verbose= 1;
+   if( true ) {
      Julian   julian;
      Calendar calendar;
 
-     calendar.setYMDHMS(-5000,  1,  1); // Julian
+     calendar.setYMDHMS(-5000,  1, 1); // Julian
      julian= (Julian)calendar;
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
-     calendar.setYMDHMS(-4000,  1,  1); // Julian
+     calendar.setYMDHMS(-4000,  1, 1); // Julian
      julian= (Julian)calendar;
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
-     calendar.setYMDHMS(   -1,  1,  1); // Julian
+     calendar.setYMDHMS(   -1,  1, 1); // Julian
      julian= (Julian)calendar;
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
-     calendar.setYMDHMS(    0,  1,  1); // Julian
+     calendar.setYMDHMS(    0,  1, 1); // Julian
      julian= (Julian)calendar;
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
-     calendar.setYMDHMS(    1,  1,  1); // Julian
+     calendar.setYMDHMS(    1,  1, 1); // Julian
      julian= (Julian)calendar;
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
-     calendar.setYMDHMS( 1000,  1,  1); // Julian
+     calendar.setYMDHMS( 1000,  1, 1); // Julian
      julian= (Julian)calendar;
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
-     calendar.setYMDHMS( 1600,  1,  1); // Gregorian
+     calendar.setYMDHMS( 1600,  1, 1); // Gregorian
      julian= (Julian)calendar;
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
-     calendar.setYMDHMS( 2000,  1,  1); // Gregorian
+     calendar.setYMDHMS( 2000,  1, 1); // Gregorian
      julian= (Julian)calendar;
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
-     calendar.setYMDHMS( 3000,  1,  1); // Gregorian
+     calendar.setYMDHMS( 3000,  1, 1); // Gregorian
      julian= (Julian)calendar;
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
-     calendar.setYMDHMS( 4000,  1,  1); // Gregorian
+     calendar.setYMDHMS( 4000,  1, 1); // Gregorian
      julian= (Julian)calendar;
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
      calendar.setYMDHMS( 9999, 12, 31); // Gregorian
      julian= (Julian)calendar;
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
 
-     calendar.setYMDHMS(10000,  1,  1); // Gregorian
+     calendar.setYMDHMS(10000,  1, 1); // Gregorian
      julian= (Julian)calendar;
-     verify_day((double)julian);
+     verify_day(julian, MICRODAY);
    }
+
+   opt_verbose= was_verbose;
 
    return error_count;
 }
@@ -638,6 +855,7 @@ extern int                          // Return code
        debugh("==============================================\n");
        debugf("%5d= opt_hcdm\n", opt_hcdm);
        debugf("%5d= opt_verbose\n", opt_verbose);
+       debugf("%5d= opt_display\n", opt_display);
      }
 
      try {

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2025 Frank Eskesen.
+//       Copyright (c) 2007-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       The Julian object represents a MODIFIED Julian date and time.
 //
 // Last change date-
-//       2025/03/21
+//       2026/04/29
 //
 // Implementation Notes-
 //       This MODIFIED Julian date begins at midnight rather than noon.
@@ -84,31 +84,29 @@ static const Julian    UTC2000;     // Jan 1,  2000
      const Julian&     julian)      // Source Julian
 :  day(julian.day) {}
 
-   Julian(                          // Constructor
-     double            day)         // (Days since epoch)
-:  day(day) {}
-
+explicit
    Julian(                          // Copy Constructor
      const Clock&      clock)       // Source Clock
 {  set(clock); }
 
+explicit
+   Julian(                          // Constructor
+     double            day)         // (Days since epoch)
+:  day(day) {}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    ~Julian( void ) = default;       // Destructor
 
 //----------------------------------------------------------------------------
 // Julian::Operators
 //----------------------------------------------------------------------------
 // Cast operators- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   explicit operator Clock( void ) const; // Cast to Clock
+
    explicit operator double( void ) const // Cast to double
 {  return day; }                    // (Days since epoch)
 
-   explicit operator Clock( void ) const; // Cast to Clock
-
 // Assignment operators- - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Julian&                             // Resultant
-   operator=(                       // Assignment operator
-     double            day)         // Source (Julian) day
-{  set(day); return *this; }
-
 Julian&                             // Resultant
    operator=(                       // Assignment operator
      const Clock&      clock)       // Source Clock
@@ -118,6 +116,11 @@ Julian&                             // Resultant
    operator=(                       // Assignment operator
      const Julian&     julian)      // Source Julian
 {  set(julian); return *this; }
+
+Julian&                             // Resultant
+   operator=(                       // Assignment operator
+     double            day)         // Source (Julian) day
+{  set(day); return *this; }
 
 // Arithmetic operators- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Julian&                             // Resultant
@@ -142,9 +145,19 @@ Julian&                             // Resultant
 {  day += rhs.day; return *this; }
 
 Julian&                             // Resultant
+   operator+=(                      // Add to this
+     const double      rhs)         // Addend
+{  day += rhs; return *this; }
+
+Julian&                             // Resultant
    operator-=(                      // Subtract from this
      const Julian&     rhs)         // Subtrahend
 {  day -= rhs.day; return *this; }
+
+Julian&                             // Resultant
+   operator-=(                      // Add to this
+     const double      rhs)         // Addend
+{  day -= rhs; return *this; }
 
 friend Julian                       // Resultant
    operator+(                       // Add to
@@ -153,9 +166,21 @@ friend Julian                       // Resultant
 {  Julian out(lhs); out += rhs; return out; }
 
 friend Julian                       // Resultant
+   operator+(                       // Add to
+     const Julian&     lhs,         // Augend
+     const double      rhs)         // Addend
+{  Julian out(lhs); out += rhs; return out; }
+
+friend Julian                       // Resultant
    operator-(                       // Subtract from
      const Julian&     lhs,         // Minuend
      const Julian&     rhs)         // Subtrahend
+{  Julian out(lhs); out -= rhs; return out; }
+
+friend Julian                       // Resultant
+   operator-(                       // Add to
+     const Julian&     lhs,         // Augend
+     const double      rhs)         // Addend
 {  Julian out(lhs); out -= rhs; return out; }
 
 // Comparison operators- - - - - - - - - - - - - - - - - - - - - - - - - - - -

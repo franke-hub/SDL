@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2025 Frank Eskesen.
+//       Copyright (c) 2007-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Implement Calendar.h
 //
 // Last change date-
-//       2025/04/02
+//       2026/04/28
 //
 // Implementation notes-
 //       The Calendar::day2ymd table is instantiated by Cal400.cpp
@@ -454,7 +454,7 @@ static JD                           // The Julian Day
    Calendar::operator Clock( void ) const // Cast to Clock
 {
    Julian julian= operator Julian(); // Convert to Julian
-   julian += Julian::UTC1970;       // Convert to Clock origin
+   julian -= Julian::UTC1970;       // Convert to Clock origin
 
    Clock clock((double)julian * Julian::SECONDS_PER_DAY);
    return clock;
