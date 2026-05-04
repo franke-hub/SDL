@@ -85,7 +85,7 @@
 ##
 ## This implementation has been stress tested, but is not otherwise used.
 ## A particular implementation problem which showed up during this stress
-## test occured during cascading deletes. "Thread starvation" could occur.
+## test occurred during cascading deletes. "Thread starvation" could occur.
 ##
 ## This has been mitigated by fine tuning the spinlatch algorithm (found
 ## in Latch.h,) creating a low-overhead block memory allocator, and moving

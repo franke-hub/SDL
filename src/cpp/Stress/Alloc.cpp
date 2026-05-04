@@ -580,7 +580,7 @@ extern int                          // Return code
      if( HCDM ) debugh("%4d HCDM.c\n", __LINE__);
      Main::term();
 
-     rc= 0;                         // Test sucessful
+     rc= 0;                         // Test successful
    )
 
    //-------------------------------------------------------------------------

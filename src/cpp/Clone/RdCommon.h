@@ -106,7 +106,7 @@ enum                                // Generic constants
 //----------------------------------------------------------------------------
 enum HOST_INFO                      // Value masks for HostInfo
 {  INFO_UNUSED_BITS=   0x0FF00888   // Unassigned bits
-,  INFO_WININFO=       0xF0000600   // Windows compatability mask
+,  INFO_WININFO=       0xF0000600   // Windows compatibility mask
 
    // Type
 ,  INFO_ISTYPE=        0xF0000000   // Mask for type

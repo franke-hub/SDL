@@ -148,15 +148,15 @@ static const char*                  // Resultant
 //       last_strstr
 //
 // Purpose-
-//       Locate last occurance of string in text.
+//       Locate last occurrence of string in text.
 //
 //----------------------------------------------------------------------------
-static const char*                  // Last occurance, nullptr none
-   last_strstr(                     // Locate last occurance of string in text
+static const char*                  // Last occurrence, nullptr none
+   last_strstr(                     // Locate last occurrence of string in text
      const char*       text,        // Text origin
      const char*       find)        // Search string
 {
-   const char* final= edit_strstr(text, find); // Find first occurance
+   const char* final= edit_strstr(text, find); // Find first occurrence
    if( final ) {                    // If existent
      for(;;) {                      // Find last occurrance
        const char* next= edit_strstr(final+1, find);
@@ -176,7 +176,7 @@ static const char*                  // Last occurance, nullptr none
 //       prev_locate
 //
 // Purpose-
-//       Locate next occurance of string, searching backwards
+//       Locate next occurrence of string, searching backwards
 //
 //----------------------------------------------------------------------------
 static const char*                  // Return message, nullptr if OK
@@ -382,7 +382,7 @@ void
      exit(EXIT_FAILURE);
 
    recursion= true;
-   Trace::trace(".BUG", __LINE__, "Editor.cpp"); // (Trace error occurance)
+   Trace::trace(".BUG", __LINE__, "Editor.cpp"); // (Trace error occurrence)
    debug_backtrace();               // (Diagnostic backtrace, if OS supported)
    Config::debug(S.c_str());        // (Diagnostic dump)
 
@@ -507,14 +507,14 @@ int                                 // Return code, TRUE if error message
 //       editor::do_change
 //
 // Purpose-
-//       Change next occurance of string.
+//       Change next occurrence of string.
 //
 // Implementation note-
 //       REDO not required. The line is changed, but not committed.
 //
 //----------------------------------------------------------------------------
 const char*                         // Return message, nullptr if OK
-   editor::do_change( void )        // Change next occurance of string
+   editor::do_change( void )        // Change next occurrence of string
 {
    if( data_protected() )
      return nullptr;
@@ -536,14 +536,14 @@ const char*                         // Return message, nullptr if OK
 //       editor::do_find
 //
 // Purpose-
-//       Locate next occurance of a string that begins a line.
+//       Locate next occurrence of a string that begins a line.
 //
 // Implementation notes-
 //       Case sensitive compare. (Don't want to implement memicmp.)
 //
 //----------------------------------------------------------------------------
 const char*                         // Return message, nullptr if OK
-   editor::do_find(                 // Find next col[0] occurance of
+   editor::do_find(                 // Find next col[0] occurrence of
      const char*       S)           // This string
 {
    data->commit();                  // Commit the active line
@@ -691,7 +691,7 @@ const char*                         // Return message, nullptr expected
 //       editor::do_locate
 //
 // Purpose-
-//       Locate next occurance of string.
+//       Locate next occurrence of string.
 //
 //----------------------------------------------------------------------------
 const char*                         // Return message, nullptr if OK

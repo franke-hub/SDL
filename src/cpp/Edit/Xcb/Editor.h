@@ -222,11 +222,11 @@ int                          // Return code, TRUE if error message
 //       editor::do_change
 //
 // Purpose-
-//       Change next occurance of string.
+//       Change next occurrence of string.
 //
 //----------------------------------------------------------------------------
 const char*                         // Error message, nullptr expected
-   do_change( void );               // Change next occurance of string
+   do_change( void );               // Change next occurrence of string
 
 //----------------------------------------------------------------------------
 //
@@ -234,11 +234,11 @@ const char*                         // Error message, nullptr expected
 //       editor::do_find
 //
 // Purpose-
-//       Change next occurance of string that begins a line.
+//       Change next occurrence of string that begins a line.
 //
 //----------------------------------------------------------------------------
 const char*                         // Error message, nullptr expected
-   do_find(const char*);            // Find next col[0] occurance of string
+   do_find(const char*);            // Find next col[0] occurrence of string
 
 //----------------------------------------------------------------------------
 //
@@ -271,7 +271,7 @@ const char*                         // Error message, nullptr expected
 //       editor::do_locate
 //
 // Purpose-
-//       Locate next occurance of string.
+//       Locate next occurrence of string.
 //
 //----------------------------------------------------------------------------
 const char*                         // Error message, nullptr expected

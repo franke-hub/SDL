@@ -465,7 +465,7 @@ typedef pub::IodaReader   Reader;   // Output Ioda
 
 // RFC7541::Huff::Attributes - - - - - - - - - - - - - - - - - - - - - - - - -
 private:
-octet*                 addr= nullptr; // The compressed data adress
+octet*                 addr= nullptr; // The compressed data address
 size_t                 size= 0;     // The compressed data length
 
 // RFC7541::Huff::Constructors, destructor - - - - - - - - - - - - - - - - - -

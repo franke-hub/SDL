@@ -179,7 +179,7 @@ class _TestTimers(object):
         debugf("_TestTimers.__init__", when)
 
         ## if version < 3.3, we have to base on object rather than extend
-        ## threading.Timer. For compatability, we always base on object.
+        ## threading.Timer. For compatibility, we always base on object.
         self.that = threading.Timer(when, _TestTimers_done, [self])
 
         self.owner = owner

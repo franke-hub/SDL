@@ -227,7 +227,7 @@ void
    drive_destructor( void )         // Asynchronously drive the destructor
 {
    LambdaWorker lw([this](void) {
-     this->~LoopyThread();          // Asynchonously delete the LoopyThread
+     this->~LoopyThread();          // Asynchronously delete the LoopyThread
    }); // LambdaWorker
 
    WorkerPool::work(&lw);

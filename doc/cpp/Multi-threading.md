@@ -205,7 +205,7 @@ The dispatcher provides a set of timing functions:
 - Return value: `true` if and only if the token was still active
 - token: The return value from delay
 
-Applications can determine whether or not an Item was sucessfully cancelled
+Applications can determine whether or not an Item was successfully cancelled
 using:
 - The return code from cancel
 - The Item's completion code

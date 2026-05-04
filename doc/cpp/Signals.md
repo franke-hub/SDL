@@ -86,7 +86,7 @@ pub::signals:Connector<const char*> my_global_signal_handler=
 
 If my_global_signal_handler's static initialization is invoked before
 my_global_signal's construction, there's a problem.
-Avoid it using the RAII (Resource Aqusition Is Initialization) algorithm:
+Avoid it using the RAII (Resource Acquisition Is Initialization) algorithm:
 
 ----
 Module 1:

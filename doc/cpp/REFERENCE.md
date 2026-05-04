@@ -160,7 +160,7 @@ reporting. __TODO__ Event status checking.
 - Statistic.h: Provides statistical measurement object.
 - SubAllocator.h: (Placeholder: not implemented)
 - TEST.H: (Note all caps name) Provides test case error checking tools.
-- [Thread.h:](./Thread.md) Provides a thread representaion.
+- [Thread.h:](./Thread.md) Provides a thread representation.
 - Tokenizer.h: A string tokenizer
 - Trace.h: Provides circular trace table controls. When used in conjunction
 with a memory-mapped file, handy for debugging multi-threading problems.

@@ -45,7 +45,7 @@
          Changed documentation, including this file, to reflect change.
 
 2023/05/25 Dispatch.cpp issue #2 test fix implemented
-         This problem occured when ../dev/Test/T_Stream.cpp runs a stress test.
+         This problem occurred when ../dev/Test/T_Stream.cpp runs a stress test.
          Testing issues remain: the FC_UNDEF request does not complete. That
          means that dispatch::Task destructors don't complete and therefore
          Client and Server destructors don't complete. This needs a-fixin'.

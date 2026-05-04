@@ -194,7 +194,7 @@ The Service manager gets involved during Brian's initialization and
 termination sequences.
 (These run *after* static initialization and *before* static termination.)
 
-During initialization the Service manager invokes Sevice::start.
+During initialization the Service manager invokes Service::start.
 A Service can start it's Thread at that time.
 
 During termination (after the shutdown command has been invoked),

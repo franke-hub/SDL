@@ -60,7 +60,7 @@ CLOSED/FIXED:
            vi   S/Test/Test1.DAT  (OK)
            edit S/Test/Test1.DAT  (NG)
 
-        This problem occured because strcat does not allow overlap but
+        This problem occurred because strcat does not allow overlap but
         FileName.cpp relies on overlap when removing /. and /.. from
         filename strings. Fix is in src/cpp/lib/com/FileName.cpp
 

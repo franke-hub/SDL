@@ -32,7 +32,7 @@ https://creativecommons.org/licenses/by-sa/4.0/us/legalcode)
 
 This journal records problems that were particularly difficult to debug.
 
-- [\[Thread start syncronization timing bug"\]](#start_drive_timing_bug)
+- [\[Thread start synchronization timing bug"\]](#start_drive_timing_bug)
 - [\[SSH Fails "kex_exchange_identification"\]](#kex_exchange_id)
 - [\[Too Many Open Sockets\]](#too-many-sockets) <br/>
 
@@ -134,7 +134,7 @@ The trace sequence:
     - The Thread object is the initial method's parameter
   - start waits for a drive_initialized Event, to be posted by drive<br>
 We can't know exactly when start's wait begins.
-Thread::drive runs asynchonously.
+Thread::drive runs asynchronously.
 - Thread::drive invocation:
   - The Thread and TLSS addresses are copied to stack storage
   - A thread-local pointer, tl_tlss is initialized<br>
@@ -185,7 +185,7 @@ When the WorkerThread was created, the WorkerPool must have been empty
 When the WorkerThread was done, the WorkerPool must have been filled to
 capacity (or it would have been added to the WorkerPool list.)
 
-But, the same situation could have occured for *any* self-deleting thread.
+But, the same situation could have occurred for *any* self-deleting thread.
 And, we'd like to (and, with this fix, now do) support a WorkerPool of size 0.
 
 ### Why didn't we find this problem earlier?

@@ -56,7 +56,7 @@ Cancels the delay specified by token, the return value from delay().
 An application using cancel can also differentiate whether or not the delay
 completed or was cancelled using the Item condition code (Item.cc):
 - Timeout delays are posted with CC_NORMAL.
-- Canceled delays are posted with CC_PURGED.
+- cancelled delays are posted with CC_PURGED.
 
 #### <a id="shutdown">void pub::dispatch::Disp::shutdown(void);</a>
 
