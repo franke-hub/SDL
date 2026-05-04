@@ -1,5 +1,0 @@
-format.cpp test file
-     
-The prior line contained blanks
-This line contains trailing blanks     
-Final line

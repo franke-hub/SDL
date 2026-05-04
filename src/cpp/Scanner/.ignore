@@ -1,6 +1,6 @@
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2025 Frank Eskesen.
+##       Copyright (C) 2025-2026 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       Scanner ignore path/file control
 ##
 ## Last change date-
-##       2025/11/13
+##       2026/05/04
 ##
 ##############################################################################
 
@@ -25,6 +25,7 @@
 .home/.git/*
 .home/.headings/*
 .home/.licenses/*
+.home/.IDEAS/*
 .home/bin/*
 .home/obj/cpp/lib/pub/Test/Timing/*
 .home/obj/java/Applet/*
@@ -72,6 +73,7 @@
 .home/obj/cpp/lib/static/.STATIC
 .home/src/cpp/NNC/.DOC.txt
 .home/src/cpp/Sample/.OBSOLETE/opencv/hello_world.cpp
+.home/src/cpp/Util/Test/format.txt
 .home/src/py/InfoDB/.ASIDES.odt
 
 ## Unable to add copyright
