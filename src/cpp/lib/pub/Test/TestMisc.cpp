@@ -274,11 +274,11 @@ static inline int
 //       bit_counter
 //
 // Purpose-
-//       For each bit in a word, count its occurance in a counter array.
+//       For each bit in a word, count its occurrence in a counter array.
 //
 //----------------------------------------------------------------------------
 static inline void
-   bit_counter(                     // Count bit occurances.
+   bit_counter(                     // Count bit occurrences.
      uint64_t          word,        // In this word
      uint64_t*         array)       // Counter array[64]
 {
@@ -297,11 +297,11 @@ static inline void
 //       bit_checker (Used by Random::_self_test)
 //
 // Purpose-
-//       Display the number of occurances for each bit.
+//       Display the number of occurrences for each bit.
 //
 //----------------------------------------------------------------------------
 static inline void
-   bit_checker(                     // Check bit occurances.
+   bit_checker(                     // Check bit occurrences.
      const char*       type,        // The function used to set the bits
      size_t            count,       // The number of tests
      uint64_t*         array)       // Counter array[64]

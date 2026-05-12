@@ -20,7 +20,7 @@
 //       2012/01/01
 //
 // Notes-
-//       The Events object is an inter-thread syncronization object.
+//       The Events object is an inter-thread synchronization object.
 //       It is useful when a thread must wait for one of several different
 //       events to occur. The Events object does not indicate which of
 //       these events occurred.

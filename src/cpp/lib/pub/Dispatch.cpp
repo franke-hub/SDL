@@ -17,7 +17,7 @@
 //       Implement Dispatch object methods
 //
 // Last change date-
-//       2026/01/12
+//       2026/04/23
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -133,7 +133,7 @@ void
 //       Cancel delay event.
 //
 //----------------------------------------------------------------------------
-void
+bool                                // TRUE iff cancelled
    Disp::cancel(                    // Cancel
      void*             token)       // This timer event
 {
@@ -142,7 +142,7 @@ void
    if( timers == nullptr )
      timers= new Timers();
 
-   timers->cancel(token);
+   return timers->cancel(token);
 }
 
 //----------------------------------------------------------------------------

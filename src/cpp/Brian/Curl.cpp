@@ -48,8 +48,6 @@ typedef PUB::dispatch::Item         Item;
 typedef PUB::dispatch::Wait         Wait;
 typedef PUB::dispatch::Task         Task;
 
-typedef PUB::dispatch::LambdaDone   LambdaDone;
-
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------

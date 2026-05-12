@@ -1,7 +1,7 @@
 ##
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (c) 2012-2025 Frank Eskesen.
+##       Copyright (c) 2012-2026 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -17,10 +17,13 @@
 ##       Extract nickname for subdirectory
 ##
 ## Last change date-
-##       2025/08/20
+##       2026/05/01
 ##
 ## Usage-
 ##       cd `nickdir alias_name`
+##
+## Implementation note-
+##       qd obj removed. Use qd lib/obj instead.
 ##
 ##############################################################################
 
@@ -32,37 +35,39 @@ function nickdir {
 __FULLDIR=""
 case $1 in
   list)
-    echo      aiml=`nickdir aiml`
-    echo     brian=`nickdir brian`
-    echo     clone=`nickdir clone`
-    echo       com=`nickdir com`
-    echo       cpp=`nickdir cpp`
-    echo       ctl=`nickdir ctl`
-    echo       dev=`nickdir dev`
-    echo      edit=`nickdir edit`
-    echo     forth=`nickdir forth`
-    echo       gpg=`nickdir gpg`
-    echo       gui=`nickdir gui`
-    echo      home=`nickdir hardware`
-    echo      home=`nickdir home`
-    echo     howto=`nickdir howto`
-    echo      home=`nickdir hw`
-    echo       inc=`nickdir inc`
-    echo      java=`nickdir java`
-    echo java.golf=`nickdir java.golf`
-    echo  java.web=`nickdir java.web`
-    echo       lib=`nickdir lib`
-    echo       log=`nickdir log`
-    echo       mag=`nickdir mag`
-    echo       mcs=`nickdir mcs`
-    echo       obj=`nickdir obj`
-    echo       pub=`nickdir pub`
-    echo        py=`nickdir py`
-    echo    sample=`nickdir sample`
-    echo       src=`nickdir src`
-    echo      term=`nickdir term`
-    echo    wilbur=`nickdir wilbur`
-    echo       xcb=`nickdir xcb`
+    echo "  version=2026/05/01 17:00"
+
+    echo "     aiml=`nickdir aiml`"
+    echo "    brian=`nickdir brian`"
+    echo "    clone=`nickdir clone`"
+    echo "      com=`nickdir com`"
+    echo "      cpp=`nickdir cpp`"
+    echo "      ctl=`nickdir ctl`"
+    echo "      dev=`nickdir dev`"
+    echo "     edit=`nickdir edit`"
+    echo "    forth=`nickdir forth`"
+    echo "      gpg=`nickdir gpg`"
+    echo "      gui=`nickdir gui`"
+    echo " hardware=`nickdir hardware`"
+    echo "     home=`nickdir home`"
+    echo "    howto=`nickdir howto`"
+    echo "       hw=`nickdir hw`"
+    echo "      inc=`nickdir inc`"
+    echo "     java=`nickdir java`"
+    echo "java.golf=`nickdir java.golf`"
+    echo " java.web=`nickdir java.web`"
+    echo "      lib=`nickdir lib`"
+    echo "      log=`nickdir log`"
+    echo "      mag=`nickdir mag`"
+    echo "      mcs=`nickdir mcs`"
+    echo "      obj=`nickdir obj`"
+    echo "      pub=`nickdir pub`"
+    echo "       py=`nickdir py`"
+    echo "   sample=`nickdir sample`"
+    echo "      src=`nickdir src`"
+    echo "     term=`nickdir term`"
+    echo "   wilbur=`nickdir wilbur`"
+    echo "      xcb=`nickdir xcb`"
     return
     ;;
 
@@ -70,10 +75,6 @@ case $1 in
   ## C++ source directories
   ctl)
     __FULLDIR="$HOME/src/cpp/ctl/BSD"
-    ;;
-
-  ctl/*)
-    __FULLDIR="$HOME/src/cpp/$1"
     ;;
 
   inc)
@@ -90,14 +91,6 @@ case $1 in
 
   src/clone | src/Clone)
     __FULLDIR="$HOME/src/cpp/Clone"
-    ;;
-
-  src | src/cpp)
-    __FULLDIR="$HOME/src/cpp"
-    ;;
-
-  src/cpp/*)
-    __FULLDIR="$HOME/$1"
     ;;
 
   src/com | src/dev | src/gui | src/obj | src/pub)
@@ -118,10 +111,6 @@ case $1 in
 
   src/xcb | src/Xcb)
     __FULLDIR="$HOME/src/cpp/Edit/Xcb"
-    ;;
-
-  src/*)
-    __FULLDIR="$HOME/src/cpp/${1:4}"
     ;;
 
   ############################################################################
@@ -168,22 +157,6 @@ case $1 in
     __FULLDIR="$HOME/obj/cpp/lib/${1:4}"
     ;;
 
-  obj)
-    __FULLDIR="$HOME/obj/cpp/lib/obj"
-    ;;
-
-  obj/cpp | obj/java | obj/js | obj/mcs | obj/py)
-    __FULLDIR="$HOME/$1"
-    ;;
-
-  obj/cpp/* | obj/java/* | obj/js/* | obj/mcs/* | obj/py/*)
-    __FULLDIR="$HOME/$1"
-    ;;
-
-  obj/* | cpp/*)
-    __FULLDIR="$HOME/obj/cpp/${1:4}"
-    ;;
-
   pub)
     __FULLDIR="$HOME/obj/cpp/lib/pub"
     ;;
@@ -198,6 +171,42 @@ case $1 in
 
   xcb | Xcb | XCB)
     __FULLDIR="$HOME/obj/cpp/Edit/Xcb"
+    ;;
+
+  ############################################################################
+  ## Source directories
+  src/asm | src/cpp | src/java | src/js | src/mcs | src/py)
+    __FULLDIR="$HOME/$1"
+    ;;
+
+  src/asm/* | src/cpp/* | src/java/* | src/js/* | src/mcs/* | src/py/*)
+    __FULLDIR="$HOME/$1"
+    ;;
+
+  src)
+    __FULLDIR="$HOME/src/cpp"
+    ;;
+
+  src/*)
+    __FULLDIR="$HOME/src/cpp/${1:4}"
+    ;;
+
+  ############################################################################
+  ## Object directories
+  obj/asm | obj/cpp | obj/java | obj/js | obj/mcs | obj/py)
+    __FULLDIR="$HOME/$1"
+    ;;
+
+  obj/asm/* | obj/cpp/* | obj/java/* | obj/js/* | obj/mcs/* | obj/py/*)
+    __FULLDIR="$HOME/$1"
+    ;;
+
+  obj)
+    __FULLDIR="$HOME/obj/cpp"
+    ;;
+
+  obj/*)
+    __FULLDIR="$HOME/obj/cpp/${1:4}"
     ;;
 
   ############################################################################
@@ -224,8 +233,6 @@ case $1 in
     __FULLDIR="$HOME/obj/java/Webapp/usr/fne"
     ;;
 
-  ############################################################################
-  ## C# source directories
   ############################################################################
   ## C# object directories
   mcs)
@@ -291,7 +298,7 @@ case $1 in
 esac
 
 ##############################################################################
-## If not defined, first try relative to $HOME, then default to local
+## If not defined, first try relative to $HOME, then use current directory
 if [[ "" = "$__FULLDIR" ]] ; then
   if [[ -d $HOME/$1 ]] ; then
     __FULLDIR=$HOME/$1

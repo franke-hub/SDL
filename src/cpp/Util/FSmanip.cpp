@@ -322,7 +322,7 @@ static int                          // Return code (0 OK)
      rc= 2;
      error("Exception: %s\n", s);
    } catch(...) {
-     error("Exception occured\n");
+     error("Exception occurred\n");
    }
 
    if( rc != reader.RC_EOF )

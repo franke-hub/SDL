@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (c) 2023 Frank Eskesen.
+//       Copyright (c) 2023-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under cc by-sa version 4.0
 //       with attribution required.
@@ -17,108 +17,60 @@
 //       Dispatch.h reference manual (overview)
 //
 // Last change date-
-//       2023/08/11
+//       2026/04/25
 //
 -------------------------------------------------------------------------- -->
-## pub::dispatch::Disp
-## pub::dispatch::Done
-## pub::dispatch::Item
-## pub::dispatch::Task
-## pub::dispatch::Wait
-## pub::dispatch::LambdaDone
-## pub::dispatch::LambdaTask
-\#include <pub/Dispatch.h>
+## pub\::dispatch\::Disp
+## pub\::dispatch\::Done
+## pub\::dispatch\::Item
+## pub\::dispatch\::Task
+## pub\::dispatch\::Wait
+## pub\::dispatch\::LambdaDone
+## pub\::dispatch\::LambdaTask
+###### Defined in header <pub/Dispatch.h>
 
-### Dispatch objects
-Dispatch objects are defined in namespace pub::dispatch.
+#### Conceptual overview
+
+The Dispatcher is a work queue system for multithreaded programs consisting
+of four major components:
+- (pub\::dispatch\::)Task
+  - Sequentially processes Items
+  - Single thread logic (but the actual thread can change.)
+- (pub\::dispatch\::)Item
+  - Describes the operation to process and its associated data
+  - Modifiable by the Task
+- (pub\::dispatch\::)Done
+  - Item.done points to this
+  - Discribes what happens when Item processing completes
+  - Default processing (Item.done == nullptr) is to delete the Item.
+- (pub\::dispatch\::)Wait (a subclass of Done)
+  - Provides a wait method, which returns when Item processing completes
+
+The Dispatcher also contains a set of static [utility functions](#Disp).
+
+###### Implementation notes
+- All dispatch objects are defined in namespace pub\::dispatch.
 
 <!-- ===================================================================== -->
----
-#### Disp
+#### <a id="Disp">Disp</a>
 Dispatcher utility functions. All methods are static.
 
 ##### Member functions
 
-| Method | Purpose |
+| Utility Methods | Purpose |
 |--------|---------|
-| [(constructor)](./pub_disp-disp.md) | There is no constructor. All methods are static |
-| [cancel](./pub_disp-disp.md) | Cancel a delay notification |
-| [delay](./pub_disp-disp.md) | Schedule a delay notification |
-| [post](./pub_disp-disp.md) | Post work Item utility |
-| [enqueue](./pub_disp-disp.md) | Enqueue a work Item |
-| [shutdown](./pub_disp-disp.md) | Shutdown Dispatch timer functions |
+| [(constructor)](./pub_disp-disp.md#construct) | There is no constructor. All methods are static |
+| [enqueue](./pub_disp-disp.md#enqueue) | Enqueue a work Item |
+| [post](./pub_disp-disp.md#post) | Post work Item |
+
+| Timer Control Methods | Purpose |
+|--------|---------|
+| [delay](./pub_disp-disp.md#delay) | Schedule a delay notification |
+| [cancel](./pub_disp-disp.md#cancel) | Cancel a delay notification |
+| [shutdown](./pub_disp-disp.md#shutdown) | Shutdown Dispatch timer functions |
 
 <!-- ===================================================================== -->
----
-#### Done
-A Dispatch Item completion handler.
-(If none, the Dispatch Item is deleted when complete.)
-
-##### Member functions
-
-| Method | Purpose |
-|--------|---------|
-| [(constructor)](./pub_disp-done.md) | Construct a Done object |
-| [done](./pub_disp-done.md) | Handle work Item completion |
-
-<!-- ===================================================================== -->
----
-#### LambdaDone (Extends Done.)
-The done() method is a lambda function.
-<br>
-__TODO__ Appears unused. If so, candidate for removal.
-
-Types:
-- typedef std::function<void(Item*)> function_t; // Lambda function work handler
-
-Fields:<br>
-- protected function_t callback;
-
-##### Member functions
-
-| Method | Purpose |
-|--------|---------|
-| [(constructor)](./pub_disp-done.md) | Construct a LambdaDone object |
-| [done](./pub_disp-done.md) | (Invokes callback, the lambda function.) |
-| [on_done](./pub_disp-done.md) | Replaces callback, the lambda function. |
-
-<!-- ===================================================================== -->
----
-#### Wait (Extends Done.)
-
-##### Member functions
-
-| Method | Purpose |
-|--------|---------|
-| [(constructor)](./pub_disp-done.md) | Construct a Wait object |
-| [done](./pub_disp-done.md) | (Implementation defined.) |
-| [reset](./pub_disp-done.md) | Reset for reuse. |
-| [wait](./pub_disp-done.md) | Wait for work Item completion. |
-
-<!-- ===================================================================== -->
----
-#### Item
-A Dispatch work Item.
-
-##### Member attributes
-
-| Name   | Type | Purpose |
-|--------|------|---------|
-| fc   | int | Function code. Negative values are handled internally. |
-| cc   | int | Completion code. Negative values are pre-defined. |
-| done | Done* | Completion callback. If nullptr, delete the work Item. |
-
-##### Member functions
-
-| Method | Purpose |
-|--------|---------|
-| [(constructor)](./pub_disp-item.md) | Construct a work Item object |
-| [done](./pub_disp-item.md) | Handle work Item completion |
-| [post](./pub_disp-item.md) | Post work Item completion |
-
-<!-- ===================================================================== -->
----
-#### Task
+#### <a id="Task">Task</a>
 A Dispatch work Item handler.
 Handles work Items serially, in the order they were enqueued to the Task.
 
@@ -126,61 +78,170 @@ Handles work Items serially, in the order they were enqueued to the Task.
 
 | Method | Purpose |
 |--------|---------|
-| [(constructor)](./pub_disp-task.md) | Construct a Task object |
-| [enqueue](./pub_disp-task.md) | Enqueue a work Item for this Task |
-| [work(void)](./pub_disp-task.md) | Implement Worker interface |
-| [work(Item*)](./pub_disp-task.md) | Process a work Item |
+| [(constructor)](./pub_disp-task.md#construct) | Construct a Task object |
+| [enqueue](./pub_disp-task.md#enqueue) | Enqueue a work Item for this Task |
+| [work(Item*)](./pub_disp-task.md#work) | Process a work Item |
 
 <!-- ===================================================================== -->
----
-#### LambdaTask
+#### <a id="Item">Item</a>
+A Dispatch work Item.
+
+##### Member attributes
+
+| Name   | Type | Purpose |
+|--------|------|---------|
+| fc   | int | Function code. Negative values are reserved for internal use. |
+| cc   | int | Completion code. Negative values are pre-defined. |
+| done | Done* | Completion callback. If nullptr, delete the work Item. |
+
+##### Member functions
+
+| Method | Purpose |
+|--------|---------|
+| [(constructor)](./pub_disp-item.md#construct) | Construct a work Item object |
+| [post](./pub_disp-item.md#post) | Post work Item completion |
+
+<!-- ===================================================================== -->
+#### <a id="Done">Done</a>
+A Dispatch Item completion handler.
+(If none, the Dispatch Item is deleted when complete.)
+
+##### Member functions
+
+| Method | Purpose |
+|--------|---------|
+| [(constructor)](./pub_disp-done.md#construct) | Construct a Done object |
+| [done](./pub_disp-done.md#done) | Handle work Item completion |
+
+<!-- ===================================================================== -->
+#### <a id="Wait">Wait (Extends Done.)</a>
+
+##### Member functions
+
+| Method | Purpose |
+|--------|---------|
+| [(constructor)](./pub_disp-done.md#construct-wait) | Construct a Wait object |
+| [reset](./pub_disp-done.md#reset) | Reset for reuse. |
+| [wait](./pub_disp-done.m#wait) | Wait for work Item completion. |
+
+<!-- ===================================================================== -->
+#### <a id="LambdaDone">LambdaDone (Extends Done.)</a>
+The done(Item*) method is implemented as a lambda function.
+
+Types:
+- typedef std\::function<void(Item*)>  Done_if; // Lambda function done interface
+
+Fields:<br>
+- protected Done_if callback;
+
+##### Member functions
+
+| Method | Purpose |
+|--------|---------|
+| [(constructor)](./pub_disp-lambda.md#construct-ldd) | Construct a LambdaDone object |
+| [on_done](./pub_disp-lambda.md#on_done) | Replaces callback, the lambda function. |
+
+<!-- ===================================================================== -->
+#### <a id="LambdaTask">LambdaTask</a>
 Extends Task, implementing work(Item*) as a lambda function.
 
 ##### Member functions
 
 | Method | Purpose |
 |--------|---------|
-| [(constructor)](./pub_disp-task.md) | Construct the LambdaTask object |
-| [(destructor)](./pub_disp-task.md) | Delete the LambdaTask object |
-| [on_work](./pub_disp-task.md) | Specify the work Item handler. |
+| [(constructor)](./pub_disp-lambda.md#construct-ltd) | Construct the LambdaTask object |
+| [on_work](./pub_disp-lambda.md#on_work) | Specify the work Item handler. |
 
+<!-- ===================================================================== -->
+#### Example 1 (Task\::work Override)
 
-#### Example
-```
+```cpp
 #include <cstdio>
 #include <pub/Dispatch.h>
-int main( void )
+
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB::dispatch;
+
+class MyTask : public PUB::dispatch::Task {
+public:
+   MyTask( void ) = default;
+
+virtual void
+   work(Item* item) override
 {
-    using namespace pub::dispatch;
+   printf("MyTask item handler\n");
+   item->post();
+}
+}; // class MyTask
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-    LambdaTask lambda_task([](Item* item)
-    {
-      printf("Initial Item handler\n");
-      item->post();
-    });
-#pragma GCC diagnostic pop
-    Wait wait;
-    Item item(&wait);
-    lambda_task.enqueue(&item);
-    wait.wait();
+int main() {
+   printf("main() invoked\n");
 
-    lambda_task.on_work([](Item* item)
-    {
-      printf("Replacement Item handler\n");
-      item->post();
-    });
-    wait.reset();
-    lambda_task.enqueue(&item);
-    wait.wait();
+   MyTask task;
+   Wait wait;
+   Item item(&wait);
+   task.enqueue(&item);
+   wait.wait();
+
+   printf("main() complete\n");
 }
 ```
 
-__TODO__ Figure out why GCC 13.1.1 gives a "maybe-uninitialized" error
-and GCC 11.4.0 doesn't. (Both versions execute correctly.)
+<!-- ===================================================================== -->
+#### Example 2 (LambdaTask and LambdaDone)
 
-Normally you'd specify a work Item handler once using either the constructor
-or the on_work method, not both (as is in the example.)
-If replacing a work Item handler, it's the handler that's active
-*when the work Item is processed* that's used.
+```cpp
+#include <pub/Debug.h>              // For namespace pub::debugging
+#include <pub/Dispatch.h>           // For pub::dispatch objects
+#include <pub/Event.h>              // For pub::Event
+
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB::debugging;
+using namespace PUB::dispatch;
+typedef PUB::Event Event;
+
+int main() {
+   debug_set_head(PUB::Debug::HEAD_THREAD | PUB::Debug::HEAD_TIME);
+   debugh("main() invoked\n");
+
+   Event wait;
+   LambdaDone lambda_done([&wait](Item*)
+   {
+     debugh("LambdaDone invoked\n");
+     wait.post();
+     debugh("LambdaDone complete\n");
+   });
+
+   LambdaTask lambda_task([](Item* item)
+   {
+     debugh("LambdaTask invoked\n");
+     item->post();
+     debugh("LambdaTask complete\n");
+   });
+
+   Item item(&lambda_done);
+   lambda_task.enqueue(&item);
+   wait.wait();
+
+   lambda_task.on_work([](Item* item)
+   {
+     debugh("Replacement LambdaTask work handler\n");
+     item->post();
+     debugh("Replacement LambdaTask work handler complete\n");
+   });
+
+   lambda_done.on_done([&wait](Item*)
+   {
+     debugh("Replacement LambdaDone done handler\n");
+     wait.post();
+     debugh("Replacement LambdaDone done handler complete\n");
+   });
+
+   debugf("\nLambda functions replaced\n");
+   wait.reset();
+   lambda_task.enqueue(&item);
+   wait.wait();
+
+   debugh("main() complete\n");
+}
+```

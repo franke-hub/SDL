@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (c) 2023 Frank Eskesen.
+//       Copyright (c) 2023-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under cc by-sa version 4.0
 //       with attribution required.
@@ -17,7 +17,7 @@
 //       Worker.h reference manual
 //
 // Last change date-
-//       2023/07/28
+//       2024/04/17
 //
 -------------------------------------------------------------------------- -->
 ## pub::Worker
@@ -61,3 +61,41 @@ Workers that were running repopulate the thread pool when they complete.
 | [get_running](./pub_worker.md) | Get the number of running Worker threads. |
 | [reset](./pub_worker.md) | Reset (empty) the Worker thread pool. |
 | [work](./pub_worker.md) | Drive a Worker's work method. |
+
+#### Example
+
+```cpp
+#include <cstdio>
+#include <pub/Event.h>
+#include <pub/Worker.h>
+
+class MyWorker : public pub::Worker {
+public:
+    pub::Event done;
+
+    void work() override {
+        printf("Hello from worker thread\n");
+        done.post();
+    }
+};
+
+int main() {
+    MyWorker w;
+    pub::WorkerPool::work(&w);
+    w.done.wait();
+    w.done.wait();  // (Does not block)
+
+    w.done.reset(); // (Allows reuse)
+    pub::WorkerPool::work(&w);
+    w.done.wait();  // (Blocks until complete)
+}
+```
+
+WorkerPool::work() schedules the worker on a pooled thread and returns
+immediately.
+The pub::Event blocks until the worker signals completion.
+
+Event semantics: Once post() is called, all pending wait() calls unblock and
+any subsequent wait() calls return immediately.
+The Event stays in the posted state until its reset method is invoked.
+The reset() method allows the Event to be reused. (Method wait() blocks.)

@@ -570,7 +570,7 @@ _IF_PUBLIB_LATCH_INLINE(
 })
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool                                // TRUE if sucessful
+bool                                // TRUE if successful
    upgrade( void )                  // Upgrade a SHR_latch into an XCL_Latch
 /***
    Upgrade from shared to exclusive mode.

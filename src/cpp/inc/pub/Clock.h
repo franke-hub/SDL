@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2025 Frank Eskesen.
+//       Copyright (c) 2007-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       A Clock contains the number of seconds difference from an epoch.
 //
 // Last change date-
-//       2025/03/21
+//       2026/04/29
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_CLOCK_H_INCLUDED
@@ -53,10 +53,12 @@ public:
      const Clock&      clock)       // Source Clock
 :  second(clock.second) {}
 
+explicit
    Clock(                           // Constructor
      double            second)      // (The number of seconds since the epoch)
 :  second(second) {}
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    ~Clock( void ) = default;        // Destructor
 
 //----------------------------------------------------------------------------
@@ -69,13 +71,13 @@ public:
 // Assignment operators- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Clock&                              // Resultant
    operator=(                       // Assignment operator
-     double            second)      // Source (seconds since epoch)
-{  this->second= second; return *this; }
+     const Clock&      clock)       // Source Clock
+{  second= clock.second; return *this; }
 
 Clock&                              // Resultant
    operator=(                       // Assignment operator
-     const Clock&      clock)       // Source Clock
-{  second= clock.second; return *this; }
+     double            second)      // Source (seconds since epoch)
+{  this->second= second; return *this; }
 
 // Arithmetic operators- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Clock&                              // Resultant
@@ -84,9 +86,19 @@ Clock&                              // Resultant
 {  second += rhs.second; return *this; }
 
 Clock&                              // Resultant
+   operator+=(                      // Add to this
+     const double      rhs)         // Addend
+{  second += rhs; return *this; }
+
+Clock&                              // Resultant
    operator-=(                      // Subtract from this
      const Clock&      rhs)         // Subtrahend
 {  second -= rhs.second; return *this; }
+
+Clock&                              // Resultant
+   operator-=(                      // Add to this
+     const double      rhs)         // Addend
+{  second -= rhs; return *this; }
 
 friend Clock                        // Resultant
    operator+(                       // (Global) Add to
@@ -95,9 +107,21 @@ friend Clock                        // Resultant
 {  Clock out(lhs); out += rhs; return out; }
 
 friend Clock                        // Resultant
+   operator+(                       // (Global) Add to
+     const Clock&      lhs,         // Augend
+     const double      rhs)         // Addend
+{  Clock out(lhs); out += rhs; return out; }
+
+friend Clock                        // Resultant
    operator-(                       // (Global) Subtract from
      const Clock&      lhs,         // Minuend
      const Clock&      rhs)         // Subtrahend
+{  Clock out(lhs); out -= rhs; return out; }
+
+friend Clock                        // Resultant
+   operator-(                       // (Global) Add to
+     const Clock&      lhs,         // Augend
+     const double      rhs)         // Addend
 {  Clock out(lhs); out -= rhs; return out; }
 
 // Comparison operators- - - - - - - - - - - - - - - - - - - - - - - - - - - -

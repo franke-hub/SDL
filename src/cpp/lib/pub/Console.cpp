@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2019-2025 Frank Eskesen.
+//       Copyright (C) 2019-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Console subroutine methods.
 //
 // Last change date-
-//       2025/03/01
+//       2026/04/23
 //
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::invalid_argument
@@ -56,14 +56,16 @@ namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
-,  VERBOSE= 0                       // Verbosity, higher is more verbose
+,  VERBOSE= 1                       // Verbosity, higher is more verbose
 
 ,  CTL_U= 21                        // Control-U character
 ,  ESC=   27                        // ESCape character
 
-,  USE_GETCHAR= false               // Use ::getchar v. read(STDIN_FILENO,..)
+,  USE_DTRACE= false                // Use debugging trace?
 ,  USE_ITRACE= false                // Use internal trace?
 }; // (generic) enum
+
+#define USE_GETCHAR  false          // Use ::getchar v. read(STDIN_FILENO,..)
 
 static constexpr const char ESC_STR[]= {ESC, 0}; // ESC character string
 
@@ -80,7 +82,7 @@ static string          inp_buffer;  // Enqueued input string
 static int             in_getch= false; // TRUE while running getch()
 static int             operational= 0; // Initialized counter
 static int             registered= false; // One-time initialization flag
-static int             used_trace= false; // Does debug.out have extra info?
+static int             trace_used= false; // Does debug.out have extra info?
 
 //----------------------------------------------------------------------------
 // ESC sequences
@@ -132,6 +134,32 @@ const static ESC_keydef_sequence key_table[]=
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       dtrace
+//
+// Purpose-
+//       (Conditionally) Write debugging trace message
+//
+//----------------------------------------------------------------------------
+_LIBPUB_PRINTF(1, 2)
+static void
+   dtrace(                          // Write to trace file
+     const char*       fmt,         // The PRINTF format string
+                       ...)         // The PRINTF argument list
+{
+   if( USE_DTRACE ) {               // (Tracing is compile-time conditional)
+     va_list argptr;                // Argument list pointer
+
+     va_start(argptr, fmt);         // Initialize va_ functions
+     vtraceh(fmt, argptr);          // Write to trace file
+     va_end(argptr);                // Close va_ functions
+
+     trace_used= true;
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       get_sequence
 //
 // Purpose-
@@ -143,18 +171,15 @@ const static ESC_keydef_sequence key_table[]=
 //----------------------------------------------------------------------------
 static int                          // The decoded esc sequence, or -1
    get_sequence( void )             // Get decoded esc sequence
-{  if( HCDM ) {
-     traceh("pub::Console::get_sequence inp_buffer(%s)\n"
+{  if( HCDM )
+     dtrace("pub::Console::get_sequence inp_buffer(%s)\n"
            , s2c(visify(inp_buffer)));
-     used_trace= true;
-   }
 
    if( inp_buffer.size() < 2 )     // If inp_buffer's too small for a sequence
      return -1;
 
    if( inp_buffer[0] != ESC ) {    // (Should not occur)
-     traceh("pub::Console::get_sequence (correctable) logic error\n");
-     used_trace= true;
+     dtrace("pub::Console::get_sequence (correctable) logic error\n");
      return -1;
    }
 
@@ -196,10 +221,8 @@ static int                          // The decoded esc sequence, or -1
 static int
    esc_sequence_full(               // Handle an unknown ESC sequence
      string            str)         // The unknown ESC sequence
-{  if( VERBOSE ) {                  // Conditionally, display error message
-     traceh("Unknown ESC sequence(%s)\n", s2c(visify(str)));
-     used_trace= true;
-   }
+{  if( VERBOSE )                    // Display error message
+     dtrace("Unknown ESC sequence(%s)\n", s2c(visify(str)));
 
    inp_buffer= inp_buffer.substr(str.size()); // (Usually empties inp_buffer)
    return -1;
@@ -216,10 +239,8 @@ static int
 //----------------------------------------------------------------------------
 static int                          // ESC
    esc_sequence_part( void )        // Handle an ESC start error
-{  if( VERBOSE ) {                  // Conditionally display error message
-     traceh("Invalid ESC sequence(%s)\n", s2c(visify(inp_buffer)));
-     used_trace= true;
-   }
+{  if( VERBOSE )                    // Display error message
+     dtrace("Invalid ESC sequence(%s)\n", s2c(visify(inp_buffer)));
 
    inp_buffer= inp_buffer.substr(1); // Remove the ESC
    return ESC;                      // And return it
@@ -241,11 +262,9 @@ static int                          // ESC
 //----------------------------------------------------------------------------
 static int                          // The decoded esc sequence
    esc_sequence( void )             // Decode an esc sequence
-{  if( HCDM ) {
-     traceh("pub::Console::esc_sequence inp_buffer(%s)\n"
+{  if( HCDM )
+     dtrace("pub::Console::esc_sequence inp_buffer(%s)\n"
            , s2c(visify(inp_buffer)));
-     used_trace= true;
-   }
 
    // Insert the ESC (probably back) into inp_buffer.
    inp_buffer.insert(0, 1, ESC);    // Put the ESC back into the buffer
@@ -322,11 +341,9 @@ static int                          // The next buffered character, or -1
    if( inp_buffer.size() == 0 )     // If inp_buffer's empty
      return -1;
 
-   if( HCDM ) {
-     traceh("pub::Console::get_buffered(%s.%zd)\n", s2c(visify(inp_buffer))
+   if( HCDM )
+     dtrace("pub::Console::get_buffered(%s.%zd)\n", s2c(visify(inp_buffer))
            , inp_buffer.size());
-     used_trace= true;
-   }
 
    int C= inp_buffer[0];            // Get the first buffer character
    inp_buffer= inp_buffer.substr(1); // Remove it from the buffer
@@ -353,10 +370,8 @@ static int                          // The next buffered character, or -1
 int                                 // The next input character
    Console::getch(                  // Get next input character
      int               timeout)     // Timeout in milliseconds
-{  if( HCDM ) {
-     traceh("pub::Console::getch(%d)\n", timeout);
-     used_trace= true;
-   }
+{  if( HCDM )
+     dtrace("pub::Console::getch(%d)\n", timeout);
 
    static mutex        _mutex;      // (getch uses a separate mutex)
    static bool         once= true;  // (Only set restore attributes once)
@@ -381,10 +396,8 @@ int                                 // The next input character
      newattr.c_lflag &= ~( ICANON | ECHO ); // NOT (cononical or echo)
      newattr.c_cc[VMIN] = 0;        // (No characters required)
      newattr.c_cc[VTIME] = (timeout + 50)/100; // Set timeout
-     if( HCDM && VERBOSE > 1 ) {
-       traceh("Console.getch: VTIME 0x%.2x\n", newattr.c_cc[VTIME]);
-       used_trace= true;
-     }
+     if( HCDM && VERBOSE > 1 )
+       dtrace("Console.getch: VTIME 0x%.2x\n", newattr.c_cc[VTIME]);
 
      in_getch= true;                // Indicate getch running
      tcsetattr(STDIN_FILENO, TCSANOW, &newattr); // Set the new attributes
@@ -407,8 +420,7 @@ int                                 // The next input character
        Record* record= (Record*)Trace::storage_if(sizeof(Record));
        if( record ) {
          record->ios= newattr;
-         record->trace(".CON", "=GCH"
-                      , i2i(operational), i2i(C));
+         record->trace(".CON", "=GCH", operational, C);
        }
      }
    }}}}
@@ -417,17 +429,15 @@ int                                 // The next input character
      C= '\b';
 
    if( HCDM && VERBOSE > 1 )
-     traceh("Console::getch: C(%.2x)\n", C);
+     dtrace("Console::getch: C(%.2x)\n", C);
 
    return C;
 }
 
 int                                 // The next input character
    Console::getch( void )           // Get next input character
-{  if( HCDM ) {
-     traceh("pub::Console::getch()\n");
-     used_trace= true;
-   }
+{  if( HCDM )
+     dtrace("pub::Console::getch()\n");
 
    while( inp_buffer.size() > 2 ) { // If possible ESC sequence(s)
      if( inp_buffer[0] == ESC ) {   // If ESC sequence present
@@ -466,7 +476,7 @@ char*                               // addr || nullptr iff non-operational
      char*             addr,        // Input address
      unsigned          size)        // Input length
 {  if( HCDM )
-      traceh("pub::Console::gets(%p,%d) operational(%d)\n", addr, size
+      dtrace("pub::Console::gets(%p,%d) operational(%d)\n", addr, size
             , operational);
 
    if( addr == nullptr || size < 2 ) {
@@ -567,8 +577,7 @@ char*                               // addr || nullptr iff non-operational
          case XK_F10:
          case XK_F11:
          case XK_F12:
-           traceh("F%d key has no function\n", C - XK_F1 + 1);
-           used_trace= true;
+           dtrace("F%d key has no function\n", C - XK_F1 + 1);
            continue;
 
          // NEED TO HANDLE CURSOR MOVEMENT, UP, DOWN, LEFT, RIGHT, HOME, END
@@ -582,8 +591,7 @@ char*                               // addr || nullptr iff non-operational
          case XK_Insert:
          case XK_Delete:
          default:
-           traceh("Key 0x%.4x NOT CODED YET, ignored\n", C);
-           used_trace= true;
+           dtrace("Key 0x%.4x NOT CODED YET, ignored\n", C);
            continue;
        }
      }
@@ -714,7 +722,7 @@ void
 //----------------------------------------------------------------------------
 void
    Console::stop( void )            // Stop the Console
-{  if( HCDM ) traceh("\n\npub::Console::stop operational(%d)\n", operational);
+{  if( HCDM ) dtrace("\n\npub::Console::stop operational(%d)\n", operational);
 
    std::lock_guard<decltype(_mutex)> lock(_mutex); // One user at a time
 
@@ -731,9 +739,9 @@ void
      errno= EPERM;                  // (Permanent error)
    }
 
-   if( used_trace ) {
+   if( trace_used ) {
      debugf("\ntracing used, debug.out contains additional information\n");
-     used_trace= false;
+     trace_used= false;
    }
 }
 
@@ -748,7 +756,7 @@ void
 //----------------------------------------------------------------------------
 void
    Console::wait( void )            // Wait for termination
-{  if( HCDM ) traceh("%4d pub::Console.wait\n", __LINE__);
+{  if( HCDM ) dtrace("%4d pub::Console.wait\n", __LINE__);
 
    event.wait();
 }

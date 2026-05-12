@@ -138,12 +138,12 @@ virtual uint64_t                    // Result (0 if error/missing/last)
      uint64_t          index,       // After this RDF3 index
      S_Chunk           sChunk);     // For this subject chunk
 
-virtual int                         // Return code (0 if sucessful)
+virtual int                         // Return code (0 if successful)
    remove(                          // Remove
      uint64_t          index,       // This RDF3 index, controlled by
      DbTxn*            dbTxn= NULL); // This transaction
 
-virtual int                         // Return code (0 if sucessful)
+virtual int                         // Return code (0 if successful)
    revise(                          // Replace
      uint64_t          index,       // This RDF3 index with
      const Value*      value,       // This RDF3 value, controlled by

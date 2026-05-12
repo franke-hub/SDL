@@ -14,7 +14,7 @@
 ##       .prereq.sh
 ##
 ## Function-
-##       Verify test prequisites
+##       Verify test prerequisites
 ##
 ## Last change date-
 ##       2024/03/04

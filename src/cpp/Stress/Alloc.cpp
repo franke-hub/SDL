@@ -14,7 +14,7 @@
 //       ~/Stress/Alloc.cpp
 //
 // Purpose-
-//       ~/src/cpp/inc/pub/Allocator.h Stress test
+//       ~/src/cpp/inc/pub/experimental/Allocator.h Stress test
 //
 // Last change date-
 //       2024/12/20
@@ -52,12 +52,12 @@
 #include <getopt.h>                 // For getopt_long()
 #include <unistd.h>                 // For getpid, ...
 
-#include "pub/Allocator.h"          // For pub::Allocator
+#include "pub/experimental/Allocator.h" // For pub::Allocator
 #include <pub/Debug.h>              // For pub::debugging::debugf, ...
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Event.h>              // For pub::Event
 #include <pub/Named.h>              // For pub::Named (Threads are named)
-#include "pub/SubAllocator.h"       // For pub::SubAllocator
+#include "pub/experimental/SubAllocator.h"       // For pub::SubAllocator
 #include <pub/Thread.h>             // For pub::Thread
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/utility.h>            // For pub::utility::atol, ...
@@ -580,7 +580,7 @@ extern int                          // Return code
      if( HCDM ) debugh("%4d HCDM.c\n", __LINE__);
      Main::term();
 
-     rc= 0;                         // Test sucessful
+     rc= 0;                         // Test successful
    )
 
    //-------------------------------------------------------------------------

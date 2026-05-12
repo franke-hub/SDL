@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2025 Frank Eskesen.
+//       Copyright (c) 2018-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Work dispatcher.
 //
 // Last change date-
-//       2025/01/19
+//       2026/04/25
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_DISPATCH_H_INCLUDED
@@ -61,7 +61,7 @@ static Timers*         timers;      // The Timers Thread
 // pub::dispatch::Disp::Constructors
 //----------------------------------------------------------------------------
 public:
-   Disp( void ) = delete;           // There are NO constructors
+   Disp( void ) = delete;           // NO constructors (All methods static)
 
 //----------------------------------------------------------------------------
 // pub::dispatch::Disp::Methods
@@ -72,10 +72,10 @@ static void
 //----------------------------------------------------------------------------
 // pub::dispatch::Disp::cancel()
 //
-// Call this method to cancel a timer workUnit. If cancelled, the associated
-// Item COMPLETES with a completion code of Item::CC_PURGE.
+// Call this method to cancel a timer Item. If cancelled, the associated Item
+// COMPLETES with a completion code of Item::CC_PURGE.
 //----------------------------------------------------------------------------
-static void
+static bool                         // TRUE iff cancelled
    cancel(                          // Cancel delay
      void*             token);      // Cancellation token
 
@@ -136,13 +136,10 @@ class Done {                        // The dispatch::Done callback Object
 // pub::dispatch::Done::Constructors/destructor
 //----------------------------------------------------------------------------
 public:
-   Done( void ) {}                  // Default constructor
-
-   Done(const Done&) = delete;      // Disallowed copy constructor
-   Done& operator=(const Done&) = delete; // Disallowed assignment operator
+   Done( void ) = default;          // Default constructor
 
 virtual
-   ~Done( void ) {}                 // Destructor
+   ~Done( void ) = default;         // Destructor
 
 //----------------------------------------------------------------------------
 // pub::dispatch::Done::Methods
@@ -163,7 +160,7 @@ virtual void                        // OVERRIDE this method
 //
 // Implementation notes-
 //       All negative function codes are handled internally by the Dispatcher.
-//       They are not passed to DispatchTask::work().
+//       They are not passed to Task::work().
 //
 //       When post() is invoked:
 //         if done != nullptr, done->done(this) is invoked.
@@ -203,19 +200,17 @@ Done*                  done= nullptr; // Completion callback
 
    Item(                            // Constructor
      Done*             done)        // -> Done callback object
-:  done(done) { }
+:  done(done)
+{  }
 
    Item(                            // Constructor
      int               fc,          // Function code
      Done*             done= nullptr) // -> Done callback object
-:  fc(fc), done(done) { }
+:  fc(fc), done(done)
+{  }
 
 virtual
    ~Item( void ) = default;         // Destructor
-
-private:
-   Item(const Item&) = delete;      // Disallowed copy constructor
-   Item& operator=(const Item&) = delete; // Disallowed assignment operator
 
 //----------------------------------------------------------------------------
 // pub::dispatch::Item::Methods
@@ -299,7 +294,7 @@ virtual void                        // (IMPLEMENT this method)
      Item*             item);       // This work Item
 
 private:
-void                                // The Worker interface
+virtual void                        // The Worker interface
    work( void ) final;              // Drain work from Task
 }; // class pub::dispatch::Task
 
@@ -332,13 +327,14 @@ Event                  event;       // For wait/post
 // pub::dispatch::Wait::Constructors/destructor
 //----------------------------------------------------------------------------
 public:
-   Wait( void ) : Done() {}         // Constructor
+   Wait( void ) : Done()            // Default constructor
+{  }
 
    Wait(const Wait&) = delete;      // Disallowed copy constructor
    Wait& operator=(const Wait&) = delete; // Disallowed assignment operator
 
 virtual
-   ~Wait( void ) {}                 // Destructor
+   ~Wait( void ) = default;         // Destructor
 
 //----------------------------------------------------------------------------
 // pub::dispatch::Wait::Methods
@@ -360,18 +356,6 @@ virtual void
 
 //----------------------------------------------------------------------------
 //
-// Typedef-
-//       pub::dispatch::Work_i
-//
-// Purpose-
-//       Work method interface
-//
-//----------------------------------------------------------------------------
-typedef std::function<void(Item*)>
-                        Work_i;     // The work method interface
-
-//----------------------------------------------------------------------------
-//
 // Class-
 //       pub::dispatch::LambdaDone
 //
@@ -383,26 +367,35 @@ typedef std::function<void(Item*)>
 //       alternate method for overriding it.
 //       The original done() method now "belongs" to LambdaDone.
 //
+// Sample usage (which performs the default action)-
+//       LambdaDone done([](Item* item) {
+//         // Your code goes here
+//         item->post();
+//      });
+//
 //----------------------------------------------------------------------------
 class LambdaDone : public Done {    // The dispatch::LambdaDone callback Object
 //----------------------------------------------------------------------------
 // pub::dispatch::LambdaDone::Attributes
 //----------------------------------------------------------------------------
+public:
+typedef std::function<void(Item*)>
+                       Done_if;     // The done method interface
+
 protected:
-Work_i                 do_done;     // The completion handler
+Done_if                do_done;     // The completion handler
 
 //----------------------------------------------------------------------------
 // pub::dispatch::LambdaDone::Constructors/destructor
 //----------------------------------------------------------------------------
 public:
    LambdaDone( void )               // Default constructor
-:  Done() {}                        // (Callback not initialized)
+:  Done()                           // (Callback not initialized)
+{  }
 
-   LambdaDone(Work_i f)             // Constructor
-:  Done(), do_done(f) {}
-
-   LambdaDone(const LambdaDone&) = delete; // Disallowed copy constructor
-   LambdaDone& operator=(const LambdaDone&) = delete; // Disallowed assignment operator
+   LambdaDone(Done_if f)            // Constructor
+:  Done(), do_done(f)
+{  }
 
 virtual
    ~LambdaDone( void ) = default;   // Destructor
@@ -411,7 +404,7 @@ virtual
 // pub::dispatch::LambdaDone::Methods
 //----------------------------------------------------------------------------
 void
-   on_done(Work_i f)                // Replace do_done
+   on_done(Done_if f)               // Replace do_done
 {  do_done= f; }
 
 virtual void
@@ -434,24 +427,29 @@ virtual void
 //       The original work() method now "belongs" to LambdaTask.
 //
 // Sample usage (which performs the default action)-
-//       LambdaTask task([this](Item* item) {
+//       LambdaTask task([](Item* item) {
 //         // Your code goes here
 //         item->post();
 //      });
 //
 //----------------------------------------------------------------------------
 class LambdaTask : public Task {    // Dispatch Lambda Task
+public:
+typedef std::function<void(Item*)>
+                       Work_if;     // The Task's work method interface
+
 protected:
-Work_i                 do_work;     // The Work item handler
+Work_if                do_work;     // The Work item handler
 
 public:
    LambdaTask( void )               // Default constructor
-:  Task()
+:  Task()                           // (Callback not initialized)
 {  }
 
    LambdaTask(                      // Instantiate work method
-     Work_i            f)           // With this lambda function
-:  Task(), do_work(f) {}
+     Work_if           f)           // With this lambda function
+:  Task(), do_work(f)
+{  }
 
 virtual
    ~LambdaTask( void ) = default;   // Destructor
@@ -461,7 +459,7 @@ virtual
 //----------------------------------------------------------------------------
 void
    on_work(                         // Instantiate work method
-     Work_i            f)           // With this lambda function
+     Work_if           f)           // With this lambda function
 {  do_work= f; }
 
 virtual void

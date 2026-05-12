@@ -159,12 +159,12 @@ virtual uint64_t                    // Result (0 if error/missing/last)
      uint64_t          index,       // After this HTTP index
      uint64_t          time);       // And this time
 
-virtual int                         // Return code (0 if sucessful)
+virtual int                         // Return code (0 if successful)
    remove(                          // Remove
      uint64_t          index,       // This HTTP index, controlled by
      DbTxn*            dbTxn= NULL); // This transaction
 
-virtual int                         // Return code (0 if sucessful)
+virtual int                         // Return code (0 if successful)
    revise(                          // Replace
      uint64_t          index,       // This HTTP index with
      const Value*      value,       // This HTTP value, controlled by

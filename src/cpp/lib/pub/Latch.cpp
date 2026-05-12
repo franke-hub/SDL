@@ -20,7 +20,7 @@
 //       2026/03/03
 //
 // Implementation notes-
-//       Maintain implementation compatability with Latch.h
+//       Maintain implementation compatibility with Latch.h
 //       Only used if _PUBLIB_LATCH_INLINE is left undefined by Latch.h
 //
 //----------------------------------------------------------------------------

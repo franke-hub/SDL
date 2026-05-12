@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2010-2025 Frank Eskesen.
+##       Copyright (C) 2010-2026 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -17,7 +17,7 @@
 ##       View a GPG encrypted file.
 ##
 ## Last change date-
-##       2025/08/14
+##       2026/04/30
 ##
 ## Usage-
 ##       viewgpg filename
@@ -94,8 +94,9 @@ fi
 
 ##############################################################################
 ## Set up editor
-EDITOR=$HOME/bin/editor
-[[ ! -x $EDITOR ]] && EDITOR=$HOME/bin/xtmedit
+EDITOR=$HOME/bin/xtmedit
+[[ ! -x $EDITOR ]] && EDITOR=$HOME/bin/editor
+[[ ! -x $EDITOR ]] && EDITOR=$HOME/bin/xcbedit
 [[ ! -x $EDITOR ]] && EDITOR=/usr/bin/nano
 if [[ ! -x $EDITOR ]] ; then
   echo "No editor found"

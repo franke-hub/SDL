@@ -17,7 +17,7 @@
 //       Latch.h reference manual
 //
 // Last change date-
-//       2026/03/04
+//       2026/04/17
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Latch.h>
@@ -88,3 +88,52 @@ Latch isn't immediately available.
 | [try_reserve](./pub_latch-XCL.md#try_reserve) | Try to reserve exclusive mode access. |
 | [unlock](./pub_latch-XCL.md#unlock) | Completely release the Latch. |
 | [upgrade](./pub_latch-XCL.md#upgrade) | Change mode: shared to exclusive. |
+
+#### Examples
+
+Simple exclusive latch using `std::lock_guard`:
+
+```cpp
+#include <cstdio>
+#include <pub/Latch.h>
+
+pub::Latch latch;
+int        shared_value = 0;
+
+void increment() {
+    std::lock_guard<pub::Latch> lock(latch);
+    ++shared_value;
+}
+```
+
+Shared/exclusive latch (multiple readers, one writer at a time):
+
+```cpp
+#include <cstdio>
+#include <pub/Latch.h>
+
+pub::SHR_latch shr_latch;
+int            shared_value = 0;
+
+void reader() {
+    std::lock_guard<pub::SHR_latch> shr(shr_latch); // shared mode
+    printf("value: %d\n", shared_value);
+}
+
+void writer1() {
+    pub::XCL_latch xcl(shr_latch);                  // exclusive mode
+    ++shared_value;
+}
+
+void writer2() {
+    pub::XCL_latch xcl(shr_latch);                  // exclusive mode
+    --shared_value;
+}
+```
+
+All Latch types satisfy the `Lockable` concept and work with `std::lock_guard`.
+Latches use spin-locking and are suited to short, low-contention critical sections.
+For longer or contended sections, prefer `std::mutex`.
+
+Note that exclusive mode is granted to one writer **at a time**.
+Multiple writers can co-exist. Each will have exclusive access when running.

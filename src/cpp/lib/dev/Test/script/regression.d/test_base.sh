@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2023 Frank Eskesen.
+##       Copyright (C) 2023-2026 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -17,13 +17,13 @@
 ##       Run executables with default options
 ##
 ## Last change date-
-##       2023/07/29
+##       2026/04/22
 ##
 ##############################################################################
 
 ##############################################################################
 ## Run executables
-test_set="T_Option T_Quick"
+test_set="T_Option T_Quick T_Stream"
 for test in $test_set
 do
   ./$test

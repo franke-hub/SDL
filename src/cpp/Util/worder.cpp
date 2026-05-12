@@ -257,8 +257,8 @@ static void
      }
 
      // Initialize letter occurrance counters
-     int hits[DIM_ALPH]= {};        // By letter, number of '=,+,%' occurances
-     int miss[DIM_ALPH]= {};        // By letter, number of missed occurances
+     int hits[DIM_ALPH]= {};        // By letter, number of '=,+,%' occurrences
+     int miss[DIM_ALPH]= {};        // By letter, number of missed occurrences
      for(int wx= 0; wx<count; ++wx) {
        int C= parm[wx];
        int D= desc[wx];
@@ -268,7 +268,7 @@ static void
          ++miss[C];
      }
 
-     // Cross-check parameters, updating remaining letter occurance count
+     // Cross-check parameters, updating remaining letter occurrence count
      for(int wx= 0; wx<count; ++wx) {
        int C= parm[wx];
        int D= desc[wx];

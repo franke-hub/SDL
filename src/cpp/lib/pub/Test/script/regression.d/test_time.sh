@@ -17,29 +17,13 @@
 ##       Run timing tests, logging to test_time.out
 ##
 ## Last change date-
-##       2026/01/26
+##       2026/04/22
 ##
 ##############################################################################
 
 ##############################################################################
 ## Definitions
 logfile="test_time.out"
-
-##############################################################################
-## Function cmd: Run test, success expected
-function cmd
-{
-  echo -e "\nTEST: $1 (started)"
-  "$@"
-  rc=$?
-  if [ $rc == 0 ] ; then
-    echo "PASS: $1"
-    return
-  fi
-
-  echo "FAIL: $1"
-  exit 1
-}
 
 ##############################################################################
 ## Function log: Display command, run logging output

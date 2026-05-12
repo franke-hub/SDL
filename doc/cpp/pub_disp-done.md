@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (c) 2023 Frank Eskesen.
+//       Copyright (c) 2023-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under cc by-sa version 4.0
 //       with attribution required.
@@ -17,80 +17,56 @@
 //       Dispatch.h reference manual: Done, Wait
 //
 // Last change date-
-//       2023/07/28
+//       2026/04/24
 //
 -------------------------------------------------------------------------- -->
-## (pub::dispatch::)Done::Done, Done::done; LambdaDone::LambdaDone, LambdaDone::done, LambdaDone::on_done; Wait::Wait, Wait::done, Wait::reset, Wait::wait
-
+## (pub\::dispatch\::)Done
+## (pub\::dispatch\::)Wait
 ###### Defined in header <pub/Dispatch.h>
 
 <!-- ===================================================================== -->
----
-### *pub::dispatch::Done methods*
-#### pub::dispatch::Done::Done(void);
+## <a id="class-done">class pub\::dispatch\::Done</a>
+
+### *Attributes*
+
+(None defined.)
+
+### *Methods*
+
+#### <a id="construct-done">Done();</a>
 
 The (default) Done constructor.
 
----
-#### virtual void done(Item* item);
+#### virtual void done(Item* item);</a>
 
-**Override this method**
-Handle the completion of the associated work Item.
+Handles the completion of the associated work Item. **Override this method**
 
 <!-- ===================================================================== -->
 ---
-### *pub::dispatch::LambdaDone attributes*
+### <a id="class-wait">class pub\::dispatch\::Wait : public Done</a>
 
-`typedef std::function<void(Item*)> function_t;` // The lambda function signature
+### *Attributes*
 
-`protected: function_t callback` // The lambda function instance
+`private: Event event;              // The wait/post Event
 
-### *pub::dispatch::LambdaDone methods*
+### *Methods*
 
-#### pub::dispatch::Wait::LambdaDone(void) : public Done;
-
-The (default) LambdaDone constructor.
-There is no default lambda function. It's left undefined.
-
----
-#### pub::dispatch::Wait::LambdaDone(function_t _cb) : public Done;
-
-An initializing LambdaDone constructor, defining the lambda function.
-
----
-#### virtual void pub::dispatch::LambdaDone::done(Item* item);
-
-For internal use only.
-This overrides Done::done. It just invokes the callback lambda function.
-
-You provide the done functionality either in the constructor or
-by using the on_done method.
-
----
-#### virtual void pub::dispatch::LambdaDone::on_done(function_t _cb);
-
-Replaces the callback lambda function.
-
-<!-- ===================================================================== -->
----
-### *pub::dispatch::Wait methods*
-#### pub::dispatch::Wait::Wait(void) : public Done;
+#### <a id="construct-wait">Wait();</a>
 
 The (default) Wait constructor.
 
----
-#### virtual void pub::dispatch::Wait::done(Item* item);
+#### private: virtual void done(Item* item) final;
 
-(For internal use only.
-This overrides Done::done and implements Wait::wait.)
+This overrides Done\::done in order to implement Wait\::wait.
 
----
-#### void pub::dispatch::Wait::reset(void);
+#### <a id="reset">void reset();</a>
 
 Reset the Wait object (for reuse.)
-After wait completion, the Wait object cannot be reused unless it is reset.
+Once posted, Wait does not wait until it's reset.
 
----
-#### void pub::dispatch::Wait::wait(void);
+#### <a id="wait">int32_t void wait();</a>
+
+Return value: The Item's completion code, set when Item.post is invoked
+(normally by a Task.)
 
 Wait for work Item completion.

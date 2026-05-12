@@ -143,7 +143,7 @@ static int                          // (Always -1)
 //       sno_exception
 //
 // Purpose-
-//       Message: A should not occur situation occured.
+//       Message: A should not occur situation occurred.
 //
 //----------------------------------------------------------------------------
 [[noreturn]]
@@ -581,7 +581,7 @@ void
 //       Since adding an item to the queue and writing to complete the
 //       polling operation are separate operations, it's possible for
 //       writer->write or reader->read to block. In either case, this is
-//       treated as if the blocked operation completed sucessfully.
+//       treated as if the blocked operation completed successfully.
 //
 //----------------------------------------------------------------------------
 void

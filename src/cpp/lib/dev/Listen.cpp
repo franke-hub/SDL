@@ -17,7 +17,7 @@
 //       Implement http/Listen.h
 //
 // Last change date-
-//       2026/03/23
+//       2026/04/22
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -155,6 +155,12 @@ static void
    if( opts_ )
      opts.append(*opts_);
 
+   // Extract VERBOSE option
+   int opt_verbose= false;
+   const char* VERBOSE= opts.locate("VERBOSE");
+   if( VERBOSE )
+     opt_verbose= true;
+
    // Initialize the Socket, allowing port re-use
    int
    rc= listen.open(addr.su_af, SOCK_STREAM, 0);
@@ -185,8 +191,9 @@ static void
 
    // We are operational
    log.set_file_mode("ab");
-   debugf("Server: http://%s\n", s2c(addr.to_string()));
-     logf("Server: http://%s\n", s2c(addr.to_string()));
+   if( opt_verbose )
+     debugf("Server: http://%s\n", s2c(addr.to_string()));
+   logf("Server: http://%s\n", s2c(addr.to_string()));
 
    if( USE_REPORT )
      listen_count.inc();

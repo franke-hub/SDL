@@ -124,11 +124,11 @@ static inline int                   // TRUE if the value is odd
 //       bitCounter
 //
 // Purpose-
-//       For each bit in a word, count its occurance in a counter array.
+//       For each bit in a word, count its occurrence in a counter array.
 //
 //----------------------------------------------------------------------------
 static inline void
-   bitCounter(                      // Count bit occurances.
+   bitCounter(                      // Count bit occurrences.
      uint64_t          word,        // In this word
      uint64_t*         array)       // Counter array
 {
@@ -152,11 +152,11 @@ static inline void
 //       bitChecker
 //
 // Purpose-
-//       Display the number of occurances for each bit.
+//       Display the number of occurrences for each bit.
 //
 //----------------------------------------------------------------------------
 static inline void
-   bitChecker(                      // Check bit occurances.
+   bitChecker(                      // Check bit occurrences.
      const char*       type,        // The function used to set the bits
      int               count,       // The number of tests
      uint64_t*         array)       // Counter array[64]

@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (c) 2023 Frank Eskesen.
+//       Copyright (c) 2023-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under cc by-sa version 4.0
 //       with attribution required.
@@ -17,14 +17,15 @@
 //       Dispatch.h reference manual: Item
 //
 // Last change date-
-//       2023/08/11
+//       2026/04/18
 //
 -------------------------------------------------------------------------- -->
-## (pub::dispatch::Item::)Item, post
-
+## (pub::dispatch::)Item
 ###### Defined in header <pub/Dispatch.h>
 
-#### struct pub::dispatch::Item : public AI_list<pub::dispatch::Item>::Link
+## <a id="struct-item">class pub\::dispatch\::Item : public AI_list<pub::dispatch::Item>::Link</a>
+
+### *Attributes*
 
 Constants:
 
@@ -40,29 +41,28 @@ Function codes: (enum FC)
 - FC_UNDEF= -2 // Undefined/invalid function code
 
 Fields:
-- fc: (int) Function Code, default FC_VALID (0). Negative values handled internally.
-- cc: (int) Completion Code, default CC_NORMAL (0). Negative values are pre-defined.
-- done: (pub::dispatch::Done*) Completion handler,
-the (nullptr) default indicates delete when done.
+- int fc: Function Code, default FC_VALID (0). Negative values are reserved
+for internal use.
+- int cc: Completion Code, default CC_NORMAL (0). Negative values are
+reserved for pre-defined conditions.
+- Done* done: Completion handler, default nullptr. The nullptr default causes
+the Item to be deleted when posted.
 
-<!-- ===================================================================== -->
----
-#### pub::dispatch::Item::Item(void);
+### *Methods*
+
+#### <a id="construct">pub::dispatch::Item::Item(void);</a>
 
 The (default) constructor.
 
----
-#### pub::dispatch::Item::Item(Done* _done);
+#### <a id="construct-d">pub::dispatch::Item::Item(Done* _done);</a>
 
 Initialization constructor. Initializes: done(_done)
 
----
-#### pub::dispatch::Item::Item(int _fc, Done* _done= nullptr);
+#### <a id="construct-fd">pub::dispatch::Item::Item(int _fc, Done* _done= nullptr);</a>
 
 Initialization constructor. Initializes: fc(_fc), done(_done)
 
----
-#### void pub::dispatch::Item::post(int _cc= 0);
+#### <a id="post">void pub::dispatch::Item::post(int _cc= 0);</a>
 
 Posts the work Item completion, setting cc= _cc;
 

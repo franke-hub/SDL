@@ -195,7 +195,7 @@ void
 //       pub::signals::SlotList::signal
 //
 // Purpose-
-//       Signal Event occurance
+//       Signal Event occurrence
 //
 // Implementation notes-
 //       The signal method does not return until all Slots are (serially)

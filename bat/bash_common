@@ -83,8 +83,8 @@ function myCD
 ##############################################################################
 ## qd: Quickdir
 function qd
-{ if [[ "list" = "$1" ]] ; then
-    nickdir list
+{ if [[ "$1" = "list" || "$1" = "version" ]] ; then
+    nickdir $1
   else
     myCD `nickdir $*`
   fi

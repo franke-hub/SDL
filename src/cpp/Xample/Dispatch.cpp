@@ -1,23 +1,29 @@
-#include <pub/Debug.h>              // For namespace pub::debugging
-#include <pub/Dispatch.h>           // For pub::dispatch objects
+#include <cstdio>
+#include <pub/Dispatch.h>
+
 #define PUB _LIBPUB_NAMESPACE
-using namespace PUB::debugging;
+using namespace PUB::dispatch;
+
+class MyTask : public PUB::dispatch::Task {
+public:
+   MyTask( void ) = default;
+
+virtual void
+   work(Item* item) override
+{
+   printf("MyTask item handler\n");
+   item->post();
+}
+}; // class MyTask
 
 int main() {
-   debug_set_head(PUB::Debug::HEAD_THREAD | PUB::Debug::HEAD_TIME);
-   debugh("main() invoked\n");
+   printf("main() invoked\n");
 
-   using namespace PUB::dispatch;
-   LambdaTask task([](Item* item) {
-     debugh("LambdaTask invoked\n");
-     item->post();
-     debugh("LambdaTask complete\n");
-   });
-
+   MyTask task;
    Wait wait;
    Item item(&wait);
    task.enqueue(&item);
    wait.wait();
 
-   debugh("main() complete\n");
+   printf("main() complete\n");
 }

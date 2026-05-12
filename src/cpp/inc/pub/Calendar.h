@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2025 Frank Eskesen.
+//       Copyright (c) 2007-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       The Calendar object contains date and time information.
 //
 // Last change date-
-//       2025/03/21
+//       2026/04/29
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_CALENDAR_H_INCLUDED
@@ -71,7 +71,7 @@ uint16_t               month;       // The month, range 1..12
 uint16_t               day;         // The day of the month, range 1..31
 uint16_t               hour;        // The hour of the day, range 0..23
 uint16_t               minute;      // The minute of the hour, range 0..59
-double                 second;      // The fractional second, range 0 .. (<60)
+double                 second;      // The second of the minute, range 0..(<60)
 
 //----------------------------------------------------------------------------
 // Calendar::Day of cycle to {year, month, day} lookup table
@@ -101,17 +101,19 @@ uint8_t                day;         // Day,   range 1 .. 31
      unsigned int      day,         // The day of the month, range 1..31
      unsigned int      hour,        // The hour of the day, range 0..23
      unsigned int      minute,      // The minute of the hour, range 0..59
-     double            second= 0)   // The second of the minute, range 0..59
+     double            second= 0)   // The second of the minute, range 0..(<60)
 {  setYMDHMS(year, month, day, hour, minute, second); }
 
    Calendar(                        // Copy constructor
      const Calendar&   calendar)    // Source Calendar
 {  set(calendar); }                 // Copy source Calendar
 
+explicit
    Calendar(                        // Copy constructor
      const Julian&     julian)      // Source Julian
 {  set(julian); }                   // Convert Julian to Calendar
 
+explicit
    Calendar(                        // Copy constructor
      const Clock&      clock)       // Source Clock
 {  set(clock); }                    // Convert Clock to Calendar
@@ -214,7 +216,7 @@ void
    set( void );                     // Set the Calendar from current time
 
 void
-   setYMD(                           // Set the Calendar
+   setYMD(                          // Set the Calendar
      int64_t           year,        // The year
      unsigned int      month,       // The month, range 1..12
      unsigned int      day)         // The day of the month, range 1..31
@@ -227,7 +229,7 @@ void
      unsigned int      day,         // The day of the month, range 1..31
      unsigned int      hour= 0,     // The hour of the day, range 0..23
      unsigned int      minute= 0,   // The minute of the hour, range 0..59
-     double            second= 0);  // The second of the minute, range 0..59
+     double            second= 0);  // The second of the minute, range 0..(<60)
 
 void
    set(                             // Set the Calendar

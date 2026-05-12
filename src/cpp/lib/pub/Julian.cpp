@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2025 Frank Eskesen.
+//       Copyright (c) 2007-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Implement Julian.h
 //
 // Last change date-
-//       2025/03/30
+//       2026/04/28
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::range_error

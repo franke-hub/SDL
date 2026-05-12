@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2018-2023 Frank Eskesen.
+##       Copyright (C) 2018-2026 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,21 +16,23 @@
 ##       Development status, history, and reminders.
 ##
 ## Last change date-
-##       2023/12/04
+##       2026/04/23
 ##
 ##############################################################################
 
 ##############################################################################
 ## STATUS:
-2023/12/04 Renamed Diagnostic.h to diag-shared_ptr.h, etc
-         Changed documentation, including this file, to reflect change.
-
-##############################################################################
-## FEATURES:
+2026/04/23 Console.cpp had inconsistent trace logic
+         Added dtrace subroutine which conditionally writes to trace file and
+         trace_used.
 
 ##############################################################################
 ## BUGS:
-2022/10/16 Test/TestDisp throughput regression ** IMPORTANT **
+2026/04/23 No known bugs.
+
+##############################################################################
+## INFO:
+2022/10/16 **IMPORTANT** Test/TestDisp throughput regression
          Appears to be due to kernel changes slowing down some task switching.
          This impacts all DispatchTask users.
 
@@ -39,8 +41,11 @@
 
 ##############################################################################
 ## DONE:
+2023/12/04 Renamed Diagnostic.h to diag-shared_ptr.h, etc
+         Changed documentation, including this file, to reflect change.
+
 2023/05/25 Dispatch.cpp issue #2 test fix implemented
-         This problem occured when ../dev/Test/T_Stream.cpp runs a stress test.
+         This problem occurred when ../dev/Test/T_Stream.cpp runs a stress test.
          Testing issues remain: the FC_UNDEF request does not complete. That
          means that dispatch::Task destructors don't complete and therefore
          Client and Server destructors don't complete. This needs a-fixin'.
@@ -58,6 +63,9 @@
 2022/10/16 Added diag-shared_ptr.h, for tracking hard to debug problems.
 
 2019/03/15 See ~/src/cpp/HTTP/.README for additional information.
+
+##############################################################################
+## FEATURES:
 
 ##############################################################################
 ## TODO:
