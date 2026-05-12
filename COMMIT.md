@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2026/04/23
+//       2026/05/12
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -1011,7 +1011,7 @@ measurement found this would degrade performance by about 20 percent.)
 - ~/src/java/Webapp/usr/fne/appled/UrlReader.java
   - Fixed deprecated URL(String) constructor
 
-### <a id="last-change">2026/04/23 maint</a>
+### 2026/04/23 maint
 - DEV library regression test runs similarly to PUB's
   - ~/src/cpp/lib/dev/Listen.cpp uses VERBOSE Option to control whether the
 Listener IP address is displayed.
@@ -1029,3 +1029,22 @@ update.
 - Removed some deleted copy constructors and assignment operators where there's
 no reason for the restriction.
 - Made ~/src/cpp/lib/pub/Console.cpp debugging traces more consistent.
+
+### <a id="last-change">2026/05/12 main/trunkt</a>
+- ~/src/cpp/inc/pub/.
+  - Separated Dispatch.h work and done interfaces
+  - Moved Allocator.h, Suballocator.h, and Interface.h to experimental
+- ~/src/cpp/lib/pub/Test/TestTime.cpp
+  - Improved --display output sequencing
+- Cleanup for issues found during documentation updates
+  - ~/src/cpp/Xample/multi-threading.cpp
+  - ~/src/cpp/inc/pub/Calendar.h, ~/src/cpp/lib/pub/Calendar.cpp
+  - ~/src/cpp/inc/pub/Clock.h
+  - ~/src/cpp/inc/pub/Dispatch.h
+  - ~/src/cpp/lib/pub/Julian.cpp
+  - ~/src/cpp/lib/pub/Test/TestTime.cpp
+- Changed default editor in ~/bat/editgpg and ~/bat/viewgpg
+- Cleaned up documentation
+- Cleaned up ~/bat/f.nickdir (for consistency)
+- Spelling check errors corrected (Many files)
+- ~/src/cpp/Util/format.cpp rewritten mostly to handle backspace characters
