@@ -33,17 +33,13 @@ Ideas are sorted in date order rather than reverse date order.
 
 ### [The most recent idea](#most-recent)
 
-----
-
 ## These are just ideas on how to do things. They are not necessarily *good*
 ideas.
 
 These generally originate in the middle of the night.
 
 <!-- --------------------------------------------------------------------- -->
-### <a id="most-recent">2026/05/01 Image comparison</a>
-
-----
+### 2026/05/01 Image comparison
 
 #### Expertise
 Not much. I tell you this becuase I don't know if the idea really makes any
@@ -105,3 +101,12 @@ Questions:
     - Need to find reasonable rotation angles
       - Will proabably need to generate a test set.
     - Stop if match found
+
+<!-- --------------------------------------------------------------------- -->
+### <a id="most-recent">2026/05/11 C++ Python</a>
+
+Implement a Python-like object that can be passed.
+
+- Garbage collected (Need some sort of scope control)
+- Match python features and error conditions
+  - Testing required
