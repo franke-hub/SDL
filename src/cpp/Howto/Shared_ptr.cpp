@@ -19,6 +19,14 @@
 //       2021/11/14
 //
 //----------------------------------------------------------------------------
+#if __GNUC__ == 16                  // TEMPORARY
+#include <cstdio>
+int main(int, char**)
+{
+   printf("GNU version 16 compiler bug prevents compilation\n");
+   return 0;
+}
+#else
 #include <memory>                   // For std::shared_ptr
 #include <cstdio>                   // For printf
 #include <cstring>                  // For strcmp
@@ -269,3 +277,4 @@ extern int                          // Return code
    printf("...main\n");
    return 0;
 }
+#endif

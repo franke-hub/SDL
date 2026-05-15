@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2026/05/12
+//       2026/05/15
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -1030,7 +1030,7 @@ update.
 no reason for the restriction.
 - Made ~/src/cpp/lib/pub/Console.cpp debugging traces more consistent.
 
-### <a id="last-change">2026/05/12 main/trunkt</a>
+### 2026/05/12 main/trunk
 - ~/src/cpp/inc/pub/.
   - Separated Dispatch.h work and done interfaces
   - Moved Allocator.h, Suballocator.h, and Interface.h to experimental
@@ -1048,3 +1048,10 @@ no reason for the restriction.
 - Cleaned up ~/bat/f.nickdir (for consistency)
 - Spelling check errors corrected (Many files)
 - ~/src/cpp/Util/format.cpp rewritten mostly to handle backspace characters
+
+### <a id="last-change">2026/05/15 maint/trunk</a>
+- Fixes found during global recompile in Fedora 44, gcc version 16.1.1
+  - Mostly variables that were only set
+  - ~/src/cpp/Howto/Shared_ptr.cpp did not compile due to compiler bug.
+Now compiles an alternate version if __GNUC__ == 16
+    - See: https://gcc.gnu.org/pipermail/gcc-bugs/2025-May/914942.html

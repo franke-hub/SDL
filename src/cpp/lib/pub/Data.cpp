@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2025 Frank Eskesen.
+//       Copyright (c) 2020-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Data.h object methods
 //
 // Last change date-
-//       2025/11/24
+//       2026/05/13
 //
 // Implementation note-
 //       Derived from Fileman.cpp
@@ -612,7 +612,6 @@ std::string                         // The invalid path ("" if none)
      return;
    }
 
-   int count= 0;                    // Number of File*
    for(;;) {                        // For each directory entry
      struct dirent* ent= readdir(dir); // Read the directory entry
      if( ent == NULL )
@@ -631,7 +630,6 @@ std::string                         // The invalid path ("" if none)
      }
 
      list.fifo(new File(s, file));
-     count++;
    }
 
    int rc= closedir(dir);           // Done reading the directory
