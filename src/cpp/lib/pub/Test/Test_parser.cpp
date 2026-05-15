@@ -17,7 +17,7 @@
 //       Test pub/Parser.h
 //
 // Last change date-
-//       2026/05/13
+//       2026/05/15
 //
 //----------------------------------------------------------------------------
 #include <cstddef>
@@ -45,9 +45,9 @@ static void
 {
    const char* value= parser.get_value(sect, parm);
    if( sect == nullptr )
-     sect= "<nullptr>";
+     sect= "(null)";
    if( parm == nullptr )
-     parm= "<nullptr>";
+     parm= "(null)";
    printf("'%s'= get_value(%s,%s)\n", value, sect, parm);
 }
 
