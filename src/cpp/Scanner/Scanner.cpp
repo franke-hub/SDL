@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2025 Frank Eskesen.
+//       Copyright (c) 2020-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Source file checker.
 //
 // Last change date-
-//       2025/12/31
+//       2026/05/12
 //
 // Usage-
 //       Scanner {path} options
@@ -2485,11 +2485,10 @@ static void
            want= S_IRUSR;
 
          if( mode != want ) {       // If correction required
-           if( false )
-             errorf("%4d Scanner mode(%.3o) want(%.3o) opt_auto(%s)\n"
-                   , __LINE__, mode, want, opt_auto ? "true" : "false");
+           errorf("File(%s) mode(%.3o) want(%.3o)\n"
+                 , s2c(full), mode, want);
            if( !opt_auto || (mode & S_IWUSR) == 0 ) { // If can't auto-correct
-             errorf("File: -%s%s%s%s%s%s%s%s%s %s unchanged\n"
+             errorf("Mode: -%s%s%s%s%s%s%s%s%s unchanged\n"
                    , mode & S_IRUSR ? "r" : "-"
                    , mode & S_IWUSR ? "w" : "-"
                    , mode & S_IXUSR ? "x" : "-"
@@ -2499,7 +2498,7 @@ static void
                    , mode & S_IROTH ? "r" : "-"
                    , mode & S_IWOTH ? "w" : "-"
                    , mode & S_IXOTH ? "x" : "-"
-                   , s2c(full));
+                   );
            } else {                 // Auto-correct
              mode= file->st.st_mode & ~(ACCESSPERMS);
              mode |= want;

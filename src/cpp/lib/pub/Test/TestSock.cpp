@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2022-2025 Frank Eskesen.
+//       Copyright (c) 2022-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Test Socket object.
 //
 // Last change date-
-//       2025/01/26
+//       2026/05/13
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -1313,7 +1313,7 @@ void
    client->set_option(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
    client->set_option(SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
 
-   for(size_t count= 0;;++count) {
+   for(;;) {
      buffer[0]= '\0';
      ssize_t L= client->read(buffer, sizeof(buffer)-1);
      if( L <= 0 ) {

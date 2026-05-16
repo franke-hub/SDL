@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2022 Frank Eskesen.
+//       Copyright (c) 2007-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Test pub/Parser.h
 //
 // Last change date-
-//       2022/09/02
+//       2026/05/15
 //
 //----------------------------------------------------------------------------
 #include <cstddef>
@@ -44,6 +44,10 @@ static void
      const char*       parm)        // This parameter
 {
    const char* value= parser.get_value(sect, parm);
+   if( sect == nullptr )
+     sect= "(null)";
+   if( parm == nullptr )
+     parm= "(null)";
    printf("'%s'= get_value(%s,%s)\n", value, sect, parm);
 }
 

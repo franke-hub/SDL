@@ -534,7 +534,7 @@ static void
    // Load database file
    debugf("loadDbWord()\n");
    FileSource source("inp/DbWord.inp");
-   for(int count= 0;; count++)
+   for(;;)
    {
      size_t x= 0;
      int C= source.get();
