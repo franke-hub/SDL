@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2026/05/15
+//       2026/05/21
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -1049,9 +1049,14 @@ no reason for the restriction.
 - Spelling check errors corrected (Many files)
 - ~/src/cpp/Util/format.cpp rewritten mostly to handle backspace characters
 
-### <a id="last-change">2026/05/15 maint/trunk</a>
+### 2026/05/15 maint/trunk
 - Fixes found during global recompile in Fedora 44, gcc version 16.1.1
   - Mostly variables that were only set
   - ~/src/cpp/Howto/Shared_ptr.cpp did not compile due to compiler bug.
 Now compiles an alternate version if __GNUC__ == 16
     - See: https://gcc.gnu.org/pipermail/gcc-bugs/2025-May/914942.html
+
+### <a id="last-change">2026/05/21 maint/trunk</a>
+- Added ~/src/cpp/inc/pub/IO.h and ~/src/cpp/lib/pub/IO.cpp
+  - Includes open, close, read, write and some utility functions
+  - (Expected to be useful in rewrite of ~/src/cpp/Clone.)
