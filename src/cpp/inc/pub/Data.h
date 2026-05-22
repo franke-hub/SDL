@@ -30,7 +30,6 @@
 
 #include <sys/stat.h>               // For struct stat
 
-#include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 #include "pub/List.h"               // For pub::DHDL_list, ...
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
