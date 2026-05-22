@@ -17,10 +17,12 @@
 //       Miscellaneous tests.
 //
 // Last change date-
-//       2026/02/17
+//       2026/05/22
 //
 //----------------------------------------------------------------------------
 #include <functional>               // For std::function
+#include <string>                   // For std::string
+
 #include <cassert>                  // For assert
 #include <cstring>
 
@@ -32,6 +34,7 @@
 // The tested includes
 #include "pub/TEST.H"               // For VERIFY, ...
 #include "pub/Hardware.h"           // For pub::Hardware
+#include "pub/IO.h"                 // For pub::IO
 #include "pub/Properties.h"         // For pub::Properties
 #include "pub/Random.h"             // For pub::Random
 #include "pub/Statistic.h"          // For pub::Statistic
@@ -47,6 +50,7 @@ using namespace PUB::debugging;
 using Exception= PUB::Exception;
 using IndexException= PUB::IndexException;
 using PUB::Wrapper;                 // For pub::Wrapper class
+using std::string;                  // For convenience
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -55,6 +59,14 @@ enum // Generic enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more
 }; // Generic enum
+
+//----------------------------------------------------------------------------
+// Test_IO constant data
+//----------------------------------------------------------------------------
+const char             IO_data[]=   // Size includes embedded and trailing '\0'
+   "This is the IO_data\n"
+   "abc\0"
+   "def\n";
 
 //----------------------------------------------------------------------------
 //
@@ -141,6 +153,220 @@ static inline int                   // Number of errors encountered
    return 0;
 }
 #endif
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       test_IO
+//
+// Purpose-
+//       Test IO.h
+//
+//----------------------------------------------------------------------------
+static inline int                   // Error count
+   IO_test(                         // Test IO.h
+     string            IO_path,     // For this path
+     string            IO_file,     // And this file
+     string            IO_link,     // And this link
+     mode_t            path_mode,   // And this path mode
+     mode_t            file_mode,   // And this file mode
+     int               file_type)   // And this file open type
+{
+   int error_count= 0;
+
+   using namespace PUB::io;
+
+   char buffer[256];                // Big (enough) buffer
+   string IO_full(IO_path + "/" + IO_file);
+   mode_t mode_mask= ACCESSPERMS;
+   mode_t path_mode_chmod= path_mode | S_IROTH | S_IXOTH;
+   struct stat info;
+
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Verify open, close, read, write, and mkpath
+   int rc= mkpath(IO_path, path_mode);
+   error_count += VERIFY( rc == 0);
+   error_if(rc != 0, "%d= mkpath(%s,%.4o)", rc, IO_path.c_str(), path_mode);
+
+   fd_t fd= open(IO_full, file_type, file_mode);
+   error_count += VERIFY( fd >= 0);
+
+   FILE* file= fd_to_FILE(fd, "w");
+   fd_t fd_dup= FILE_to_fd(file);
+   error_count += VERIFY( fd == fd_dup);
+
+   ssize_t size= write(fd, IO_data, sizeof(IO_data));
+   error_count += VERIFY( size == sizeof(IO_data) );
+
+   rc= close(fd);
+   error_count += VERIFY( rc == 0);
+
+   fd= open(IO_full, O_RDONLY);
+   error_count += VERIFY( fd >= 0);
+
+   size= read(fd, buffer, sizeof(buffer));
+   error_count += VERIFY( size == sizeof(IO_data) );
+
+   size= read(fd, buffer, sizeof(buffer));
+   error_count += VERIFY( size == 0 );
+
+   rc= close(fd);
+   error_count += VERIFY( rc == 0);
+   error_count += VERIFY( memcmp(IO_data, buffer, sizeof(IO_data)) == 0 );
+
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Verify path creation mode and chmod
+   rc= stat(IO_path, &info);
+   info.st_mode &= mode_mask;
+   error_count += VERIFY( rc == 0);
+   error_count += VERIFY( info.st_mode == path_mode );
+   if( opt_verbose )
+     debugf("Test_IO: %s: current_mode(%.4o) create_mode(%.4o)\n"
+           , IO_path.c_str(), info.st_mode, path_mode);
+
+   rc= chmod(IO_path, path_mode_chmod);
+   error_count += VERIFY( rc == 0);
+   rc= lstat(IO_path, &info);
+   info.st_mode &= mode_mask;
+   error_count += VERIFY( rc == 0);
+   error_count += VERIFY( info.st_mode == path_mode_chmod );
+   if( opt_verbose )
+     debugf("Test_IO: %s: current_mode(%.4o) changed_mode(%.4o)\n"
+           , IO_path.c_str(), info.st_mode, path_mode_chmod);
+
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Create, verify, and remove link
+   rc= mklink(IO_full, IO_link);
+   error_count += VERIFY( rc == 0);
+
+   size= rdlink(IO_link, buffer, sizeof(buffer));
+   error_count += VERIFY( (size_t)size == IO_full.size() );
+   error_count += VERIFY( string(buffer) == IO_full );
+   if( opt_verbose )
+     debugf("Test_IO: '%s'= rdlink()\n", buffer);
+
+   rc= rmlink(IO_link);
+   error_count += VERIFY( rc == 0);
+
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Verify rmlink (correctly) fails if not removing a link
+   rc= rmlink(IO_full);
+   error_count += VERIFY( rc == -1);
+   error_count += VERIFY( errno == EINVAL );
+   if( opt_verbose )
+     debugf("Test_IO: %d= rmlink(%s) %d:%s\n", rc, IO_full.c_str()
+           , errno, strerror(errno));
+
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Verify rmfile (correctly) fails if removing a path
+   rc= rmfile(IO_path);
+   error_count += VERIFY( rc == -1);
+   error_count += VERIFY( errno == EISDIR );
+   if( opt_verbose )
+     debugf("Test_IO: %d= rmfile(%s) %d:%s\n", rc, IO_path.c_str()
+           , errno, strerror(errno));
+
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Verify get_cwd and set_cwd
+   if( IO_path[0] != '/' ) {        // If relative IO_path
+     string old_cwd= get_cwd();
+     if( opt_verbose )
+       debugf("\nTest_IO: old_cwd(%s)\n", old_cwd.c_str());
+
+     rc= set_cwd(IO_path);
+     error_count += VERIFY( rc == 0);
+     if( opt_verbose )
+       debugf("Test_IO: %s= set_cwd(%s)\n", get_cwd().c_str(), IO_path.c_str());
+
+     rc= stat(IO_file, &info);
+     info.st_mode &= mode_mask;
+     error_count += VERIFY( rc == 0);
+     error_count += VERIFY( info.st_mode == file_mode );
+     if( opt_verbose )
+       debugf("Test_IO: %s: current_mode(%.4o) create_mode(%.4o)\n"
+             , IO_full.c_str(), info.st_mode, file_mode);
+
+     rc= set_cwd("..");
+     error_count += VERIFY( rc == 0);
+
+     string new_cwd= get_cwd();
+     error_count += VERIFY( new_cwd == old_cwd );
+     if( opt_verbose )
+       debugf("Test_IO: new_cwd(%s)\n", new_cwd.c_str());
+   }
+
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Cleanup
+   rc= rmfile(IO_full);
+   error_count += VERIFY( rc == 0);
+
+   rc= rmpath(IO_path);
+   error_count += VERIFY( rc == 0);
+   error_if(rc != 0, "Test_IO: %d= rmpath(%s)", rc, IO_path.c_str());
+
+   return error_count;
+}
+
+static inline int                   // Error count
+   test_IO( void )                  // Test IO.h
+{
+   if( opt_verbose )
+     debugf("\ntest_IO\n");
+
+   int error_count= 0;
+
+   using namespace PUB::io;
+
+   string IO_path("Test_IO");
+   string IO_file("IO_file");
+   string IO_full(IO_path + "/" + IO_file);
+   string IO_link("IO_link");
+   mode_t file_mode= S_IRWXU;
+   int    file_type= O_WRONLY | O_CREAT | O_TRUNC;
+   mode_t path_mode= S_IRWXU | S_IRGRP | S_IXGRP;
+
+   try {
+     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+     // Test relative path
+     error_count +=
+     IO_test(IO_path, IO_file, IO_link, path_mode, file_mode, file_type);
+
+     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+     // Test absolute path
+     IO_path= "/tmp/" + IO_path;
+     if( opt_verbose )
+       debugf("\n");
+     error_count +=
+     IO_test(IO_path, IO_file, IO_link, path_mode, file_mode, file_type);
+   } catch(std::exception& X) {
+     ++error_count;
+     debugf("Test_IO catch(std::exception) what(%s)\n", X.what());
+
+     rmfile(IO_full);
+     rmpath(IO_path);
+   }
+
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Test error_if subroutine
+   if( opt_verbose )
+     debugf("\n");
+   bool caught= false;
+   try {
+     errno= EAGAIN;
+     error_if(true, "Expected exception (%s)", "EAGAIN");
+     error_count += VERIFY( "exception not thrown" == nullptr );
+   } catch(io_error& X) {
+     caught= true;
+     if( opt_verbose )
+       debugf("Test_IO: Expected io_error caught\n..what(%s)\n", X.what());
+   }
+   error_count += VERIFY( caught );
+
+   if( opt_verbose )
+     debug_flush();
+
+   return error_count;
+}
 
 //----------------------------------------------------------------------------
 //
@@ -715,6 +941,7 @@ extern int                          // Return code
 
      setlocale(LC_NUMERIC, "");        // Allows printf("%'d\n", 123456789);
      error_count += test_Hardware();   // Test Hardware.h
+     error_count += test_IO();         // Test IO.h
      error_count += test_Properties(); // Test Properties.h
      error_count += test_Random();     // Test Random.h
      error_count += test_Statistic();  // Test Statistic.h
