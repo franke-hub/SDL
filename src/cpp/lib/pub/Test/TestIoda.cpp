@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2023 Frank Eskesen.
+//       Copyright (C) 2022-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       TestIoda.h
 //
 // Last change date-
-//       2023/09/25
+//       2026/05/29
 //
 //----------------------------------------------------------------------------
 #include <cassert>                  // For assert
@@ -254,6 +254,7 @@ static inline int
    }
    error_count += VERIFY( exceptional == true );
 
+   exceptional= false;
    try {
      into += std::move(read);       // Cannot += from input Ioda
    } catch(std::runtime_error& X) {
@@ -284,6 +285,7 @@ static inline int
    }
    error_count += VERIFY( exceptional == true );
 
+   exceptional= false;
    try {
      into.append(read);             // Cannot append from input Ioda
    } catch(std::runtime_error& X) {
@@ -293,6 +295,7 @@ static inline int
    }
    error_count += VERIFY( exceptional == true );
 
+   exceptional= false;
    try {
      read.append(into);             // Cannot append into input Ioda
    } catch(std::runtime_error& X) {
@@ -313,6 +316,7 @@ static inline int
    }
    error_count += VERIFY( exceptional == true );
 
+   exceptional= false;
    try {
      into.copy(read);               // Cannot copy from input Ioda
    } catch(std::runtime_error& X) {
@@ -322,6 +326,7 @@ static inline int
    }
    error_count += VERIFY( exceptional == true );
 
+   exceptional= false;
    try {
      read.copy(into);               // Cannot copy into input Ioda
    } catch(std::runtime_error& X) {
@@ -342,6 +347,7 @@ static inline int
    }
    error_count += VERIFY( exceptional == true );
 
+   exceptional= false;
    try {
      into.set_used(1);              // Method set_used requires an input Ioda
    } catch(std::runtime_error& X) {
@@ -351,6 +357,7 @@ static inline int
    }
    error_count += VERIFY( exceptional == true );
 
+   exceptional= false;
    try {
      read.set_used(0);              // Nothing used
    } catch(std::runtime_error& X) {
@@ -408,7 +415,7 @@ static inline int
 
    constexpr int LINES= 500;
    string line= "The quick brown fox jumps over the lazy dog.\r\n\r\n";
-   assert( line.size() == 48 );     // (Total size 24,000)
+   error_count += VERIFY( line.size() == 48 ); // (Total size 24,000)
 
    //-------------------------------------------------------------------------
    if( opt_verbose )
@@ -543,11 +550,11 @@ static inline int
      debugf("\nIodaReader\n");
    IodaReader reader(into);
    int L= (int)line.size();
-   line= line.substr(0, L-4);
+   string trunc_line= line.substr(0, L-4);
 
    for(int i= 0; i<LINES; ++i) {
      string S= reader.get_line();
-     error_count += VERIFY( S == line );
+     error_count += VERIFY( S == trunc_line );
 //   if( error_count ) debugf("%4d [%d] '%s'\n", __LINE__, i, S.c_str());
      S= reader.get_line();
      error_count += VERIFY( S == "" );
@@ -560,7 +567,7 @@ static inline int
      x *= L;
      reader.set_offset(x);
      string S= reader.get_line();
-     error_count += VERIFY( S == line );
+     error_count += VERIFY( S == trunc_line );
      S= reader.get_line();
      error_count += VERIFY( S == "" );
      if( error_count )
@@ -578,6 +585,19 @@ static inline int
    error_count += VERIFY( reader.get_token(" ") == "The" );
    error_count += VERIFY( reader.get_token("s") == "quick brown fox jump" );
    error_count += VERIFY( reader.get_token("\r\n") == " over the lazy dog." );
+
+   reader.set_offset(0);            // Test read
+   char buffer[64];                 // Input data buffer
+   int line_size= (int)line.size(); // The input line size
+   for(int i= 0; i<LINES; ++i) {
+     memset(buffer, 0, sizeof(buffer));
+     L= (int)reader.read(buffer, line_size);
+     error_count += VERIFY( L == line_size );
+     error_count += VERIFY( memcmp(line.c_str(), buffer, line_size) == 0 );
+   }
+
+   L= (int)reader.read(buffer, line_size);
+   error_count += VERIFY( L == 0 );
 
    //-------------------------------------------------------------------------
    if( opt_verbose )

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2023 Frank Eskesen.
+//       Copyright (C) 2022-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Implement http/Ioda.h
 //
 // Last change date-
-//       2023/10/16
+//       2026/05/29
 //
 //----------------------------------------------------------------------------
 // #define NDEBUG                   // TODO: USE (to disable asserts)
@@ -1252,5 +1252,38 @@ string
      string T(buffer, sizeof(buffer));
      S += T;
    }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       IodaReader::read
+//
+// Purpose-
+//       Read into buffer
+//
+//----------------------------------------------------------------------------
+size_t                              // The length read
+   IodaReader::read(                // Read buffer
+     void*             into,        // Buffer address
+     size_t            length)      // Buffer length
+{
+   size_t used= writer.get_used();
+   if( offset >= used )
+     return 0;
+
+   size_t inp_size= used - offset;  // Number of bytes available
+   if( length < inp_size )          // If we don't need all available data
+     inp_size= length;              // Just use what's needed
+
+   char* addr= (char*)into;         // Use character addressing
+   size_t left= inp_size;           // Number of bytes remaining
+   while( left > 0 ) {              // Read the input data, byte by byte
+     *addr= index(offset++);
+     ++addr;
+     --left;
+   }
+
+   return inp_size;
 }
 }  // namespace _LIBPUB_NAMESPACE
