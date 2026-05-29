@@ -17,7 +17,7 @@
 //       Data.h object methods
 //
 // Last change date-
-//       2026/05/13
+//       2026/05/28
 //
 // Implementation note-
 //       Derived from Fileman.cpp
@@ -605,7 +605,7 @@ std::string                         // The invalid path ("" if none)
    // Read the directory
    //-------------------------------------------------------------------------
    std::string S= name.c_str();
-   if( S == "" ) S= "/";            // (Empty path name for "/")
+   if( S == "" ) S= ".";            // (Empty path name for relative path ".")
    DIR* dir= opendir(S.c_str());    // Open the directory stream
    if( dir == NULL ) {              // Stream not opened
      errorp("%4d: Path: opendir('%s') failure", __LINE__, _path.c_str());
@@ -623,13 +623,13 @@ std::string                         // The invalid path ("" if none)
      std::string full= _path + "/" + file; // The fully qualified name
 
      struct stat s;                 // File stats
-     int rc= lstat(full.c_str(), &s);   // Load the file information
+     int rc= lstat(full.c_str(), &s); // Load the file information
      if( rc != 0 ) {                // If failure
        errorp("%4d: Path: lstat(%s) failure: %d", __LINE__, full.c_str(), rc);
        continue;
      }
 
-     list.fifo(new File(s, file));
+     list.fifo(new_file(s, file));
    }
 
    int rc= closedir(dir);           // Done reading the directory

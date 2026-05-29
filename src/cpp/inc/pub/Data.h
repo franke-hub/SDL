@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2025 Frank Eskesen.
+//       Copyright (c) 2020-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       File management classes, conveniently packaged in one file.
 //
 // Last change date-
-//       2025/11/23
+//       2026/05/28
 //
 // Implementation note-
 //       Derived from Fileman.h
@@ -63,7 +63,7 @@ bool                   _changed;    // File is changed
 bool                   _damaged;    // File is damaged
 
 //----------------------------------------------------------------------------
-// pub::data::Data::Constructors/Destructor
+// pub::data::Data::Constructors/destructor
 //----------------------------------------------------------------------------
 public:
    Data( void );                    // Default constructor
@@ -159,13 +159,14 @@ const std::string      name;        // The file name (Does not include Path)
 const stat_t           st;          // The lstat info
 
 //----------------------------------------------------------------------------
-// pub::data::File::Constructor/Destructor
+// pub::data::File::Constructor/destructor
 //----------------------------------------------------------------------------
    File(                            // Constructor
      const stat_t&     _st,         // Stat descriptor
      const std::string&_name)       // File name
 :  name(_name), st(_st) {}
 
+virtual
    ~File( void ) = default;         // Destructor
 
 //----------------------------------------------------------------------------
@@ -198,7 +199,7 @@ struct Line : public DHDL_list<Line>::Link { // File line
 const char*            text;        // The associated text
 
 //----------------------------------------------------------------------------
-// pub::data::Line::Constructors/Destructor
+// pub::data::Line::Constructors/destructor
 //----------------------------------------------------------------------------
    Line(                            // Constructor
      const char*       _text)       // The associated text
@@ -228,7 +229,7 @@ std::string            file_name;   // The file name (without path_name)
 std::string            path_name;   // The path name (without file_name)
 
 //----------------------------------------------------------------------------
-// pub::data::Name::Constructor/Destructor
+// pub::data::Name::Constructor/destructor
 //----------------------------------------------------------------------------
    Name(                            // Constructor
      std::string       full_name);  // The file name
@@ -298,8 +299,16 @@ std::string                         // The invalid path ("" if succesful)
 // Purpose-
 //       Path name information
 //
+// Implementation notes-
+//       Override new_file to create a derived File object.
+//
 //----------------------------------------------------------------------------
 struct Path {                       // Path name information
+//----------------------------------------------------------------------------
+// pub::data::Path::Typedefs and enumerations
+//----------------------------------------------------------------------------
+typedef struct stat    stat_t;      // struct stat type
+
 //----------------------------------------------------------------------------
 // pub::data::Path::Attributes
 //----------------------------------------------------------------------------
@@ -307,12 +316,22 @@ const std::string      name;        // The path name (Locally qualified)
 DHDL_sort<File>        list;        // The (sorted) list of Files
 
 //----------------------------------------------------------------------------
-// pub::data::Path::Constructors/Destructor
+// pub::data::Path::Constructors/destructor
 //----------------------------------------------------------------------------
    Path(                            // Constructor
      const std::string&_name);      // Path name (Locally qualified)
 
+virtual
    ~Path( void );                   // Destructor
+
+//----------------------------------------------------------------------------
+// pub::data::Path::new_file: | Create a new File
+//----------------------------------------------------------------------------
+virtual File*                       // The new File*
+   new_file(                        // Create a new File*
+     const stat_t&     _st,         // Stat descriptor
+     const std::string&_name)       // File name
+{  return new File(_st, _name); }   // Create a new File
 }; // struct Path
 
 //----------------------------------------------------------------------------
@@ -338,13 +357,13 @@ size_t                 size;        // The total Pool size
 char*                  data;        // The Pool data area
 
 //----------------------------------------------------------------------------
-// pub::data::Pool::Constructor/Destructor
+// pub::data::Pool::Constructor/destructor
 //----------------------------------------------------------------------------
 public:
    Pool(                            // Constructor
      size_t            _size);      // The allocation size
 
-   ~Pool( void );                   // Destructor
+   ~Pool( void );                   // destructor
 
 //----------------------------------------------------------------------------
 // pub::data::Pool::debug | Display debugging information
