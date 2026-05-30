@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2019-2025 Frank Eskesen.
+//       Copyright (C) 2019-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2025/01/25
+//       2026/05/30
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -127,7 +127,7 @@ static int                          // Return code, 0 OK
      debugf("Socket::etc_addr(%s,%p,%d)\n", s2c(host), sock, *size);
 
    using namespace PUB::data;
-   Data file("/etc/", "hosts");
+   Data file("/etc", "hosts");
    pub::DHDL_list<Line>& list= file.line();
 
    for(Line* line= list.get_head(); line; line= line->get_next() ) {

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014-2025 Frank Eskesen.
+//       Copyright (c) 2014-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Common routines used by RdClient and RdServer.
 //
 // Last change date-
-//       2025/01/30
+//       2026/05/30
 //
 // Implementation notes-
 //       PATCH: Use /etc/hosts name if available
@@ -67,7 +67,7 @@ static int                          // Return code, 0 OK
 {
    // Search "/etc/hosts" file for host name
    using namespace pub::data;
-   Data file("/etc/", "hosts");
+   Data file("/etc", "hosts");
    pub::DHDL_list<Line>& list= file.line();
 
    for(Line* line= list.get_head(); line; line= line->get_next() ) {
@@ -75,7 +75,6 @@ static int                          // Return code, 0 OK
      pub::Tokenizer::Iterator it= tokenizer.begin();
      if( it != tokenizer.end() ) {
        std::string addr= it();
-
        if( addr[0] != '#' ) {
          for(it= ++it; it != tokenizer.end(); ++it) {
            if( it() == host ) {
