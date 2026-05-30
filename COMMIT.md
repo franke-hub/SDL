@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2026/05/21
+//       2026/05/30
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -1056,7 +1056,20 @@ no reason for the restriction.
 Now compiles an alternate version if __GNUC__ == 16
     - See: https://gcc.gnu.org/pipermail/gcc-bugs/2025-May/914942.html
 
-### <a id="last-change">2026/05/21 maint/trunk</a>
+### 2026/05/21 maint/trunk
 - Added ~/src/cpp/inc/pub/IO.h and ~/src/cpp/lib/pub/IO.cpp
   - Includes open, close, read, write and some utility functions
   - (Expected to be useful in rewrite of ~/src/cpp/Clone.)
+
+### <a id="last-change">2026/05/30 maint</a>
+- More changes expected to be useful in ~/src/cpp/Clone rewrite
+- Updated Data.h to provide an easier way to override functions
+  - ~/src/cpp/inc/pub/Data.h
+    - Virtual destructor for pub::data::Path
+    - New virtual method: pub::data::Path::new_file:
+      - Override this method to create a derived pub::data::File object
+  - ~/src/cpp/lib/pub/Data.cpp: Uses the new_file virtual method.
+- Added a read into buffer {addr,size} method to the IodaReader object
+  - ~/src/cpp/inc/pub/Ioda.h: Defines the read buffer method
+  - ~/src/cpp/lib/pub/Ioda.cpp: Implements the read buffer method
+  - ~/src/cpp/lib/pub/Test/TestIoda.cpp: Tests the read buffer method
