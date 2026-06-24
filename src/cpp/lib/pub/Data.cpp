@@ -17,7 +17,7 @@
 //       Data.h object methods
 //
 // Last change date-
-//       2026/05/28
+//       2026/06/20
 //
 // Implementation note-
 //       Derived from Fileman.cpp
@@ -38,10 +38,13 @@
 #include "pub/Data.h"               // For namespace pub::data, implemented
 #include "pub/List.h"               // For pub::List
 #include <pub/utility.h>            // For pub::utility::dump
+#include <pub/utility.i>            // For pub::utility subroutines
 
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB::debugging;     // For debugging subroutines
-// using std::string;               // For convenience (not currently used)
+using pub::s2c;                     // For string to const char* (utility.i)
+
+using std::string;                  // For convenience
 
 namespace _LIBPUB_NAMESPACE::data { // The Data namespace
 //----------------------------------------------------------------------------
@@ -85,7 +88,7 @@ static void
    errno= ERRNO;                    // Restore errno
 }
 
-//----------------------------------------------------------------------------
+//============================================================================
 //
 // Method-
 //       pub::data::Data::Data
@@ -97,20 +100,19 @@ static void
 //
 //----------------------------------------------------------------------------
    Data::Data( void )               // Default constructor
-:  _path(), _file(), _line(), _pool(), _changed(false), _damaged(true)
+:  path_name(), file_name(), line_list(), pool_list()
+,  is_changed(false), is_damaged(true)
 {  }                                // (In closed state)
 
    Data::Data(                      // Constructor
-     const std::string&_path,       // The Path name
-     const std::string&_file)       // The File name
-:  _path(), _file(), _line(), _pool()
-{
-   open(_path, _file);              // Load the data
-}
+     const string&     path,        // The Path name
+     const string&     file)        // The File name
+:  path_name(), file_name(), line_list(), pool_list()
+{  open(path, file); }              // Load the data
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Data::~Data( void )              // Destructor
-{  close(); }                       // Delete _line and _pool data
+{  close(); }                       // Delete line_list and pool_list data
 
 //----------------------------------------------------------------------------
 //
@@ -124,27 +126,40 @@ static void
 void
    Data::close( void )              // Delete all data
 {
-   for(;;) {                        // Delete the _line List
-     Line* line= _line.remq();
+   for(;;) {                        // Delete all line_list Lines
+     Line* line= line_list.remq();
      if( line == nullptr )
        break;
 
      delete line;
    }
 
-   for(;;) {                        // Delete the _pool List
-     Pool* pool= _pool.remq();
+   for(;;) {                        // Delete all pool_list Pools
+     Pool* pool= pool_list.remq();
      if( pool == nullptr )
        break;
 
      delete pool;
    }
 
-   _path= "";
-   _file= "";
-   _changed= false;
-   _damaged= true;
+   path_name= "";
+   file_name= "";
+   is_changed= false;
+   is_damaged= true;
 }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       pub::data::Data::full
+//
+// Purpose-
+//       Get path + file name
+//
+//----------------------------------------------------------------------------
+string                              // The path/file name
+   Data::full( void ) const         // Get path/file name
+{  return Name::get_full_name(path_name, file_name); }
 
 //----------------------------------------------------------------------------
 //
@@ -161,13 +176,13 @@ void
    printf("Data::debug(%s)\n", info);
 
    size_t index= 0;
-   for(Line* line= _line.get_head(); line; line= line->get_next())
+   for(Line* line= line_list.get_head(); line; line= line->get_next())
      printf("[%4zd] '%s'\n", ++index, line->text);
 
    if( index )
      printf("\n");
 
-   for(Pool* pool= _pool.get_head(); pool != nullptr; pool= pool->get_next())
+   for(Pool* pool= pool_list.get_head(); pool != nullptr; pool= pool->get_next())
      pool->debug(info);
 }
 
@@ -182,11 +197,11 @@ void
 //----------------------------------------------------------------------------
 Line*                               // The allocated Line*
    Data::get_line(                  // Allocate a new Line
-     const std::string&string)      // Containing this string
+     const string&     string)      // Containing this string
 {
    size_t size= string.length() + 1;
 
-   Pool* pool= _pool.get_head();    // Get last inserted Pool
+   Pool* pool= pool_list.get_head(); // Get last inserted Pool
    char* text= nullptr;
    if( pool )                       // (If empty pool)
      text= pool->malloc(size);
@@ -196,11 +211,11 @@ Line*                               // The allocated Line*
      else
        pool= new Pool(MIN_POOL_SIZE);
 
-     _pool.lifo(pool);              // Insert Pool onto Pool List
+     pool_list.lifo(pool);          // Insert Pool onto Pool List
      text= pool->malloc(size);      // Allocate from new Pool
      assert( text != nullptr );
    }
-   strcpy(text, string.c_str());    // Copy the text
+   strcpy(text, s2c(string));       // Copy the text
 
    Line* line= new Line(text);      // Allocate a new Line
    return line;
@@ -217,21 +232,21 @@ Line*                               // The allocated Line*
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 OK
    Data::open(                      // (Re)load data
-     const std::string&_path,       // The Path name
-     const std::string&_file)       // The File name
+     const string&     path,        // The Path name
+     const string&     file)        // The File name
 {
    close();                         // Delete any existing data
 
-   this->_path= _path;              // Update path name
-   this->_file= _file;              // Update file name
-   _changed= false;                 // Not changed
-   _damaged= false;                 // Not damaged
+   this->path_name= path;           // Update path name
+   this->file_name= file;           // Update file name
+   is_changed= false;               // Not changed
+   is_damaged= false;               // Not damaged
 
    struct stat st;                  // File stats
-   std::string _full= full();       // The fully qualified name
-   int rc= stat(_full.c_str(), &st); // Get file information
+   string      fqname= full();      // The fully qualified name
+   int rc= stat(s2c(fqname), &st); // Get file information
    if( rc != 0 ) {                  // If failure
-     errorp("%4d: Data: stat(%s) failure: %d", __LINE__, _full.c_str(), rc);
+     errorp("%4d: Data: stat(%s) failure: %d", __LINE__, s2c(fqname), rc);
      return rc;
    }
 
@@ -239,17 +254,17 @@ int                                 // Return code, 0 OK
 
    // Allocate the input data area Pool
    Pool* pool= new Pool(size + 1);  // We'll add '\0' to the end
-   _pool.lifo(pool);
+   pool_list.lifo(pool);
    char* text= pool->malloc(size + 1); // Allocate entire Pool
    assert( text != nullptr );       // Should work, tests edge case
 
    // Load the file
-   FILE* f= fopen(_full.c_str(), "rb");
+   FILE* f= fopen(s2c(fqname), "rb");
    size_t L= fread(text, 1, size+1, f);
    if( L != size ) {
-     _damaged= true;
+     is_damaged= true;
      fprintf(stderr, "%4d Data: File(%s) read failure %ld\n", __LINE__,
-                     _full.c_str(), (long)L);
+                     s2c(fqname), (long)L);
      memset(text, 0, size);
    }
    text[size]= '\0';                // Add '\0' delimiter
@@ -258,9 +273,9 @@ int                                 // Return code, 0 OK
    // Insure that the file does not contain a '\0' delimiter
    char* last= strchr(text, '\0');  // Locate first '\0' delimiter
    if( size_t(last-text) < size ) { // If file contains '\0' delimiter
-     _damaged= true;
+     is_damaged= true;
      fprintf(stderr, "%4d Data: File(%s) contains '\\0' delimiter\n", __LINE__,
-                     _full.c_str());
+                     s2c(fqname));
    }
 
    // Parse the text into lines (Performance critical path)
@@ -276,21 +291,21 @@ int                                 // Return code, 0 OK
          if( *next != '\r' )
            break;
 
-         _changed= true;            // Write will change file format
+         is_changed= true;          // Write will change file format
          *next= '\0';
        }
 
-       _line.fifo(new Line(from));
+       line_list.fifo(new Line(from));
      } else {                       // Last line missing '\n'
-       _changed= true;              // Write will change file format
+       is_changed= true;            // Write will change file format
        fprintf(stderr, "%4d Data: File(%s) last line missing '\\n'\n", __LINE__,
-                       _full.c_str());
-       _line.fifo(new Line(from));
+                       s2c(fqname));
+       line_list.fifo(new Line(from));
        break;
      }
    }
 
-   if( _damaged )
+   if( is_damaged )
      return -1;
    return 0;
 }
@@ -306,42 +321,74 @@ int                                 // Return code, 0 OK
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 OK
    Data::write(                     // Write data
-     const std::string&path,        // The (locally qualified) path name
-     const std::string&file) const  // The file name
+     const string&     path,        // The (locally qualified) path name
+     const string&     file) const  // The file name
 {
    int                 rc= -1;      // Return code, default ERROR
 
-   std::string _full= path + "/" + file; // Locally qualified name
-   if( _damaged )                   // If damaged file
-     fprintf(stderr, "*WARNING* writing damaged file(%s)\n", _full.c_str());
+   string fqname= Name::get_full_name(path, file);
+   if( is_damaged )                 // If damaged file
+     fprintf(stderr, "*WARNING* writing damaged file(%s)\n", s2c(fqname));
 
-   FILE* f= fopen(_full.c_str(), "wb"); // Open the file
+   FILE* f= fopen(s2c(fqname), "wb"); // Open the file
    if( f ) {                        // If open succeeded
-     for(Line* line= _line.get_head(); line; line= line->get_next())
+     for(Line* line= line_list.get_head(); line; line= line->get_next())
        fprintf(f, "%s\n", line->text);
 
      rc= fclose(f);
      if( rc )
-       errorp("%4d: Data: close('%s') failure", __LINE__, _full.c_str());
+       errorp("%4d: Data: close('%s') failure", __LINE__, s2c(fqname));
    } else {                         // If open failure
-     errorp("%4d: Data: open('%s') failure", __LINE__, _full.c_str());
+     errorp("%4d: Data: open('%s') failure", __LINE__, s2c(fqname));
    }
 
    return rc;
 }
 
+//============================================================================
+//
+// Method-
+//       pub::data::File::make_st
+//
+// Purpose-
+//       Create stat_t from file name (Constructor helper)
+//
 //----------------------------------------------------------------------------
+File::stat_t                        // The resultant stat_t
+   File::make_st(                   // Create a stat_t
+     string            name)        // From this file name string
+{  stat_t info{}; lstat(s2c(name), &info); return info; }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       pub::data::File::debug
+//
+// Purpose-
+//       Debugging display
+//
+//----------------------------------------------------------------------------
+void
+   File::debug(const char*   info) const // Debugging display
+{  debugf("File(%p)::debug(%s) '%s'\n", this, info, s2c(file_name)); }
+
+//============================================================================
 //
 // Method-
 //       pub::data::Name::Name
 //
 // Purpose-
-//       Constructor.
+//       Constructors.
 //
 //----------------------------------------------------------------------------
    Name::Name(                      // Constructor
-     std::string       full_name)   // The file name
+     const string&     full_name)   // The file name
 {  reset(full_name); }
+
+   Name::Name(                      // Constructor
+     const string&     path_name,   // The (locally qualified) path name
+     const string&     file_name)   // The file name
+{  reset(path_name, file_name); }
 
 //----------------------------------------------------------------------------
 //
@@ -352,9 +399,9 @@ int                                 // Return code, 0 OK
 //       Get the file extension part of a file_name
 //
 //----------------------------------------------------------------------------
-std::string                         // The file name extension, "" if none
+string                              // The file name extension, "" if none
    Name::get_extension(             // Get file name extension for
-     std::string       file_name)   // This file name
+     const string&     file_name)   // This file name
 {
    ssize_t X= file_name.length() - 1; // Last character in file_name
    while( X >= 0 && file_name[X] != '/' ) { // Find last '.' in name
@@ -376,9 +423,9 @@ std::string                         // The file name extension, "" if none
 //       Get file name part of (relative) full_name
 //
 //----------------------------------------------------------------------------
-std::string                         // The file name of (relative) full_name
+string                              // The file name of (relative) full_name
    Name::get_file_name(             // Get file part of
-     std::string       full_name)   // This relative full name
+     const string&     full_name)   // This relative full name
 {
    ssize_t X= full_name.length() - 1; // Last character in _name
    while( X >= 0 && full_name[X] != '/' ) // Find last '/' in name
@@ -390,15 +437,40 @@ std::string                         // The file name of (relative) full_name
 //----------------------------------------------------------------------------
 //
 // Method-
+//       pub::data::Name::get_full_name
+//
+// Purpose-
+//       Combine relative path name and file name into fully qualified name
+//
+//----------------------------------------------------------------------------
+string                              // The (relative) fully qualified name
+   Name::get_full_name(             // Get (relative) fully qualified name
+     const string&     path,        // Using this relative path name and
+     const string&     file)        // This file name
+{
+   string full= path;
+
+   if( full == "" )                 // If empty path
+     full= ".";                     // (Use default relative path)
+
+   if( full[full.size() - 1] == '/' )
+     return full + file;
+
+   return full + "/" + file;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       pub::data::Name::get_path_name
 //
 // Purpose-
 //       Get path part of (relative) full_name
 //
 //----------------------------------------------------------------------------
-std::string                         // The path name of (relative) full_name
+string                              // The path name of (relative) full_name
    Name::get_path_name(             // Get path part of
-     std::string       full_name)   // This relative full name
+     const string&     full_name)   // This relative full name
 {
    ssize_t X= full_name.length() - 1; // Last character in _name
    while( X >= 0 && full_name[X] != '/' ) // Find last '/' in name
@@ -421,17 +493,30 @@ std::string                         // The path name of (relative) full_name
 //
 //----------------------------------------------------------------------------
 void
-   Name::reset(                     // Reset the file name
-     std::string       full_name)   // The file name
+   Name::reset(                     // Reset the Name with
+     const string&     full)         // This (relative) full name
 {
-   path_name= get_path_name(full_name);
-   file_name= get_file_name(full_name);
-
-   name= path_name + "/" + file_name;
+   full_name= full;
+   path_name= get_path_name(full);
+   file_name= get_file_name(full);
 
    // Get file/link status
    memset(&st, 0, sizeof(st));      // In case of failure
-   lstat(name.c_str(), &st);
+   lstat(s2c(full_name), &st);
+}
+
+void
+   Name::reset(                     // Reset the Name with
+     const string&     path,        // This (relative) path name and
+     const string&     file)        // This file name
+{
+   path_name= path;
+   file_name= file;
+   full_name= get_full_name(path, file);
+
+   // Get file/link status
+   memset(&st, 0, sizeof(st));      // In case of failure
+   lstat(s2c(full_name), &st);
 }
 
 //----------------------------------------------------------------------------
@@ -443,11 +528,11 @@ void
 //       Resolve (remove) links in file_name, link_name, and name
 //
 //----------------------------------------------------------------------------
-std::string                         // The invalid path ("" if none)
+string                              // The invalid path ("" if none)
    Name::resolve( void )            // Resolve links in name
 {
    // Resolve current working directory
-   std::string full_name= path_name + "/" + file_name;
+   string full_name= this->full_name;
    if( full_name[0] != '/' ) {
      if( full_name[0] == '~' && full_name[1] == '/' ) {
        const char* HOME= getenv("HOME"); // Get $HOME
@@ -458,7 +543,7 @@ std::string                         // The invalid path ("" if none)
        buffer[0]= '\0';
        const char* CWD= getcwd(buffer, PATH_MAX);
        if( CWD == nullptr ) return "CWD too large";
-       std::string cwd= CWD;
+       string cwd= CWD;
        if( cwd == "/" )
          cwd= "";
        full_name= cwd + "/" + path_name + "/" + file_name;
@@ -490,7 +575,7 @@ std::string                         // The invalid path ("" if none)
                      "         6         7'\n");
        debugf("%4zd '012345678901234567890123456789012345678901234567890"
                      "12345678901234567890'\n", X);
-       debugf("%4d '%s'\n", __LINE__, full_name.c_str());
+       debugf("%4d '%s'\n", __LINE__, s2c(full_name));
        if( X < full_name.length() && full_name[X] != '/' )
          return "INTERNAL ERROR";
      }
@@ -500,9 +585,9 @@ std::string                         // The invalid path ("" if none)
      if( X > L )
        break;
 
-     std::string init_part= full_name;
-     std::string last_part= "";
-     const char* O= full_name.c_str();
+     string init_part= full_name;
+     string last_part= "";
+     const char* O= s2c(full_name);
      const char* C= strchr(O + X, '/');
      if( C == nullptr )
        X= L;
@@ -512,9 +597,9 @@ std::string                         // The invalid path ("" if none)
      last_part= full_name.substr(X);    // INCLUDES leading '/' (or "")
 
      if( HCDM )
-       debugf("%4d '%s'[%zd]'%s'\n", __LINE__, init_part.c_str(), X
-             , last_part.c_str());
-     std::string file_part= get_file_name(init_part);
+       debugf("%4d '%s'[%zd]'%s'\n", __LINE__, s2c(init_part), X
+             , s2c(last_part));
+     string file_part= get_file_name(init_part);
 
      // Handle special case file_part names: "", "." and ".."
      if( file_part == "" )
@@ -538,7 +623,7 @@ std::string                         // The invalid path ("" if none)
        X= init_part.length();
        if( HCDM ) {
          debugf("'%s'+'%s' init_part + last_part\n"
-               , init_part.c_str(), last_part.c_str());
+               , s2c(init_part), s2c(last_part));
        }
        full_name= init_part + last_part;
        continue;
@@ -546,7 +631,7 @@ std::string                         // The invalid path ("" if none)
 
      // Handle path component
      struct stat info;
-     int rc= lstat(init_part.c_str(), &info);
+     int rc= lstat(s2c(init_part), &info);
      if( rc ) {
        if( last_part == "" )
          break;
@@ -559,7 +644,7 @@ std::string                         // The invalid path ("" if none)
 
        char buffer[PATH_MAX + 8];
        buffer[0]= '\0';
-       rc= readlink(init_part.c_str(), buffer, PATH_MAX);
+       rc= readlink(s2c(init_part), buffer, PATH_MAX);
        if( rc < 0 || size_t(rc) >= PATH_MAX )
          return init_part + " (readlink failure)";
        buffer[rc]= '\0';
@@ -576,17 +661,16 @@ std::string                         // The invalid path ("" if none)
      }
    }
 
-   name= full_name;
-   file_name= get_file_name(name);
-   path_name= get_path_name(name);
+   file_name= get_file_name(full_name);
+   path_name= get_path_name(full_name);
 
    // Get file status
    memset(&st, 0, sizeof(st));      // In case of failure (nonexistent file)
-   lstat(name.c_str(), &st);
+   lstat(s2c(full_name), &st);
    return "";
 }
 
-//----------------------------------------------------------------------------
+//============================================================================
 //
 // Method-
 //       pub::data::Path::Path
@@ -598,17 +682,17 @@ std::string                         // The invalid path ("" if none)
 //
 //----------------------------------------------------------------------------
    Path::Path(                      // Constructor
-     const std::string&_path)       // The Path name
-:  name(_path), list()
+     const string&     path)        // The Path name
+:  path_name(path), list()
 {
    //-------------------------------------------------------------------------
    // Read the directory
    //-------------------------------------------------------------------------
-   std::string S= name.c_str();
+   string S= path_name;
    if( S == "" ) S= ".";            // (Empty path name for relative path ".")
-   DIR* dir= opendir(S.c_str());    // Open the directory stream
+   DIR* dir= opendir(s2c(S));       // Open the directory stream
    if( dir == NULL ) {              // Stream not opened
-     errorp("%4d: Path: opendir('%s') failure", __LINE__, _path.c_str());
+     errorp("%4d: Path: opendir('%s') failure", __LINE__, s2c(path));
      return;
    }
 
@@ -617,24 +701,25 @@ std::string                         // The invalid path ("" if none)
      if( ent == NULL )
        break;
 
-     std::string file(ent->d_name); // The file name
-     if( file == "." || file == ".." ) // If pseudo entry
+     string file_name(ent->d_name);  // The file name
+     if( file_name == "." || file_name == ".." ) // If pseudo entry
        continue;                    // Ignore it
-     std::string full= _path + "/" + file; // The fully qualified name
+     string full_name= Name::get_full_name(path_name, file_name);
 
      struct stat s;                 // File stats
-     int rc= lstat(full.c_str(), &s); // Load the file information
+     int rc= lstat(s2c(full_name), &s); // Load the file information
      if( rc != 0 ) {                // If failure
-       errorp("%4d: Path: lstat(%s) failure: %d", __LINE__, full.c_str(), rc);
+       errorp("%4d: Path: lstat(%s) failure: %d", __LINE__, s2c(full_name), rc);
        continue;
      }
 
-     list.fifo(new_file(s, file));
+     File* file= make_file(s, file_name);
+     insert(file);
    }
 
    int rc= closedir(dir);           // Done reading the directory
    if( rc != 0 )                    // If error encountered
-     errorp("%4d: Path: closedir('%s') failure", __LINE__, _path.c_str());
+     errorp("%4d: Path: closedir('%s') failure", __LINE__, s2c(path));
 
    //-------------------------------------------------------------------------
    // Sort the list
@@ -655,6 +740,54 @@ std::string                         // The invalid path ("" if none)
 }
 
 //----------------------------------------------------------------------------
+//
+// Method-
+//       pub::data::Path::debug
+//
+// Purpose-
+//       Debugging display
+//
+//----------------------------------------------------------------------------
+void
+   Path::debug(const char* info) const // Display debugging information
+{
+   debugf("Path(%p)::debug(%s) '%s'\n", this, info, s2c(path_name));
+
+   for(File* file= list.get_head(); file; file= file->get_next()) {
+     file->debug(info);
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       pub::data::Path::insert
+//
+// Purpose-
+//       Add a file to the List
+//
+//----------------------------------------------------------------------------
+void
+   Path::insert(                    // Insert onto the List
+     File*             file)        // This File
+{  list.fifo(file); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       pub::data::Path::make_file
+//
+// Purpose-
+//       Create and add a file to the List
+//
+//----------------------------------------------------------------------------
+File*                               // The new File
+   Path::make_file(                 // Create a File
+     const stat_t      st,          // File information
+     const string&     file_name)   // The File name
+{  return new File(st, file_name); }
+
+//============================================================================
 //
 // Method-
 //       pub::data::Pool::Pool
