@@ -17,7 +17,7 @@
 //       Input/output subroutines using std::string file/path names
 //
 // Last change date-
-//       2026/05/18
+//       2026/06/24
 //
 // Implementation notes-
 //       The system-defined O_* and S_* macros are included.
@@ -40,6 +40,7 @@
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 namespace io {
 typedef int            fd_t;        // File Descriptor type
+typedef std::string    string;      // For convenience (in namespace io)
 
 //----------------------------------------------------------------------------
 //
@@ -52,7 +53,7 @@ typedef int            fd_t;        // File Descriptor type
 //----------------------------------------------------------------------------
 class io_error : public std::runtime_error {
 public:
-   explicit io_error(const std::string& arg);
+   explicit io_error(const string& arg);
    explicit io_error(const char* arg);
 }; // struct io_error
 
@@ -83,7 +84,7 @@ void
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 OK
    chmod(                           // Change file/path mode
-     const std::string&name,        // For this relative file/path name
+     const string&     name,        // For this relative file/path name
      mode_t            mode);       // Into this file mode
 
 //----------------------------------------------------------------------------
@@ -133,7 +134,7 @@ std::string                         // The current working directory
 
 int                                 // Return code, 0 OK
    set_cwd(                         // Set current working directory
-     const std::string&path);       // To this relative path name
+     const string&     path);       // To this relative path name
 
 //----------------------------------------------------------------------------
 //
@@ -148,25 +149,48 @@ int                                 // Return code, 0 OK
 //----------------------------------------------------------------------------
 extern int                          // Return code, 0 OK
    lstat(                           // Get state information
-     const std::string&name,        // For this relative file/path name
+     const string&     name,        // For this relative file/path name
      struct stat*      result);     // (OUTPUT) lstat information
 
 extern int                          // Return code, 0 OK
    stat(                            // Get state information
-     const std::string&name,        // For this relative file/path name
+     const string&     name,        // For this relative file/path name
      struct stat*      result);     // (OUTPUT) stat information
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       pub::io::mkfifo            // (Uses mkfifo)
+//       pub::io::rmfifo            // (Uses unlink)
+//
+// Purpose-
+//       Create FIFO
+//       Remove FIFO
+//
+// Implementation notes-
+//       Subroutine rmfifo verifies that the name is a FIFO.
+//
+//----------------------------------------------------------------------------
+int                                 // Return code, 0 OK
+   mkfifo(                          // Create FIFO
+     const string&     name,        // Creating this (relative) name
+     mode_t            mode);
+
+int                                 // Return code, 0 OK
+   rmfifo(                          // Remove FIFO
+     const string&     name);       // Having this (relative) name
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       pub::io::mklink            // (Uses symlink)
-//       pub::io::rdlink            // (Uses readlink)
 //       pub::io::rmlink            // (Uses unlink)
+//       pub::io::rdlink            // (Uses readlink)
 //
 // Purpose-
 //       Create symbolic link
-//       read symbolic link
 //       Remove symbolic link
+//       Read symbolic link
 //
 // Implementation notes-
 //       Subroutine rdlink adds a trailing '\0' if space is available, but
@@ -176,18 +200,18 @@ extern int                          // Return code, 0 OK
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 OK
    mklink(                          // Create symbolic link
-     const std::string&target,      // To this target name
-     const std::string&link_name);  // Creating this (relative) link name
-
-ssize_t                             // Number of bytes read, >= 0 if OK
-   rdlink(                          // Read symbolic link
-     const std::string&link_name,   // With this link name
-     char*             addr,        // Into this buffer
-     size_t            size);       // Of this size
+     const string&     target,      // To this target name
+     const string&     name);       // Creating this (relative) link name
 
 int                                 // Return code, 0 OK
    rmlink(                          // Remove link
-     const std::string&link_name);  // Having this (relative) link name
+     const string&     name);       // Having this (relative) link name
+
+ssize_t                             // Number of bytes read, >= 0 if OK
+   rdlink(                          // Read symbolic link
+     const string&     name,        // With this link name
+     char*             addr,        // Into this buffer
+     size_t            size);       // Of this size
 
 //----------------------------------------------------------------------------
 //
@@ -204,46 +228,46 @@ int                                 // Return code, 0 OK
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 OK
    mkpath(                          // Create directory
-     const std::string&name,        // With this relative path name
+     const string&     name,        // With this relative path name
      mode_t            mode);       // And this mode
 
 int                                 // Return code, 0 OK
    rmpath(                          // Remove directory
-     const std::string&name);       // With this relative path name
+     const string&     name);       // With this relative path name
 
 int                                 // Return code, 0 OK
    rmfile(                          // Remove file
-     const std::string&name);       // With this relative file name
+     const string&     name);       // With this relative file name
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       pub::io::open
-//       pub::io::close
-//       pub::io::read
-//       pub::io::write
+//       pub::io::close(fd_t)
+//       pub::io::open(string, int, ...)
+//       pub::io::read(fd_t, void*, size_t)
+//       pub::io::write(fd_t, const void*, size_t)
 //
 // Purpose-
-//       Open file
 //       Close file
+//       Open file
 //       Read from file
 //       Write into file
 //
 //----------------------------------------------------------------------------
+int                                 // Return code, 0 OK
+   close(                           // Close file
+     fd_t              fd);         // With this File Descriptor
+
 fd_t                                // File descriptor, >=0 OK
    open(                            // Open file
-     const std::string&name,        // With this relative path name
+     const string&     name,        // With this relative path name
      int               type);       // And these (O_*) flags
 
 fd_t                                // File descriptor, >=0 OK
    open(                            // Open file
-     const std::string&name,        // With this relative path name
+     const string&     name,        // With this relative path name
      int               type,        // And these (O_*) flags
      mode_t            mode);       // And this mode
-
-int                                 // Return code, 0 OK
-   close(                           // Close file
-     fd_t              fd);         // With this File Descriptor
 
 ssize_t                             // Length read
    read(                            // Read from file

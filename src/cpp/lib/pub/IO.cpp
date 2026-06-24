@@ -17,11 +17,11 @@
 //       Input/output subroutines
 //
 // Last change date-
-//       2026/05/18
+//       2026/06/24
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
-#include <cerrno>                   // For std::string
+#include <cerrno>                   // For errno
 #include <climits>                  // For PATH_MAX
 #include <cstddef>                  // For size_t, ssize_t
 #include <cstring>                  // For strerror
@@ -47,15 +47,36 @@ enum
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       is_fifo
+//
+// Purpose-
+//       Verify that the specified name is for a fifo
+//
+//----------------------------------------------------------------------------
+static bool                         // TRUE if name refers to a (relative) fifo
+   is_fifo(                         // Verify that
+     const string&     name)        // Name refers to a (relative) fifo
+{
+   struct stat info;
+   int rc= PUB::io::lstat(name, &info); // Get state
+   if( rc == 0 && ((info.st_mode & S_IFMT) == S_IFIFO) )
+     return true;
+
+   return false;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       is_link
 //
 // Purpose-
-//       Verify that the specified name is to a link
+//       Verify that the specified name is for a link
 //
 //----------------------------------------------------------------------------
 static bool                         // TRUE if name refers to a (relative) link
    is_link(                         // Verify that
-     const std::string&name)        // Name refers to a (relative) link
+     const string&     name)        // Name refers to a (relative) link
 {
    struct stat info;
    int rc= PUB::io::lstat(name, &info); // Get link state
@@ -74,7 +95,7 @@ static bool                         // TRUE if name refers to a (relative) link
 //       Constructor
 //
 //----------------------------------------------------------------------------
-   io_error::io_error(const std::string& arg)
+   io_error::io_error(const string& arg)
 :  std::runtime_error(arg)
 {  }
 
@@ -104,11 +125,11 @@ void
    va_list             argptr;      // Argument list pointer
 
    va_start(argptr, fmt);           // Initialize va_ functions
-   std::string what= utility::to_stringv(fmt, argptr);
+   string what= utility::to_stringv(fmt, argptr);
    va_end(argptr);                  // Close va_ functions
 
    throw io_error(what + " " + std::to_string(errno) + ":"
-                 + std::string(strerror(errno)));
+                 + string(strerror(errno)));
 }
 
 //----------------------------------------------------------------------------
@@ -122,7 +143,7 @@ void
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 OK
    chmod(                           // Change file/path mode
-     const std::string&name,        // For this relative file/path name
+     const string&     name,        // For this relative file/path name
      mode_t            mode)        // Into this file mode
 {  return ::chmod(name.c_str(), mode); }
 
@@ -159,17 +180,15 @@ fd_t                                // The file descriptor
 //       Set current working directory
 //
 //----------------------------------------------------------------------------
-std::string                         // The current working directory
+string                              // The current working directory
    get_cwd( void )                  // Get current working directory
 {
    char buffer[PATH_MAX + 8];       // Working buffer
    char* path= ::getcwd(buffer, sizeof(buffer));
-   if( path ) {
-     std::string rv(path);
-     return rv;
-   }
+   if( path )
+     return path;
 
-   std::string error("pub::io::get_cwd: ");
+   string error("pub::io::get_cwd: ");
    error += std::to_string(errno);
    error += ":";
    error += strerror(errno);
@@ -178,7 +197,7 @@ std::string                         // The current working directory
 
 int                                 // Return code, 0 OK
    set_cwd(                         // Set current working directory
-     const std::string&path)        // To this relative path name
+     const string&     path)        // To this relative path name
 {  return chdir(path.c_str()); }
 
 //----------------------------------------------------------------------------
@@ -194,27 +213,55 @@ int                                 // Return code, 0 OK
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 OK
    lstat(                           // Get state information
-     const std::string&name,        // For this relative file/path name
+     const string&     name,        // For this relative file/path name
      struct stat*      result)      // (OUTPUT) stat information
 {  return ::lstat(name.c_str(), result); }
 
 int                                 // Return code, 0 OK
    stat(                            // Get state information
-     const std::string&name,        // For this relative file/path name
+     const string&     name,        // For this relative file/path name
      struct stat*      result)      // (OUTPUT) stat information
 {  return ::stat(name.c_str(), result); }
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       pub::io::mkfifo            // (Uses mkfifo)
+//       pub::io::rmfifo            // (Uses unlink)
+//
+// Purpose-
+//       Create FIFO
+//       Remove FIFO
+//
+//----------------------------------------------------------------------------
+int                                 // Return code, 0 OK
+   mkfifo(                          // Create FIFO
+     const string&     name,        // Creating this (relative) name
+     mode_t            mode)
+{  return ::mkfifo(name.c_str(), mode); }
+
+int                                 // Return code, 0 OK
+   rmfifo(                          // Remove FIFO
+     const string&     name)        // Having this (relative) name
+{
+   if( is_fifo(name) )
+     return unlink(name.c_str());
+
+   errno= EINVAL;
+   return -1;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       pub::io::mklink            // (Uses symlink)
-//       pub::io::rdlink            // (Uses readlink)
 //       pub::io::rmlink            // (Uses unlink)
+//       pub::io::rdlink            // (Uses readlink)
 //
 // Purpose-
 //       Create symbolic link
-//       read symbolic link
 //       Remove symbolic link
+//       Read symbolic link
 //
 // Implementation notes-
 //       Subroutine rdlink adds a trailing '\0' if space is available, but
@@ -224,17 +271,28 @@ int                                 // Return code, 0 OK
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 OK
    mklink(                          // Create symbolic link
-     const std::string&target,      // To this target name
-     const std::string&link_name)   // Creating this (relative) link name
-{  return symlink(target.c_str(), link_name.c_str()); }
+     const string&     target,      // To this target name
+     const string&     name)        // Creating this (relative) link name
+{  return symlink(target.c_str(), name.c_str()); }
+
+int                                 // Return code, 0 OK
+   rmlink(                          // Remove link
+     const string&     name)        // Having this (relative) link name
+{
+   if( is_link(name) )
+     return unlink(name.c_str());
+
+   errno= EINVAL;
+   return -1;
+}
 
 ssize_t                             // Number of bytes read, -1 if error
    rdlink(                          // Read symbolic link
-     const std::string&link_name,   // With this (relative) link name
+     const string&     name,        // With this (relative) link name
      char*             addr,        // Into this buffer
      size_t            size)        // Of this size
 {
-   ssize_t ssize= readlink(link_name.c_str(), addr, size);
+   ssize_t ssize= readlink(name.c_str(), addr, size);
    if( ssize < 0 ) {
      if( size > 0 )
        addr[0]= '\0';
@@ -242,17 +300,6 @@ ssize_t                             // Number of bytes read, -1 if error
      addr[ssize]= '\0';
    }
    return ssize;
-}
-
-int                                 // Return code, 0 OK
-   rmlink(                          // Remove link
-     const std::string&link_name)   // Having this (relative) link name
-{
-   if( is_link(link_name) )
-     return unlink(link_name.c_str());
-
-   errno= EINVAL;
-   return -1;
 }
 
 //----------------------------------------------------------------------------
@@ -270,52 +317,52 @@ int                                 // Return code, 0 OK
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 OK
    mkpath(                          // Create directory
-     const std::string&name,        // With this relative path name
+     const string&     name,        // With this relative path name
      mode_t            mode)        // And this mode
 {  return ::mkdir(name.c_str(), mode); }
 
 int                                 // Return code, 0 OK
    rmpath(                          // Remove directory
-     const std::string&name)        // With this relative path name
+     const string&     name)        // With this relative path name
 {  return ::rmdir(name.c_str()); }
 
 int                                 // Return code, 0 OK
    rmfile(                          // Remove file
-     const std::string&name)        // With this relative file name
+     const string&     name)        // With this relative file name
 {  return ::unlink(name.c_str()); }
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       pub::io::open
-//       pub::io::close
-//       pub::io::read
-//       pub::io::write
+//       pub::io::close(fd_t)
+//       pub::io::open(string, int, ...)
+//       pub::io::read(fd_t, void*, size_t)
+//       pub::io::write(fd_t, const void*, size_t)
 //
 // Purpose-
-//       Open file
 //       Close file
+//       Open file
 //       Read from file
 //       Write into file
 //
 //----------------------------------------------------------------------------
+int                                 // Return code, 0 OK
+   close(                           // Close file
+     fd_t              fd)          // With this File Descriptor
+{  return ::close(fd); }
+
 fd_t                                // File descriptor, >=0 OK
    open(                            // Open file
-     const std::string&name,        // With this relative path name
+     const string&     name,        // With this relative file name
      int               type)        // And these (O_*) flags
 {  return ::open(name.c_str(), type); }
 
 fd_t                                // File descriptor, >=0 OK
    open(                            // Open file
-     const std::string&name,        // With this relative path name
+     const string&     name,        // With this relative file name
      int               type,        // And these (O_*) flags
      mode_t            mode)        // And this create mode
 {  return ::open(name.c_str(), type, mode); }
-
-int                                 // Return code, 0 OK
-   close(                           // Close file
-     fd_t              fd)          // With this File Descriptor
-{  return ::close(fd); }
 
 ssize_t                             // Length read
    read(                            // Read from file
