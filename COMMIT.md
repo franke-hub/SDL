@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2026/05/30
+//       2026/06/25
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -1073,3 +1073,23 @@ Now compiles an alternate version if __GNUC__ == 16
   - ~/src/cpp/inc/pub/Ioda.h: Defines the read buffer method
   - ~/src/cpp/lib/pub/Ioda.cpp: Implements the read buffer method
   - ~/src/cpp/lib/pub/Test/TestIoda.cpp: Tests the read buffer method
+
+### <a id="last-change">2026/06/25 maint</a>
+- Coding changes allowing string to be used instead of std::string
+  - IO.h: typedef std::string string; // Applies to all of namespace io
+  - Data.h: All classes and structs use typedef std::string string;
+    - Changed name of file name attribute from "name" to "file_name"
+    - Changed name of path name attribute from "name" to "path_name"
+- For attribute name changes in Data.h
+  - Updated ~/src/cpp/lib/pub/Test/TestData.cpp
+  - Updated ~/src/cpp/Edit/Xcb/Config.cpp
+  - Updated ~/src/cpp/Edit/Xcb/Editor.cpp
+  - Updated ~/src/cpp/Fileman/Fileman.cpp
+  - Updated ~/src/cpp/Scanner/Scanner.cpp
+  - Updated ~/src/cpp/lib/pub/Dictionary.cpp
+- ~/src/cpp/inc/pub/Socket.h and ~/src/cpp/lib/pub/Socket.cpp
+  - Defaulted flag parameter to 0 (where possible)
+  - Added get_peer_name function
+- ~/src/cpp/Scanner/Scanner.cpp
+  - Added function to correct "//" column position. This currenty doesn't
+handle enough situations to make it usable, so it's disabled.
