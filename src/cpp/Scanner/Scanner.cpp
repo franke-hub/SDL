@@ -17,7 +17,7 @@
 //       Source file checker.
 //
 // Last change date-
-//       2026/05/12
+//       2026/06/24
 //
 // Usage-
 //       Scanner {path} options
@@ -113,9 +113,13 @@ enum
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 ,  _USE_AUTOCORRECT_CODE= true      // Use auto_correct_code function?
+,  _USE_AUTOCORRECT_FORM= false     // Use auto_correct_form function?
 ,  _USE_AUTOCORRECT_HTML= true      // Use auto_correct_html function?
 ,  _USE_AUTOCORRECT_PREFIX= true    // Use auto_correct_prefix function?
 }; // Generic enum
+
+static constexpr const size_t
+                       NPOS= string::npos; // (No position)
 
 //----------------------------------------------------------------------------
 // Forward references
@@ -141,7 +145,8 @@ static struct tm       tod;         // The current year-corrected time of day
 //----------------------------------------------------------------------------
 // Constants
 //----------------------------------------------------------------------------
-static const string    blanks= "                "; // Blank string
+// A 37 character blank string (Used in code formatting)
+static const string    blanks37= "                                    ";
 
 //----------------------------------------------------------------------------
 // Copyright tables and controls
@@ -292,6 +297,7 @@ pub::DHDL_list<remove_revise_item>
 //----------------------------------------------------------------------------
 static int             opt_help= false; // --help (or error)
 static int             opt_auto= false; // Use auto-correct?
+static int             opt_form= false; // Check code format?
 static int             opt_index;   // Option index
 static int             opt_listx= false; // Create extension list
 static int             opt_mode= false; // Verify file mode
@@ -306,6 +312,7 @@ static struct option   OPTS[]=      // The getopt_long longopts parameter
 ,  {"verbose",   optional_argument, &opt_verbose,    1}
 ,  {"all",       no_argument,       nullptr,         0}
 ,  {"auto",      no_argument,       &opt_auto,    true}
+,  {"format",    no_argument,       &opt_form,    true}
 ,  {"listx",     no_argument,       &opt_listx,   true}
 ,  {"mode",      no_argument,       &opt_mode,    true}
 ,  {"multi",     optional_argument, &opt_multi,      1}
@@ -320,7 +327,7 @@ enum OPT_INDEX
 {  OPT_HELP= 0
 ,  OPT_VERBOSE= 1
 ,  OPT_ALL= 2
-,  OPT_MULTI= 6
+,  OPT_MULTI= 7
 };
 
 //----------------------------------------------------------------------------
@@ -427,30 +434,6 @@ static string                       // The resultant substring
 
    // (Only blanks found)
    return "";
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       trim
-//
-// Function-
-//       Trim leading and trailing blanks
-//
-//----------------------------------------------------------------------------
-static void
-   trim(                            // Remove leading and trailing blanks
-     string&           str)         // From this string
-{
-   // Remove leading blanks
-   while( str.size() > 0 && str[0] == ' ' ) {
-     str= str.substr(1);
-   }
-
-   // Remove trailing blanks
-   while( str.size() > 1 && str.substr(str.size()-1, 1) == " " ) {
-     str= str.substr(0, str.size()-1);
-   }
 }
 
 //----------------------------------------------------------------------------
@@ -563,12 +546,12 @@ static void
 
      for(auto rem_it= rem_li.begin(); rem_it != rem_li.end(); ++rem_it) {
        File* rem_file= rem_it.get();
-       string rem_name= rem_file->name;
+       string rem_name= rem_file->get_file_name();
 
        bool match= false;           // Default, no match
        for(auto rev_it= rev_li.begin(); rev_it != rev_li.end(); ++rev_it) {
          File* rev_file= rev_it.get();
-         string rev_name= rev_file->name;
+         string rev_name= rev_file->get_file_name();
 
          if( rev_name == rem_name ) {
            rr_item.remove= new Data();
@@ -909,8 +892,9 @@ static void
           "  --help\tWrite this help message and exit\n"
           "  --verbose\t{=n} Verbosity, 1 if =n unspecified\n"
           "\n"
-          "  --all\t\tCheck format, mode, and copyright\n"
+          "  --all\t\tIncludes --code, --copy, --mode, and --unix\n"
           "  --auto\tAuto-correct mode\n"
+          "  --code\tVerify code formatting\n"
           "  --copy\tVerify copyright text\n"
           "  --listx\tList filename extensions\n"
           "  --mode\tVerify file mode\n"
@@ -992,6 +976,7 @@ static void
 
            case OPT_ALL:
              opt_copy= true;
+             opt_form= true;
              opt_mode= true;
              opt_unix= true;
              break;
@@ -1033,12 +1018,63 @@ static void
      debugf("%5d --verbose\n", opt_verbose);
      debugf("%5s --auto\n",    opt_auto  ? " true" : "false");
      debugf("%5s --copy\n",    opt_copy  ? " true" : "false");
+     debugf("%5s --format\n",  opt_form  ? " true" : "false");
      debugf("%5s --listx\n",   opt_listx ? " true" : "false");
      debugf("%5s --mode\n",    opt_mode  ? " true" : "false");
      debugf("%5d --multi\n",   opt_multi);
      debugf("%5s --unix\n",    opt_unix  ? " true" : "false");
      debugf("\n");
    }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       get_format_cols
+//
+// Function-
+//       Parse code line
+//
+//----------------------------------------------------------------------------
+static int                          // Return code (Current quote character)
+   get_format_cols(                 // Parse
+     const char*       text,        // This code text
+     size_t&           col_code,    // (OUT) The first code column offset
+     size_t&           col_comm,    // (OUT) The comment column offset
+     size_t&           spaces)      // (OUT) Spaces before comment or end
+{
+   col_code= col_comm= NPOS;        // Code not found; Comment not found.
+   spaces= 0;                       // No spaces
+
+   int P= 0;                        // Prior character (only if '\\')
+   int Q= 0;                        // Quote character
+   for(size_t col= 0; text[col] != '\0'; ++col) {
+     int C= text[col];              // The current character
+
+     if( P == '\\' )
+       P= 0;
+     else if( C == '\\' )
+       P= C;
+     else if( C == Q )
+       Q= 0;
+     else if( Q == 0 && (C == '\'' || C == '\"') )
+       Q= C;
+
+     if( C == ' ' ) {
+       ++spaces;
+     } else {
+       if( Q == 0 && C == '/' && text[col+1] == '/' ) {
+         col_comm= col;
+         return Q;
+       }
+
+       spaces= 0;
+       if( col_code == NPOS )
+         col_code= col;
+     }
+   }
+
+   return Q;
 }
 
 //----------------------------------------------------------------------------
@@ -1252,7 +1288,7 @@ static inline bool                  // TRUE iff name is in "html" format
 //       is_lily
 //
 // Function-
-//       Is the specified file in html format?
+//       Is the specified file in lily format?
 //
 //----------------------------------------------------------------------------
 static inline bool                  // TRUE iff name is in "lily" format
@@ -1327,10 +1363,10 @@ static inline bool                  // True if file contains a script heading
 //----------------------------------------------------------------------------
 static int                          // The value
    string2int(                      // Convert string to int
-     const string&     inps)        // The string
+     const string&     inp)         // The string
 {
    int result= 0;
-   const char* S= s2c(inps);
+   const char* S= s2c(inp);
    if( *S == '\0' )
      return -1;
 
@@ -1351,17 +1387,40 @@ static int                          // The value
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       trim_trailing
+//
+// Function-
+//       Trim trailing blanks
+//
+//----------------------------------------------------------------------------
+static string                       // The string, -trailing blanks
+   trim_trailing(                   // Remove trailing blanks
+     const string&     inp)         // From this string
+{
+   string str= inp;
+
+   // Remove trailing blanks
+   while( str.size() > 1 && str.substr(str.size()-1, 1) == " " ) {
+     str= str.substr(0, str.size()-1);
+   }
+
+   return str;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       trim
 //
 // Function-
 //       Trim leading and trailing blanks from string
 //
 //----------------------------------------------------------------------------
-static inline string                // The string, -leading and trailing blanks
-   trim(                            // Trim
-     const string&     inps)        // This string
+static string                       // The string, -leading and trailing blanks
+   trim(                            // Remove leading and trailing blanks
+     const string&     inp)         // From this string
 {
-   const char* S= s2c(inps);
+   const char* S= s2c(inp);
    while( *S == ' ' )               // Skip blanks
      S++;
    size_t L= strlen(S);
@@ -1775,6 +1834,226 @@ static void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       auto_replace_line
+//
+// Function-
+//       Auto-replace line
+//
+//----------------------------------------------------------------------------
+static bool                         // (Always false)
+   auto_replace_line(               // Auto replace line
+     Data&             data,        // For this file and
+     Line*             line,        // For this line
+     string            code)        // With this text
+{
+   debugf(">>>>>%s<<<<<\n", line->text); // Debugging display
+   debugf(">>>>>%s<<<<<\n", s2c(code));  // Debugging display
+// return false;
+
+   pub::DHDL_list<Line>& list= data.line();
+   Line* prev= line->get_prev();
+   Line* next= data.get_line(code);
+   list.remove(line);
+   list.insert(prev, next);
+   data.change(true);
+   return false;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       auto_correct_form
+//
+// Function-
+//       Auto-correct code format (for line)
+//
+// Implementation notes-
+//       Check: Is the "//" comment delimiter positioned properly?
+//
+//----------------------------------------------------------------------------
+static bool                         // Change required but not applied
+   auto_correct_form(               // Auto correct code format for line
+     Data&             data,        // For this file and
+     Line*             line,        // For this line
+     size_t            lnum)        // At this line number
+{
+   if( !_USE_AUTOCORRECT_FORM ) return false; // If function disabled
+
+   size_t              alt_code= NPOS; // Alternate first code column offset
+   size_t              alt_comm= NPOS; // Alternate comment column offset
+   size_t              col_code= NPOS; // The first code column offset
+   size_t              col_comm= NPOS; // The comment column offset
+   const char*         err_text= nullptr; // The error text
+   size_t              spaces= 0;   // The number of spaces before the comment
+   const char*         text= line->text; // The line text
+
+   // Locate the format delimiters
+   int Q= get_format_cols(text, col_code, col_comm, spaces);
+   if( Q && false ) {               // If incomplete quote
+     // This is too complex. The compiler handles any real problem.
+     err_text= "incomplete quote";
+     errorf("%4d File(%s:%zd) %s: %s(%c)\n%4zd %s\n", __LINE__
+           , s2c(data.full()), lnum, "NOT CORRECTABLE", err_text, Q
+           , lnum, text);
+     return true;
+   }
+
+   if( col_comm == NPOS )           // If no comment found
+     return false;                  // (No need to check its position)
+
+   // Comments that begin a line are always OK
+   if( col_comm == 0 )              // All Column[1] comments are OK
+     return false;
+
+   // Comments in col[36] preceded by at least one space are OK
+   if( col_comm == 36 && spaces > 0 ) // (Column[37] == col[36])
+     return false;
+
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Handle code + comment lines
+   if( col_code != NPOS ) {
+     if( spaces == 0 ) {            // If no spaces
+       err_text= "no space before comment";
+       if( opt_auto ) {             // If auto-correcting
+         debugf("%4d File(%s:%zd) %s: %s\n", __LINE__
+               , s2c(data.full()), lnum, "correcting", err_text);
+         string code(text, col_comm);
+         string comm(text+col_comm);
+         code= code + " " + comm;
+         return auto_replace_line(data, line, code);
+       } else {                   // Not auto-correcting
+         errorf("%4d File(%s:%zd) %s: %s\n%4zd %s\n", __LINE__
+               , s2c(data.full()), lnum, "correctable", err_text
+               , lnum, text);
+         return true;
+       }
+     }
+
+     if( col_comm > 36 ) {          // If long line (Column > 37 )
+       if( spaces == 1 )            // If properly formatted
+         return false;
+
+       // Condition: code + multiple spaces + comment after column
+       // Excuse 1: previous or next line has the same comment column
+       get_format_cols(line->get_prev()->text, alt_code, alt_comm, spaces);
+       if( alt_comm == col_comm )
+         return false;
+
+       get_format_cols(line->get_next()->text, alt_code, alt_comm, spaces);
+       if( alt_comm == col_comm )
+         return false;
+
+       // No more excuses
+       err_text= "comment too far right";
+       if( opt_auto ) {           // If auto-correcting
+         debugf("%4d File(%s:%zd) col(%zd) %s: %s\n", __LINE__
+               , s2c(data.full()), lnum, col_comm+1, "correcting", err_text);
+
+         string code(text, col_comm);
+         code= trim_trailing(code);
+         if( code.size() > 36 )
+           code= code + " ";
+         else {
+           code= code + blanks37;
+           code= code.substr(0, 36);
+         }
+         string comm(text+col_comm);
+         code= code + comm;
+         return auto_replace_line(data, line, code);
+       } else {                   // Not auto-correcting
+         errorf("%4d File(%s:%zd) col(%zd) %s: %s\n%4zd %s\n", __LINE__
+               , s2c(data.full()), lnum, col_comm+1, "correctable", err_text
+               , lnum, text);
+         return true;
+       }
+     }
+
+     // Condition: code + comment beginning before column 37
+     // Excuse 1: #if || #endif
+     if( memcmp(text + col_code, "#if ", 4) == 0
+         || memcmp(text + col_code, "#endif ", 7) == 0 )
+       return false;
+
+     // Excuse 2: End of a struct or enum
+     if( memcmp(text + col_code, "}; //", 5) == 0 )
+       return false;
+
+     // Excuse 3: End of a namespace
+     if( memcmp(text + col_code, "} // namespace ", 15) == 0 )
+       return false;
+
+     // No more excuses
+     err_text= "comment too far left";
+     if( opt_auto ) {             // If auto-correcting
+       debugf("%4d File(%s:%zd) col(%zd) %s: %s\n", __LINE__
+             , s2c(data.full()), lnum, col_comm+1, "correcting", err_text);
+
+       string code(text, col_comm);
+       code= code + blanks37;
+       code= code.substr(0, 36);
+       string comm(text+col_comm);
+       code= code + comm;
+       return auto_replace_line(data, line, code);
+     } else {
+       errorf("%4d File(%s:%zd) col(%zd) %s: %s\n%4zd %s\n", __LINE__
+             , s2c(data.full()), lnum, col_comm+1, "correctable", err_text
+             , lnum, text);
+       return true;
+     }
+   }
+
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Handle stand-alone comment lines
+   if( col_comm > 36 ) {            // If past column 37
+     err_text= "comment too far right";
+     if( opt_auto ) {               // If auto-correcting
+       debugf("%4d File(%s:%zd) col(%zd) %s: %s\n", __LINE__
+             , s2c(data.full()), lnum, col_comm+1, "correcting", err_text);
+
+       string code= blanks37;
+       string comm(text+col_comm);
+       code= code + comm;
+       return auto_replace_line(data, line, code);
+     } else {
+       errorf("%4d File(%s:%zd) col(%zd) %s: %s\n%4zd %s\n", __LINE__
+             , s2c(data.full()), lnum, col_comm+1, "correctable", err_text
+             , lnum, text);
+       return true;
+     }
+   }
+
+   // Condition: stand-alone comment line before column 37
+   // Excuse 1: previous or next line has the same comment column
+   // Excuse 2: previous or next line has the same code column
+   get_format_cols(line->get_prev()->text, alt_code, alt_comm, spaces);
+   if( alt_comm == col_comm || alt_code == col_comm )
+     return false;
+
+   get_format_cols(line->get_next()->text, alt_code, alt_comm, spaces);
+   if( alt_comm == col_comm || alt_code == col_comm )
+     return false;
+
+   // No more excuses
+   err_text= "comment too far left";
+   if( opt_auto ) {             // If auto-correcting
+     debugf("%4d File(%s:%zd) col(%zd) %s: %s\n", __LINE__
+           , s2c(data.full()), lnum, col_comm+1, "correcting", err_text);
+
+     string code= blanks37;
+     string comm(text+col_comm);
+     code= code + comm;
+     return auto_replace_line(data, line, code);
+   } else {
+     errorf("%4d File(%s:%zd) col(%zd) %s: %s\n%4zd %s\n", __LINE__
+           , s2c(data.full()), lnum, col_comm+1, "correctable", err_text
+           , lnum, text);
+     return true;
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       auto_correct_html
 //
 // Function-
@@ -1968,7 +2247,7 @@ static bool                         // TRUE if SPDX identifier added
        List& list= data.line();     // (The file line list)
 
        string S(prefix);
-       trim(S);
+       S= trim(S);
        S += " ";
        S += skipb(findb(lhs->text));
        Line* line= data.get_line(S); // (Adding the SPDX-License-Identifier)
@@ -2058,18 +2337,18 @@ static void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       auto_update
+//       auto_remove_revise
 //
 // Function-
 //       Handle copyright .remove => .revise update
 //
 //----------------------------------------------------------------------------
 static bool                         // TRUE if copyright converted
-   auto_update(                     // Handle copyright update
+   auto_remove_revise(              // Handle copyright .remove => .revise
      Data&             data)        // For this data file
 {
    if( HCDM )
-     debugf("auto_update(%s)\n", s2c(data.full()));
+     debugf("auto_remove_revise(%s)\n", s2c(data.full()));
 
    bool changed= false;             // Default, not changed
    remove_revise_item* rr_item= remove_revise_list.get_head();
@@ -2205,7 +2484,7 @@ static void
    if( HCDM )
      debugf("non-standard copyright(%s)\n", s2c(data.full()));
 
-   if( auto_update(data) )          // Auto-correct remove/replace copyrights
+   if( auto_remove_revise(data) )   // Auto-correct remove/replace copyrights
      return;
 
    // Check for other copyright formats
@@ -2411,6 +2690,44 @@ static void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       form_code
+//
+// Function-
+//       Handle code formatting
+//
+// Implementation notes-
+//       Code formatting writes the file once for all formatting changes
+//
+//----------------------------------------------------------------------------
+static void
+   form_code(                       // Handle code formatting
+     Data&             data)        // The content
+{
+   bool fix_needed= false;
+   Line* line= data.line().get_head();
+   size_t lnum= 1;
+   while( line ) {
+     fix_needed |= auto_correct_form(data, line, lnum);
+     line= line->get_next();
+     ++lnum;
+   }
+
+   if( fix_needed ) {               // If fix needed but not applied
+     errorf("File(%s) fixes not applied\n", s2c(data.full()));
+     allow_multi();
+     return;
+   }
+
+   if( data.changed() ) {
+     data.write();
+     data.change(false);
+     allow_multi();
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       handle_path
 //
 // Function-
@@ -2439,17 +2756,17 @@ static void
        continue;
 
      if( opt_listx ) {
-       string extension= get_extension(file->name);
+       string extension= get_extension(file->get_file_name());
        if( props.get_property(extension) == nullptr )
          props.insert(extension, extension);
      }
 
      if( opt_verbose > 4 )
        debugf("F: %.8x %10ld %s/%s\n", file->st.st_mode
-             , file->st.st_size, s2c(path), s2c(file->name));
+             , file->st.st_size, s2c(path), s2c(file->get_file_name()));
 
      if( S_ISREG(file->st.st_mode) ) {
-       string full= path + "/" + file->name; // The fully qualified name
+       string full= path + "/" + file->get_file_name(); // The fully qualified name
        for(line= IGNORE.line().get_head(); line; line= line->get_next())
        {
          if( strcmp(line->text, s2c(full)) == 0 ) // If IGNORE file
@@ -2463,7 +2780,7 @@ static void
          continue;                  // And ignore it
        }
 
-       string name(file->name);
+       string name(file->get_file_name());
        if( is_binary(name) )        // Ignore binary formatted file types
          continue;
 
@@ -2527,10 +2844,11 @@ static void
          }
        }
 
+       // Implementation note: Sort most likely first
        if( opt_copy ) {             // Check copyright?
-         if( is_code(name) )        // Implementation note: Sort likely first
+         if( is_code(name) )
            copy_code(data);
-         else if( is_bash(name) )
+         if( is_bash(name) )
            copy_bash(data);
          else if( is_lily(name) )
            copy_code(data);
@@ -2540,6 +2858,11 @@ static void
            copy_mark(data);
          else
            copy_misc(data);
+       }
+
+       if( opt_form ) {             // Check formatting?
+         if( is_code(name) )
+           form_code(data);
        }
      }
    }
@@ -2551,7 +2874,7 @@ static void
    {
      if( S_ISDIR(file->st.st_mode) ) // Handle directory ignore
      {
-       string full= path + "/" + file->name + "/*";
+       string full= path + "/" + file->get_file_name() + "/*";
        for(line= IGNORE.line().get_head(); line; line= line->get_next())
        {
          if( full == line->text )
@@ -2566,7 +2889,7 @@ static void
          continue;                  // And ignore it
        }
 
-       full= path + "/" + file->name;
+       full= path + "/" + file->get_file_name();
        if( opt_mode ) {
          mode_t mode= file->st.st_mode & ACCESSPERMS;
          mode_t user= S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
