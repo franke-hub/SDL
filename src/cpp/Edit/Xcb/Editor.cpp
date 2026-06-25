@@ -17,7 +17,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2026/01/08
+//       2026/06/11
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -950,20 +950,22 @@ void
      Editor::put_message("File(%s) %s", name_, error.c_str());
      return;
    }
+   const char* cc_name= name.get_file_name().c_str();
 
    {{{{ // Search directory, handling all wildcard file name matches
      bool found= false;
-     Path path(name.path_name);     // (Temporary)
+     Path path(name.get_path_name()); // (Temporary)
      for(File* file= path.list.get_head(); file; file= file->get_next() ) {
-       if( wildstrcmp(name.file_name.c_str(), file->name.c_str()) == 0 ) {
-         std::string fqn= name.path_name + "/" + file->name;
+       const char* cc_file= file->get_file_name().c_str();
+       if( wildstrcmp(cc_name, cc_file) == 0 ) {
+         std::string fqn= name.get_path_name() + "/" + file->get_file_name();
          Name wild(fqn);            // The wildcard match name
          wild.resolve();            // (Resolve the name, which may be a link)
 
          found= true;
          bool is_dup= false;
          for(EdFile* dup= file_list.get_head(); dup; dup= dup->get_next()) {
-           if( dup->name == wild.name ) { // If file already in file_list
+           if( dup->name == wild.get_file_name() ) { // If duplicate
              last= dup;
              is_dup= true;
              break;
@@ -971,7 +973,7 @@ void
          }
 
          if( !is_dup ) {
-           EdFile* next= new EdFile(wild.name.c_str());
+           EdFile* next= new EdFile(wild.get_full_name().c_str());
            next->protect |= protect; // (May already be set)
            file_list.insert(last, next, next);
            last= next;
@@ -983,7 +985,7 @@ void
 
      // If the file hasn't been written yet, it still might be a duplicate
      for(EdFile* dup= file_list.get_head(); dup; dup= dup->get_next()) {
-       if( dup->name == name.name ) {
+       if( dup->name == name.get_file_name() ) {
          last= dup;
          return;
        }
@@ -991,7 +993,7 @@ void
    }}}}
 
    // Non-existent file (Never protected)
-   EdFile* next= new EdFile(name.name.c_str());
+   EdFile* next= new EdFile(name.get_full_name().c_str());
    file_list.insert(last, next, next);
    last= next;
 }
