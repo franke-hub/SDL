@@ -17,7 +17,7 @@
 //       Display directory and subdirectory.
 //
 // Last change date-
-//       2025/09/15
+//       2025/06/11
 //
 // Flags-
 //       -d (directory)
@@ -400,7 +400,7 @@ void
    File::print_name(                // Format and print name
      std::string       path)        // Using this path name
 {
-   std::string full= path + "/" + name;
+   std::string full= path + "/" + get_file_name();
    printf("%s", full.c_str());
    if( S_ISLNK(st.st_mode) )
    {
@@ -479,7 +479,7 @@ static void
        file= static_cast<File*>(file->get_next())) {
      if( opt_verbose > 1 )
        fprintf(stderr, "F: %.8x %10ld %s/%s\n", file->st.st_mode,
-               file->st.st_size, name.c_str(), file->name.c_str());
+               file->st.st_size, name.c_str(), file->get_file_name().c_str());
      bool valid= false;             // Default, not valid
      if( S_ISDIR(file->st.st_mode) ) {
        if( opt_dirs ) valid= true;
@@ -492,7 +492,7 @@ static void
      if( valid )                    // If valid
      {
        if( opt_name )               // If only name required
-         printf("%s/%s%c", name.c_str(), file->name.c_str(),
+         printf("%s/%s%c", name.c_str(), file->get_file_name().c_str(),
                 opt_print0 ? '\0' : '\n');
        else
          file->print(name);         // Display complete information
@@ -505,7 +505,7 @@ static void
    for(File* file= static_cast<File*>(path.list.get_head()); file != nullptr;
        file= static_cast<File*>(file->get_next())) {
      if( S_ISDIR(file->st.st_mode) ) // If this is a directory
-       listDirectory(name + "/" + file->name); // Process the subdirectory
+       listDirectory(name + "/" + file->get_file_name()); // Process the subdirectory
    }
 }
 

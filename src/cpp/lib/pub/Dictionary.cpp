@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2024-2025 Frank Eskesen.
+//       Copyright (c) 2024-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Dictionary method implementation.
 //
 // Last change date-
-//       2025/11/24
+//       2026/06/11
 //
 //----------------------------------------------------------------------------
 #include <memory>                   // For std:unique_ptr, make_unique
@@ -215,13 +215,14 @@ static bool
        if( S_ISDIR(info.st_mode) ) { // If it's a directory
          pub::data::Path path(lib.c_str());
          for(auto iter= path.list.begin(); iter != path.list.end(); ++iter) {
-           pub::data::Name name= lib + "/" + iter->name;
-           string extension= name.get_extension(name.name);
+           pub::data::Name name= lib + "/" + iter->file_name;
+           string extension= name.get_extension();
            if( extension == "dic" ) {
-             load_dict(name.name.c_str());
+             load_dict(name.get_full_name().c_str());
            } else if( HCDM && VERBOSE > 1 ) {
              errorf("HCDM Skipping File(%s) extension(%s)\n"
-                   , name.get_extension(name.name).c_str(), extension.c_str());
+                   , name.get_full_name().c_str()
+                   , name.get_extension().c_str());
            }
          }
        } else {                     // If it's a single file
@@ -235,9 +236,7 @@ static bool
      for(size_t i= 0; user_dict[i]; ++i) {
 
        Name name(user_dict[i]);
-       const char* full= name.name.c_str();
-       // const char* path= name.path_name.c_str();
-       // const char* file= name.file_name.c_str();
+       const char* full= name.get_full_name().c_str();
        if( stat(full, &info) == 0 )
          load_dict(full);
        else

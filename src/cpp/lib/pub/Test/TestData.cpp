@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2025 Frank Eskesen.
+//       Copyright (c) 2020-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Test Data.h
 //
 // Last change date-
-//       2025/10/09
+//       2026/06/11
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -57,7 +57,8 @@ static int                          // Error count
      std::string error= name.resolve();
      if( opt_verbose ) {
        if( error == "" )              // If no error
-         debugf("OK: '%s'= Name.resolve(%s)\n", name.name.c_str(), C);
+         debugf("OK: '%s'= Name.resolve(%s)\n", name.get_full_name().c_str()
+               , C);
        else {
          debugf("NG: '%s'= Name.resolve(%s)\n", error.c_str(), C);
        }
@@ -93,7 +94,7 @@ static int                          // Error count
        debugf("\nPath(%s):\n", C);
        Path path(C);
        for(auto it= path.list.begin(); it != path.list.end(); ++it) {
-         debugf(": %s\n", it->name.c_str());
+         debugf(": %s\n", it->get_file_name().c_str());
        }
      }
    }
