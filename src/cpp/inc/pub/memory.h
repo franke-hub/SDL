@@ -19,12 +19,6 @@
 // Last change date-
 //       2022/09/02
 //
-// Implementation note-
-//       TODO: Implement without boost.
-//       This is currently just a wrapper for boost::atomic_shared_ptr.
-//       Until this changes, this is distributed under the BOOST license,
-//       version 1.0. This license is less restrictive than the LGPL license.
-//
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_MEMORY_H_INCLUDED
 #define _LIBPUB_MEMORY_H_INCLUDED
@@ -47,6 +41,12 @@
 // Purpose-
 //       Atomic shared pointer.
 //
+// Implementation note-
+//       TODO: Implement without boost.
+//       This is currently just a wrapper for boost::atomic_shared_ptr.
+//       Until this changes, this is distributed under the BOOST license,
+//       version 1.0. This license is less restrictive than the LGPL license.
+//
 //----------------------------------------------------------------------------
 template<class T>
 class atomic_shared_ptr             // Atomic shared pointer
@@ -63,7 +63,7 @@ class atomic_shared_ptr             // Atomic shared pointer
 :  boost::atomic_shared_ptr<T>(p) {};
 }; // class atomic_shared_ptr<>
 #else
-#error "No other implementation exists for atomic_shared_ptr"
+#error "No other atomic_shared_ptr implementations are supported"
 #endif
 
 #undef  _USE_BOOST_ATOMIC_SHARED_PTR // Avoid unnessary defines
