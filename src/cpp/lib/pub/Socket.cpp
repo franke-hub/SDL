@@ -17,7 +17,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2026/05/30
+//       2026/06/25
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -495,6 +495,36 @@ int                                 // Return code
      void*             optval,      // Option value
      socklen_t*        optlen)      // Option length (IN/OUT)
 {  return ::getsockopt(handle, optlevel, optname, optval, optlen); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Socket::get_peer_name
+//
+// Purpose-
+//       Get peer host name or address
+//
+//----------------------------------------------------------------------------
+std::string                         // The peer host name or address
+   Socket::get_peer_name( void ) const // Get peer host name or address
+{
+   char peer_name[64];              // Peer name buffer
+   std::string result;              // Peer name string
+
+   int rc= ::getnameinfo((sockaddr*)&peer_addr, peer_size
+                        , peer_name, sizeof(peer_name)
+                        , nullptr, 0, NI_NOFQDN);
+   if( rc == 0 ) {
+     result= peer_name;
+   } else {
+     peer_name[0]= '\0';
+     const char* cc= inet_ntop(peer_addr.su_af, &peer_addr.sa, peer_name, 64);
+     if( cc )
+       result= peer_name;
+   }
+
+   return result;
+}
 
 //----------------------------------------------------------------------------
 //
