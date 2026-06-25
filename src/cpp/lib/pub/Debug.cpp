@@ -152,6 +152,9 @@ static bool                         // true iff STDIO
 // Purpose-
 //       Throw "should not occur" after another throw
 //
+// Implementation notes-
+//       Should never be invoked.
+//
 //----------------------------------------------------------------------------
 [[noreturn]]
 static void
