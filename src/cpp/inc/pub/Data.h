@@ -17,7 +17,7 @@
 //       File management classes, conveniently packaged in one file.
 //
 // Last change date-
-//       2026/06/20
+//       2026/06/25
 //
 // Implementation note-
 //       Derived from Fileman.h
@@ -416,7 +416,7 @@ void
 //----------------------------------------------------------------------------
 virtual File*                       // The created File
    make_file(                       // Create and File
-     const stat_t      st,          // File information
+     const stat_t&     st,          // File information
      const string&     file_name);  // The File name
 }; // struct Path
 
