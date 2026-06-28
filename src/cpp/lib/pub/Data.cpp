@@ -677,67 +677,23 @@ string                              // The invalid path ("" if none)
 //       pub::data::Path::~Path
 //
 // Purpose-
-//       Constructor.
+//       Constructors.
 //       Destructor.
 //
 //----------------------------------------------------------------------------
    Path::Path(                      // Constructor
-     const string&     path)        // The Path name
-:  path_name(path), list()
-{
-   //-------------------------------------------------------------------------
-   // Read the directory
-   //-------------------------------------------------------------------------
-   string S= path_name;
-   if( S == "" ) S= ".";            // (Empty path name for relative path ".")
-   DIR* dir= opendir(s2c(S));       // Open the directory stream
-   if( dir == NULL ) {              // Stream not opened
-     errorp("%4d: Path: opendir('%s') failure", __LINE__, s2c(path));
-     return;
-   }
+     const char*       name)        // The Path name
+:  list()
+{  reset(name); }
 
-   for(;;) {                        // For each directory entry
-     struct dirent* ent= readdir(dir); // Read the directory entry
-     if( ent == NULL )
-       break;
-
-     string file_name(ent->d_name);  // The file name
-     if( file_name == "." || file_name == ".." ) // If pseudo entry
-       continue;                    // Ignore it
-     string full_name= Name::get_full_name(path_name, file_name);
-
-     struct stat s;                 // File stats
-     int rc= lstat(s2c(full_name), &s); // Load the file information
-     if( rc != 0 ) {                // If failure
-       errorp("%4d: Path: lstat(%s) failure: %d", __LINE__, s2c(full_name), rc);
-       continue;
-     }
-
-     File* file= make_file(s, file_name);
-     insert(file);
-   }
-
-   int rc= closedir(dir);           // Done reading the directory
-   if( rc != 0 )                    // If error encountered
-     errorp("%4d: Path: closedir('%s') failure", __LINE__, s2c(path));
-
-   //-------------------------------------------------------------------------
-   // Sort the list
-   //-------------------------------------------------------------------------
-   list.sort();
-}
+   Path::Path(                      // Constructor
+     const string&     name)        // The Path name
+:  list()
+{  reset(name); }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Path::~Path( void )              // Destructor
-{
-   for(;;) {                        // Delete the list
-     File* file= list.remq();
-     if( file == nullptr )
-       break;
-
-     delete file;
-   }
-}
+{  reset(); }
 
 //----------------------------------------------------------------------------
 //
@@ -786,6 +742,80 @@ File*                               // The new File
      const stat_t&     st,          // File information
      const string&     file_name)   // The File name
 {  return new File(st, file_name); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       pub::data::Path::reset
+//
+// Purpose-
+//       Reset and optionally reload the List
+//
+//----------------------------------------------------------------------------
+void
+   Path::reset(                     // Reset and optionally reload the List
+     const char*       name)        // The new Path name
+{
+   for(;;) {                        // Delete the list
+     File* file= list.remq();
+     if( file == nullptr )
+       break;
+
+     delete file;
+   }
+
+   if( name == nullptr ) {          // If reset only
+     path_name= "";
+     return;
+   }
+
+   //-------------------------------------------------------------------------
+   // Load the directory list
+   //-------------------------------------------------------------------------
+   path_name= name;                 // Set the path_name
+   string S= path_name;
+   if( S == "" ) S= ".";            // (Empty path name for relative path ".")
+   DIR* dir= opendir(s2c(S));       // Open the directory stream
+   if( dir == NULL ) {              // Stream not opened
+     errorp("%4d: Path: opendir('%s') failure", __LINE__, name);
+     return;
+   }
+
+   for(;;) {                        // For each directory entry
+     struct dirent* ent= readdir(dir); // Read the directory entry
+     if( ent == NULL )
+       break;
+
+     string file_name(ent->d_name);  // The file name
+     if( file_name == "." || file_name == ".." ) // If pseudo entry
+       continue;                    // Ignore it
+     string full_name= Name::get_full_name(path_name, file_name);
+
+     struct stat s;                 // File stats
+     int rc= lstat(s2c(full_name), &s); // Load the file information
+     if( rc != 0 ) {                // If failure
+       errorp("%4d: Path: lstat(%s) failure: %d", __LINE__, s2c(full_name), rc);
+       continue;
+     }
+
+     File* file= make_file(s, file_name);
+     insert(file);
+   }
+
+   int rc= closedir(dir);           // Done reading the directory
+   if( rc != 0 )                    // If error encountered
+     errorp("%4d: Path: closedir('%s') failure", __LINE__, name);
+
+   //-------------------------------------------------------------------------
+   // Sort the list
+   //-------------------------------------------------------------------------
+   list.sort();
+}
+
+void
+   Path::reset(                     // Reset and reload the List
+     const string&     name)        // The new Path name
+{  reset(s2c(name)); }
 
 //============================================================================
 //

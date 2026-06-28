@@ -17,7 +17,7 @@
 //       Standard socket (including openssl sockets) wrapper.
 //
 // Last change date-
-//       2026/06/17
+//       2026/06/28
 //
 // Implementation notes-
 //       Error recovery is the user's responsibility.
@@ -187,6 +187,10 @@ void
    do_select(                       // Drive the event handler
      int               revent)      // The polling revent
 {  h_select(revent); }
+
+static std::string                  // The address name string
+   get_addr_string(                 // Get address name string
+     const sockaddr_u& sock_addr);  // Socket address
 
 int                                 // The socket flags
    get_flags( void ) const          // Get socket flags

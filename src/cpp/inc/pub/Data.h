@@ -162,8 +162,8 @@ typedef std::string    string;      // For convenience
 //----------------------------------------------------------------------------
 // pub::data::File::Attributes
 //----------------------------------------------------------------------------
-const string           file_name;   // The file name (Does not include Path)
-const stat_t           st;          // The lstat info
+string                 file_name;   // The file name (Does not include Path)
+stat_t                 st;          // The lstat info
 
 //----------------------------------------------------------------------------
 // pub::data::File::Constructor/destructor
@@ -386,17 +386,21 @@ typedef std::string    string;      // For convenience
 //----------------------------------------------------------------------------
 // pub::data::Path::Attributes
 //----------------------------------------------------------------------------
-const string           path_name;   // The path name (Locally qualified)
+string                 path_name;   // The path name (Locally qualified)
 DHDL_sort<File>        list;        // The (sortable) list of Files
 
 //----------------------------------------------------------------------------
 // pub::data::Path::Constructors/destructor
 //----------------------------------------------------------------------------
    Path(                            // Constructor
+     const char*       name= nullptr); // (Optional) path name
+
+   Path(                            // Constructor
      const string&     name);       // Path name (Locally qualified)
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 virtual
-   ~Path( void );                   // Destructor
+   ~Path( void );                   // Destructor (Resets the List)
 
 //----------------------------------------------------------------------------
 // pub::data::Path::debug | Debugging display
@@ -410,6 +414,17 @@ virtual void
 void
    insert(                          // Insert onto the List
      File*             file);       // This File
+
+//----------------------------------------------------------------------------
+// pub::data::Path::reset | Reset: Reload the directory
+//----------------------------------------------------------------------------
+void
+   reset(                           // Reset and load the directory
+     const char*       name= nullptr); // Path name (Locally qualified)
+
+void
+   reset(                           // Reset and load the directory
+     const string&     name);       // Path name (Locally qualified)
 
 //----------------------------------------------------------------------------
 // pub::data::Path::make_file | Create a File
