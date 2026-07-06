@@ -16,22 +16,18 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2026/07/06
+##       2026/07/05
 ##
 ##############################################################################
 
 ##############################################################################
 ## Local module list
 MAKEXE :=
-MAKEXE += com-rdserver
-MAKEXE += com-rdclient
-MAKEXE += FSlist
-
-MAKLIB := RdCommon.o RdPatch.o CommonThread.o
+MAKEXE += rdclient
+MAKEXE += rdserver
 
 ##############################################################################
 ## Set default target
-.PHONY: default
 ifeq "" "$(DEFAULT)"
 DEFAULT:= $(MAKEXE)
 endif
@@ -40,22 +36,19 @@ default: $(DEFAULT)
 
 ##############################################################################
 ## Controls
-include $(INCDIR)/com/Makefile.BSD
 include $(INCDIR)/pub/Makefile.BSD
 
 ##############################################################################
+## TARGET: rdclient, rdserver
+rdclient: RdClient.o IoCommon.o RdCommon.o CommonThread.o ClientThread.o
+	$(CC) -o $@ $^ $(CLIBS)
+
+rdserver: RdServer.o IoCommon.o RdCommon.o CommonThread.o ListenThread.o ServerThread.o
+	$(CC) -o $@ $^ $(CLIBS)
+
+##############################################################################
 ## TARGET: install
-.PHONY: install
-install: com-rdclient com-rdserver
-	strip $^
-	cp -idp $^ ~/bin
-
-##############################################################################
-## TARGET: RdClient
-com-rdclient: RdClient.o $(MAKLIB) ClientThread.o
-	$(CC) -o $@ $^ $(CLIBS)
-
-##############################################################################
-## TARGET: RdServer
-com-rdserver: RdServer.o $(MAKLIB) ListenThread.o ServerThread.o
-	$(CC) -o $@ $^ $(CLIBS)
+install: rdclient rdserver
+	strip rdclient rdserver
+	cp -idp rdclient ~/bin/rdclient
+	cp -idp rdserver ~/bin/rdserver

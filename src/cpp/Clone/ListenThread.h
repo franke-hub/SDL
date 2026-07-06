@@ -1,0 +1,78 @@
+//----------------------------------------------------------------------------
+//
+//       Copyright (c) 2014-2026 Frank Eskesen.
+//
+//       This file is free content, distributed under the GNU General
+//       Public License, version 3.0.
+//       (See accompanying file LICENSE.GPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
+//
+// SPDX-License-Identifier: GPL-3.0-only
+//----------------------------------------------------------------------------
+//
+// Title-
+//       ListenThread.h
+//
+// Purpose-
+//       The listener thread
+//
+// Last change date-
+//       2026/07/05
+//
+//----------------------------------------------------------------------------
+#ifndef LISTENTHREAD_H_INCLUDED
+#define LISTENTHREAD_H_INCLUDED
+
+#include "CommonThread.h"           // For CommonThread, base class
+#include "IoCommon.h"               // For I/O common objects and subroutines
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       ListenThread
+//
+// Purpose-
+//       ListenThread descriptor.
+//
+//----------------------------------------------------------------------------
+class ListenThread : public CommonThread { // ListenThread descriptor
+//----------------------------------------------------------------------------
+// ListenThread::Attributes
+//----------------------------------------------------------------------------
+protected:
+char*                  init_path;   // Initial path
+int                    port;        // Server port
+
+//----------------------------------------------------------------------------
+// ListenThread::Constructors/destructor
+//----------------------------------------------------------------------------
+public:
+   ListenThread(                    // Constructor
+     int               port);       // The connection port
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+virtual
+   ~ListenThread( void );           // Destructor
+
+//----------------------------------------------------------------------------
+// ListenThread::Accessors
+//----------------------------------------------------------------------------
+public:
+virtual int                         // TRUE iff ListenThread
+   isListenThread( void ) const     // Is this the ListenThread?
+{  return true; }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ListenThread::run()
+//
+// Purpose-
+//       Listen for new connections.
+//
+//----------------------------------------------------------------------------
+protected:
+virtual void
+   run( void );                     // Operate the Thread
+}; // class ListenThread
+#endif // LISTENTHREAD_H_INCLUDED

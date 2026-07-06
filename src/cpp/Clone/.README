@@ -1,0 +1,56 @@
+##############################################################################
+##
+##       Copyright (C) 2007-2026 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/license/mit)
+##
+## SPDX-License-Identifier: MIT
+##############################################################################
+##
+## Title-
+##       ~/src/cpp/Clone/.README
+##
+## Purpose-
+##       README information file.
+##
+## Last change date-
+##       2026/07/06
+##
+## Implementation notes-
+##       This package provides similar functionality to rsync.
+##       Prefer rsync when copying many or large files.
+##       Prefer this package for smaller update sets or when you want to be
+##       more careful about copying into or from the correct subdirectory.
+##
+##       Run rdserver from the subdirectory you want to copy from, and
+##       run rdclient in the subdirectory you want to copy into.
+##       See RdClient.cpp and RdServer.cpp for option information.
+##
+##############################################################################
+
+##############################################################################
+## STATUS:
+2025/07/05 Completed ALPHA test
+2025/07/06 Completed LINUX compile test
+
+##############################################################################
+## BUGS:
+2025/07/06 No known bugs
+
+##############################################################################
+## FIXED:
+
+##############################################################################
+## TODO:
+
+##############################################################################
+## DONE:
+2025/07/06 Completed LINUX compile/function test
+2025/07/05 Completed ALPHA test
+         Includes cross-compatability test with initial version.
+
+2025/03/07 Begin conversion to PUB library
+         NOTE: Windows compilation not supported.
+         All _OS_WIN version code removed.
