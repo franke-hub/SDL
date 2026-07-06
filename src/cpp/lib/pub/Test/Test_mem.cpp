@@ -17,7 +17,7 @@
 //       Test memory.h function.
 //
 // Last change date-
-//       2026/06/11
+//       2026/07/02
 //
 //----------------------------------------------------------------------------
 #include <memory>                   // For std::unique_ptr
@@ -58,6 +58,45 @@ static struct option   opts[]=      // The getopt_long parameter: longopts
 
 //----------------------------------------------------------------------------
 //
+// Struct-
+//       Thing
+//
+// Purpose-
+//       Test object.
+//
+//----------------------------------------------------------------------------
+struct Thing {
+static size_t          bug_count;   // Error counter
+static size_t          new_count;   // Constructor counter
+static size_t          old_count;   // Destructor counter
+
+char                   ident[32];   // Identifier
+
+   Thing( void )                    // Constructor
+{
+   ++new_count;
+   if( opt_verbose )
+     debugf("Thing::Thing()  new(%3zd) old(%3zd)\n", new_count, old_count);
+
+   strcpy(ident, "ITS_A_THING");
+}
+
+   ~Thing( void )                   // Destructor
+{
+   ++old_count;
+   if( opt_verbose )
+     debugf("Thing::~Thing() new(%3zd) old(%3zd)\n", new_count, old_count);
+
+   bug_count += VERIFY( strcmp(ident, "ITS_A_THING") == 0 );
+}
+}; // struct Thing
+
+size_t   Thing::bug_count= 0;
+size_t   Thing::new_count= 0;
+size_t   Thing::old_count= 0;
+
+//----------------------------------------------------------------------------
+//
 // Subroutine-
 //       test_case
 //
@@ -95,14 +134,24 @@ static inline int                   // Error counter
 
    static constexpr const int DIM= 256;
 
-   std::unique_ptr<uint64_t[]> buffer( new uint64_t[DIM] );
-   for(size_t i= 0; i<DIM; ++i) {
-     buffer[i]= uint64_t(0xfedcba9876543210) + i;
-   }
+   {{{{                             // Scope boundary
+     std::unique_ptr<Thing> thing( new(Thing) );
+     error_count += VERIFY( Thing::new_count == 1 );
+   }}}}
 
-   for(size_t i= 0; i<DIM; ++i) {
-     error_count += VERIFY( buffer[i] == (uint64_t(0xfedcba9876543210)+i) );
-   }
+   error_count += VERIFY( Thing::bug_count == 0 );
+   error_count += VERIFY( Thing::new_count == 1 );
+   error_count += VERIFY( Thing::old_count == 1 );
+
+   {{{{                             // Scope boundary
+     std::unique_ptr<Thing[]> thing( new(Thing[DIM-1]) );
+     error_count += VERIFY( Thing::new_count == DIM );
+     error_count += VERIFY( Thing::old_count == 1 );
+   }}}}
+
+   error_count += VERIFY( Thing::bug_count == 0 );
+   error_count += VERIFY( Thing::new_count == DIM );
+   error_count += VERIFY( Thing::old_count == DIM );
 
    return error_count;
 }

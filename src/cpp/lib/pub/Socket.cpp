@@ -329,6 +329,7 @@ std::string
        result= std::string(un->sun_path); // (Trailing '\0' always present)
        break;
      }}}}
+
      default:                       // If invalid address family
        result= utility::to_string("<sa_family_t(%d)>", su_af);
        errno= EINVAL;
@@ -482,30 +483,6 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Socket::get_addr_string
-//
-// Purpose-
-//       Convert socket address to string
-//
-//----------------------------------------------------------------------------
-std::string                         // The address name string
-   Socket::get_addr_string(         // Get address name string
-     const sockaddr_u& sock_addr)   // Socket address
-{
-   char addr_name[64];              // Socket address name string buffer
-   addr_name[0]= '\0';              // (In case of failure)
-   std::string result;              // addr_name name string
-
-   const char* cc= inet_ntop(sock_addr.su_af, &sock_addr.sa, addr_name, 64);
-   if( cc )
-     result= addr_name;
-
-   return result;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       Socket::get_option
 //
 // Purpose-
@@ -541,7 +518,7 @@ std::string                         // The peer host name or address string
    if( rc == 0 )
      result= peer_name;
    else
-     result= get_addr_string(peer_addr);
+     result= peer_addr.to_string();
 
    return result;
 }

@@ -17,7 +17,7 @@
 //       Data.h object methods
 //
 // Last change date-
-//       2026/06/25
+//       2026/07/01
 //
 // Implementation note-
 //       Derived from Fileman.cpp
@@ -738,9 +738,9 @@ void
 //
 //----------------------------------------------------------------------------
 File*                               // The new File
-   Path::make_file(                 // Create a File
+   Path::make_file(                 // Create a new  File
      const stat_t&     st,          // File information
-     const string&     file_name)   // The File name
+     const string&     file_name) const // The File name
 {  return new File(st, file_name); }
 
 //----------------------------------------------------------------------------

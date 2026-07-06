@@ -17,7 +17,7 @@
 //       File management classes, conveniently packaged in one file.
 //
 // Last change date-
-//       2026/06/25
+//       2026/07/01
 //
 // Implementation note-
 //       Derived from Fileman.h
@@ -427,12 +427,12 @@ void
      const string&     name);       // Path name (Locally qualified)
 
 //----------------------------------------------------------------------------
-// pub::data::Path::make_file | Create a File
+// pub::data::Path::make_file | Create a new File
 //----------------------------------------------------------------------------
 virtual File*                       // The created File
-   make_file(                       // Create and File
+   make_file(                       // Create a new File
      const stat_t&     st,          // File information
-     const string&     file_name);  // The File name
+     const string&     file_name) const; // The File name
 }; // struct Path
 
 //============================================================================
