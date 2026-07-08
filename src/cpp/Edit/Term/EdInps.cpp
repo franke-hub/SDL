@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2024-2025 Frank Eskesen.
+//       Copyright (C) 2024-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Editor: Implement EdInps.h: Keyboard and mouse handlers.
 //
 // Last change date-
-//       2025/09/15
+//       2026/07/08
 //
 //----------------------------------------------------------------------------
 #define _XOPEN_SOURCE_EXTENDED 1
@@ -629,7 +629,7 @@ void
        return;
      }
 
-     if( editor::data_protected() )
+     if( view == data && editor::file_protected() )
        return;
 
      if( key_state & KS_INS ) {     // If Insert state

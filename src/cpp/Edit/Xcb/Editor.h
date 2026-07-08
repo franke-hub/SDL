@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2024 Frank Eskesen.
+//       Copyright (C) 2020-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2024/04/22
+//       2026/07/08
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
@@ -207,18 +207,6 @@ const char*                         // (Always nullptr)
 //----------------------------------------------------------------------------
 //
 // Method-
-//       editor::data_protected
-//
-// Purpose-
-//       Check for protected file and data view
-//
-//----------------------------------------------------------------------------
-int                          // Return code, TRUE if error message
-   data_protected( void );   // Error if protected file and data view
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       editor::do_change
 //
 // Purpose-
@@ -353,6 +341,18 @@ void
    file_loader(                     // Load files, adding them to the file list
      const char*       name= nullptr, // The file name (wildards allowed)
      int               protect= false); // Protect file?
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::file_protected
+//
+// Purpose-
+//       Check for protected file and data view
+//
+//----------------------------------------------------------------------------
+int                          // Return code, TRUE if error message
+   file_protected( void );   // Error if protected file and data view
 
 //----------------------------------------------------------------------------
 //

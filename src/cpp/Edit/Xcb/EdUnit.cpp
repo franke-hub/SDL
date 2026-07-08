@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2024-2025 Frank Eskesen.
+//       Copyright (C) 2024-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Editor: Input/output interface; Handle editor operations.
 //
 // Last change date-
-//       2025/08/16
+//       2026/07/08
 //
 //----------------------------------------------------------------------------
 #include <cstdio>                   // For sprintf
@@ -41,6 +41,7 @@
 #include "EdUnit.h"                 // For EdUnit - implemented
 
 using namespace config;             // For config::opt_*, ...
+using namespace editor;             // For convenience
 using namespace pub::debugging;     // For debugging
 using pub::Trace;                   // For pub::Trace
 
@@ -73,8 +74,7 @@ enum // Compilation controls
 //----------------------------------------------------------------------------
 void
    EdUnit::op_debug( void )         // Enter/exit debug mode
-{  using namespace editor;
-
+{
    if( diagnostic ) {
      diagnostic= false;
      Config::errorf("Diagnostic mode exit\n");
@@ -88,40 +88,28 @@ void
 
 void
    EdUnit::op_copy_cursor_to_hist( void ) // Copy cursor line to history line
-{  using namespace editor;
-
+{
    // (This sequence DOES NOT change the cursor line)
-   Active& active= data->active; // The current command line
+   Active& active= data->active;    // The current command line
    const char* command= active.truncate(); // Truncate it
-   hist->activate(command); // Activate the history view
+   hist->activate(command);         // Activate the history view
 }
 
 void
    EdUnit::op_copy_file_name_to_hist( void ) // Copy file name to history line
-{  using namespace editor;
-
-   hist->activate(file->name.c_str());
-}
+{  hist->activate(file->name.c_str()); }
 
 void
    EdUnit::op_copy_hist_to_file( void ) // Insert history line into file
-{  using namespace editor;
-
-   // NOT TESTED
-   put_message( do_insert(hist->get_buffer()) );
-}
+{  put_message( do_insert(hist->get_buffer()) ); } // NOT TESTED
 
 void
    EdUnit::op_exit_safely( void )   // Exit if no files changed
-{  using namespace editor;
-
-   put_message( do_quit() );
-}
+{  put_message( do_quit() ); }
 
 void
    EdUnit::op_goto_changed( void )  // Activate changed file
-{  using namespace editor;
-
+{
    if( key_state & KS_NFC ) {       // If NFC message active
      draw_history();
      key_state &= ~(KS_NFC);
@@ -136,8 +124,7 @@ void
 
 void
    EdUnit::op_goto_next_file( void ) // Activate next file
-{  using namespace editor;
-
+{
    data->commit();
    EdFile* next= file->get_next();
    if( next == nullptr )
@@ -148,8 +135,7 @@ void
 
 void
    EdUnit::op_goto_prev_file( void ) // Activate  prior file
-{  using namespace editor;
-
+{
    data->commit();
    EdFile* prev= file->get_prev();
    if( prev == nullptr )
@@ -160,36 +146,23 @@ void
 
 void
    EdUnit::op_help( void )          // Display help information
-{  using namespace editor;
-
-   command_help();
-}
+{  command_help(); }
 
 void
    EdUnit::op_insert_line( void )   // Insert a new, empty line
-{  using namespace editor;
-
-   put_message( do_insert() );      // Insert line after cursor
-}
+{  put_message( do_insert() ); }    // Insert line after cursor
 
 void
    EdUnit::op_join_line( void )     // Join cursor line with next line
-{  using namespace editor;
-
-   put_message( do_join() );        // Join current/next lines
-}
+{  put_message( do_join() ); }      // Join current/next lines
 
 void
    EdUnit::op_key_arrow_down( void ) // Handle down arrow key
-{  using namespace editor;
-
-   view->move_cursor_V(1);
-}
+{  view->move_cursor_V(1); }
 
 void
    EdUnit::op_key_arrow_left( void ) // Handle left arrow key
-{  using namespace editor;
-
+{
    size_t column= view->get_column(); // The cursor column
    if( column > 0 )
      move_cursor_H(column - 1);
@@ -197,23 +170,16 @@ void
 
 void
    EdUnit::op_key_arrow_right( void ) // Handle right arrow key
-{  using namespace editor;
-
-   move_cursor_H(view->get_column() + 1);
-}
+{  move_cursor_H(view->get_column() + 1); }
 
 void
    EdUnit::op_key_arrow_up( void )  // Handle up arrow key
-{  using namespace editor;
-
-   view->move_cursor_V(-1);
-}
+{  view->move_cursor_V(-1); }
 
 void
    EdUnit::op_key_backspace( void ) // Handle backspace key
-{  using namespace editor;
-
-   if( data_protected() )
+{
+   if( view == data && file_protected() )
      return;
 
    size_t column= view->get_column(); // The cursor column
@@ -227,16 +193,12 @@ void
 
 void
    EdUnit::op_key_dead( void )      // Handle dead key
-{  using namespace editor;
-
-   put_message("Invalid key");
-}
+{  put_message("Invalid key"); }
 
 void
    EdUnit::op_key_delete( void )    // Handle delete key
-{  using namespace editor;
-
-   if( data_protected() )
+{
+   if( view == data && file_protected() )
      return;
 
    view->active.remove_char(view->get_column());
@@ -247,8 +209,7 @@ void
 
 void
    EdUnit::op_key_end( void )       // Handle end key
-{  using namespace editor;
-
+{
    // Handle end key. Processing depends on EdOpts::has_unicode_combining().
    const char* buffer= view->active.truncate();
    utf8_decoder decoder(buffer);
@@ -261,16 +222,14 @@ void
 
 void
    EdUnit::op_key_enter( void )     // Handle enter key
-{  using namespace editor;
-
+{
    move_cursor_H(0);
    view->enter_key();
 }
 
 void
    EdUnit::op_key_home( void )      // Handle home key
-{  using namespace editor;
-
+{
    hide_cursor();
    view->col= 0;
    if( view->col_zero ) {
@@ -285,52 +244,40 @@ void
 
 void
    EdUnit::op_key_idle( void )      // Handle NOP key
-{  using namespace editor;
-
-}
+{  }
 
 void
    EdUnit::op_key_insert( void )    // Handle insert key
-{  using namespace editor;
-
+{
    key_state ^= KS_INS;             // Invert the insert state
    draw_top();
 }
 
 void
    EdUnit::op_key_page_down( void ) // Handle page down key
-{  using namespace editor;
-
+{
    int rows= row_size - (USER_TOP + USER_BOT + 1);
    move_screen_V(+rows);
 }
 
 void
    EdUnit::op_key_page_up( void )   // Handle page up key
-{  using namespace editor;
-
+{
    int rows= row_size - (USER_TOP + USER_BOT + 1);
    move_screen_V(-rows);
 }
 
 void
    EdUnit::op_key_tab_forward( void ) // Handle forward tab operation
-{  using namespace editor;
-
-   move_cursor_H(tab_forward(view->get_column()));
-}
+{  move_cursor_H(tab_forward(view->get_column())); }
 
 void
    EdUnit::op_key_tab_reverse( void ) // Handle reverse tab operation
-{  using namespace editor;
-
-   move_cursor_H(tab_reverse(view->get_column()));
-}
+{  move_cursor_H(tab_reverse(view->get_column())); }
 
 void
    EdUnit::op_line_to_bot( void )   // Move cursor line to end of screen
-{  using namespace editor;
-
+{
    while( data->row < (row_size - 1) ) {
      if( head->get_prev() == nullptr )
        break;
@@ -348,8 +295,7 @@ void
 
 void
    EdUnit::op_line_to_top( void )   // Move cursor line to top of screen
-{  using namespace editor;
-
+{
    head= data->cursor;
    data->row_zero += (data->row - USER_TOP);
    data->row= USER_TOP;
@@ -358,16 +304,14 @@ void
 
 void
    EdUnit::op_mark_block( void )    // Create/modify a block mark
-{  using namespace editor;
-
+{
    put_message(mark->mark(file, data->cursor, data->get_column()));
    draw();
 }
 
 void
    EdUnit::op_mark_copy( void )     // Copy marked lines
-{  using namespace editor;
-
+{
    const char* error= mark->verify_copy(data->cursor);
    if( error ) {
      put_message(error);
@@ -381,40 +325,35 @@ void
 
 void
    EdUnit::op_mark_cut( void )      // Cut the mark, creating a stash
-{  using namespace editor;
-
+{
    put_message( mark->cut() );
    draw();
 }
 
 void
    EdUnit::op_mark_delete( void )   // Delete marked lines
-{  using namespace editor;
-
+{
    put_message( mark->cut() );
    draw();
 }
 
 void
    EdUnit::op_mark_format( void )   // Format a mark using word tokens
-{  using namespace editor;
-
+{
    data->commit();
-   put_message( mark->format() ); // Format the paragraph
+   put_message( mark->format() );   // Format the paragraph
 }
 
 void
    EdUnit::op_mark_line( void )     // Create/modify a line mark
-{  using namespace editor;
-
+{
    put_message( mark->mark(file, data->cursor) );
    draw();
 }
 
 void
    EdUnit::op_mark_move( void )     // Move marked lines
-{  using namespace editor;
-
+{
    const char* error= mark->verify_move(data->cursor);
    if( error ) {
      put_message(error);
@@ -428,8 +367,7 @@ void
 
 void
    EdUnit::op_mark_paste( void )    // Paste the current stash
-{  using namespace editor;
-
+{
    data->commit();
    const char* error= mark->paste(file, data->cursor, data->get_column());
    if( error )
@@ -440,15 +378,11 @@ void
 
 void
    EdUnit::op_mark_stash( void )    // Stash the current mark
-{  using namespace editor;
-
-   put_message( mark->copy() );
-}
+{  put_message( mark->copy() ); }
 
 void
    EdUnit::op_mark_undo( void )     // Undo the mark
-{  using namespace editor;
-
+{
    EdFile* mark_file= mark->mark_file;
    mark->undo();
    if( file == mark_file )
@@ -459,51 +393,34 @@ void
 
 void
    EdUnit::op_quit( void )          // Unconditionally quit current file
-{  using namespace editor;
-
-   remove_file();
-}
+{  remove_file(); }
 
 void
    EdUnit::op_redo( void )          // Redo the previous (file) undo
-{  using namespace editor;
-
+{
    data->commit();
    file->redo();
 }
 
 void
    EdUnit::op_repeat_change( void ) // Repeat the prior change operation
-{  using namespace editor;
-
-   put_message( do_change() );
-}
+{  put_message( do_change() ); }
 
 void
    EdUnit::op_repeat_locate( void ) // Repeat the prior locate operation
-{  using namespace editor;
-
-   put_message( do_locate() );
-}
+{  put_message( do_locate() ); }
 
 void
    EdUnit::op_safe_exit( void )     // Exit (editor) if no files changed
-{  using namespace editor;
-
-   put_message( do_quit() );
-}
+{  put_message( do_quit() ); }
 
 void
    EdUnit::op_safe_quit( void )     // Quit (file) if no files changed
-{  using namespace editor;
-
-   put_message( do_quit() );
-}
+{  put_message( do_quit() ); }
 
 void
    EdUnit::op_save( void )          // Save the current file
-{  using namespace editor;
-
+{
    data->commit();
    const char* error= write_file(nullptr);
    if( error )
@@ -514,22 +431,15 @@ void
 
 void
    EdUnit::op_split_line( void )    // Split the cursor line into two lines
-{  using namespace editor;
-
-   put_message( do_split() );       // Split the current line
-}
+{  put_message( do_split() ); }     // Split the current line
 
 void
    EdUnit::op_swap_view( void )     // Handle swap view
-{  using namespace editor;
-
-   do_view();
-}
+{  do_view(); }
 
 void
    EdUnit::op_undo( void )          // Undo the previous (file) redo
-{  using namespace editor;
-
+{
    if( data->active.undo() ) {
      data->draw_active();
      draw_top();
@@ -549,8 +459,7 @@ void
 //----------------------------------------------------------------------------
 void
    EdUnit::fetch_screen_state( void ) // Load the current screen state
-{  using namespace editor;
-
+{
    this->head= this->tail= file->top_line;
    data->col_zero= file->col_zero;
    data->row_zero= file->row_zero;
@@ -573,8 +482,7 @@ void
 //----------------------------------------------------------------------------
 void
    EdUnit::store_screen_state( void ) const // Save the current screen state
-{  using namespace editor;
-
+{
    data->commit();
 
    file->csr_line= data->cursor;
@@ -596,8 +504,7 @@ void
 //----------------------------------------------------------------------------
 void
    EdUnit::synch_cursor( void )     // Insure the cursor line is on-screen
-{  using namespace editor;
-
+{
    if( data->row < USER_TOP )       // (File initial row == 0)
      data->row= USER_TOP;
 

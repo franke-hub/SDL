@@ -16,7 +16,7 @@
 ##       EDITOR README information file. (XCB version)
 ##
 ## Last change date-
-##       2026/07/04
+##       2026/07/08
 ##
 ## Implementation notes-
 ##       See ".USAGE.md" for usage and implementation information.
@@ -26,25 +26,11 @@
 
 ##############################################################################
 ## STATUS:
-2026/07/04 Operational, but with open problems.
+2026/07/08 Operational
          In production. Ongoing documentation update.
 
 ##############################################################################
 ## OPEN:
-2026/07/04 Apparent failure to detect protected files. In Clone
-         From within editor:
-             "v ClientThread.*" command
-             F6 (Causes ClientThread.h to *appear* changed)
-             but then:
-             F11/F6 gets expected Read/only notification
-
-2026/07/04 LINUX: Initial file loading gets duplicate copies.
-         There are separate copies of files.
-         Duplicate name check does not detect the duplicate name.
-
-2025/04/16 xcbedit/xtmedit Don't handle some UTF characters correctly.
-         We rely on XCB or NCURSES to handle the characters but some of them
-         aren't handled properly.
 
 ##############################################################################
 ## TODO:
@@ -62,8 +48,22 @@
 
          It works correctly when the cursor is on the bottom line.
 
+2025/04/16 xcbedit/xtmedit Don't handle some UTF characters correctly.
+         We rely on XCB or NCURSES to handle the characters but some of them
+         aren't handled properly.
+
 ##############################################################################
 ## CHANGE LOG:
+2026/07/08 Disallow Ctrl-S save for unchanged files.
+         (Can be overridden using "save file-name" command.)
+
+2026/07/04 Failure to properly detect protected files.
+         Erroneously allowed F6 (repeat change) from history line
+
+2026/07/04 LINUX: Initial file loading gets duplicate copies.
+         Improper expectation that a temporary Name string would be consistent
+         (It was consistent, but the GCC implementation changed.)
+
 2025/08/16 Write appears to fails if final '\n' is missing.
          No-delimiter line was not handled correctly.
 

@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2026/06/25
+//       2026/07/08
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -1061,7 +1061,7 @@ Now compiles an alternate version if __GNUC__ == 16
   - Includes open, close, read, write and some utility functions
   - (Expected to be useful in rewrite of ~/src/cpp/Clone.)
 
-### <a id="last-change">2026/05/30 maint</a>
+### 2026/05/30 maint
 - More changes expected to be useful in ~/src/cpp/Clone rewrite
 - Updated Data.h to provide an easier way to override functions
   - ~/src/cpp/inc/pub/Data.h
@@ -1074,7 +1074,7 @@ Now compiles an alternate version if __GNUC__ == 16
   - ~/src/cpp/lib/pub/Ioda.cpp: Implements the read buffer method
   - ~/src/cpp/lib/pub/Test/TestIoda.cpp: Tests the read buffer method
 
-### <a id="last-change">2026/06/25 maint</a>
+### 2026/06/25 maint
 - Coding changes allowing string to be used instead of std::string
   - IO.h: typedef std::string string; // Applies to all of namespace io
   - Data.h: All classes and structs use typedef std::string string;
@@ -1093,3 +1093,24 @@ Now compiles an alternate version if __GNUC__ == 16
 - ~/src/cpp/Scanner/Scanner.cpp
   - Added function to correct "//" column position. This currenty doesn't
 handle enough situations to make it usable, so it's disabled.
+
+### 2026/07/06 maint
+- Open xcbedit and xtmedit problems
+  - Opening multiple files on Linux creates duplicate independent editor files
+  - Using F6 (repeat change) after using "v" to open a protected file causes
+the file to appear changed. (The history/command background color changes)
+- Created PUB library version of ~/src/cpp/Clone rdclient/rdserver
+  - While tested, this is an ALPHA level release
+  - Compatible with COM library version
+    - COM library version moved from ~/src/cpp/Clone to ~/src/cpp/com-Clone
+    - COM library version creates com-rdclient/com-rdserver executables
+- Minor PUB library changes:
+  - ~/src/cpp/inc/pub/Data.h: Added const attribute to function
+  - ~/src/cpp/inc/pub/Socket.h: Removed get_addr_string function
+    - Use get_host_addr().to_string() or get_peer_addr().to_string() instead
+
+### <a id="last-change">2026/07/08 maint</a>
+- Updated ~/src/cpp/Edit/Xcb and ~/src/cpp/Edit/Term
+  - Fixed open problems
+  - Added feature: File save does not save an unchanged file.
+    - However: "save file-name" saves (the same) file even if unchanged.
