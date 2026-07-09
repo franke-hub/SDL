@@ -17,7 +17,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2026/07/08
+//       2026/07/09
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -948,7 +948,7 @@ void
          found= true;
          bool is_dup= false;
          for(EdFile* dup= file_list.get_head(); dup; dup= dup->get_next()) {
-           if( dup->name == wild.get_file_name() ) { // If duplicate
+           if( dup->name == wild.get_full_name() ) { // If duplicate
              last= dup;
              is_dup= true;
              break;

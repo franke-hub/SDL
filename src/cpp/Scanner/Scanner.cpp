@@ -17,7 +17,7 @@
 //       Source file checker.
 //
 // Last change date-
-//       2026/06/24
+//       2026/07/09
 //
 // Usage-
 //       Scanner {path} options
@@ -2467,7 +2467,7 @@ static void
        auto_correct_prefix(data, copy, prefix); // Correct prefix inconsistency
 
        // Update match count
-       if( opt_verbose > 2 )
+       if( opt_verbose > 1 )
          debugf("[%s]: '%s'\n", table[i].name, full);
 
        ++count[i];

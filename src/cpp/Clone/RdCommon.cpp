@@ -17,7 +17,7 @@
 //       Common routines used by RdClient and RdServer.
 //
 // Last change date-
-//       2026/07/05
+//       2026/07/09
 //
 // Environment variables-
 //       LOG_HCDM=n    Hard Core Debug Mode verbosity
@@ -447,7 +447,7 @@ static void
    else if( id == SIGUSR1 ) text= "SIGUSR1";
    else if( id == SIGUSR2 ) text= "SIGUSR2";
 
-   errorf("Signal(%d) %s\n", id, text);
+   fprintf(stderr, "Signal(%d) %s\n", id, text);
    switch(id) {                     // Handle the signal
      case SIGINT:                   // Handle Ctrl-C
        rdterm();                    // (Terminate)
