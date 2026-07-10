@@ -22,7 +22,6 @@
 //----------------------------------------------------------------------------
 #include <memory>                   // For std:unique_ptr, make_unique
 #include <string>                   // For std::string
-#include <cstring>                  // For strcmp, ...
 
 #include <stdlib.h>                 // For getenv
 #include <sys/stat.h>               // For struct stat
@@ -234,7 +233,6 @@ static bool
    // Load user-supplied OPTIONAL dictionaries
    if( user_dict ) {
      for(size_t i= 0; user_dict[i]; ++i) {
-
        Name name(user_dict[i]);
        const char* full= name.get_full_name().c_str();
        if( stat(full, &info) == 0 )
