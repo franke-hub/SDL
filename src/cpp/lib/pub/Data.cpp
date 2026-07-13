@@ -17,7 +17,7 @@
 //       Data.h object methods
 //
 // Last change date-
-//       2026/07/01
+//       2026/07/13
 //
 // Implementation note-
 //       Derived from Fileman.cpp
@@ -246,7 +246,7 @@ int                                 // Return code, 0 OK
    string      fqname= full();      // The fully qualified name
    int rc= stat(s2c(fqname), &st); // Get file information
    if( rc != 0 ) {                  // If failure
-     errorp("%4d: Data: stat(%s) failure: %d", __LINE__, s2c(fqname), rc);
+     // errorp("%4d: Data: stat(%s) failure: %d", __LINE__, s2c(fqname), rc);
      return rc;
    }
 
