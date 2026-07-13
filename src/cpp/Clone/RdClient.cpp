@@ -17,7 +17,7 @@
 //       The (multi-threaded) client. EXPERIMENTAL PARAMETER UPDATE
 //
 // Last change date-
-//       2026/07/05
+//       2026/07/12
 //
 // Usage-
 //       RdClient <-options> <server_host<:server_port> <client_path>>
@@ -31,6 +31,9 @@
 //          Remove client target if it does not exist locally.
 //          (This deletes targets which have been removed from the
 //          server source tree.)
+//
+//       -K (keep)
+//          Don't make any changes. (Dry run)
 //
 //       -O (older)
 //          Update client target even if it is older than the source.
@@ -105,6 +108,7 @@ static void
                   "\n"
                   "  -E (Erase)\tRemoves client files that do not "
                         "exist in the server.\n"
+                  "  -K (Keep)\tDon't make any changes (Dry run)\n"
                   "  -O (Older)\tAllow older source file updates\n"
                   "  -Q (Quiet)\tSuppresses informative messages.\n"
                   "  -U (Unsafe)\tSkip current directory name verification\n"
@@ -145,6 +149,11 @@ static void
            case 'E':
            case 'e':
              opt_erase= true;
+             break;
+
+           case 'K':
+           case 'k':
+             opt_keep= true;
              break;
 
            case 'O':
@@ -241,7 +250,8 @@ static void
 
    rc= socket->connect(nps);
    if( rc != 0 ) {
-     debugf("%d= connect(%s) %d:%s\n", rc, s2c(nps), errno, strerror(errno));
+     fprintf(stderr, "%d= connect(%s) %d:%s\n", rc, s2c(nps)
+                   , errno, strerror(errno));
      exit(EXIT_FAILURE);
    }
 
@@ -279,15 +289,16 @@ extern int                          // Return code
    }
 
    if( opt_hcdm || opt_verbose ) {
-     debugf("--hcdm: %s\n",    opt_hcdm ? "true" : "false");
-     debugf("--verbose: %d\n", opt_verbose);
+     printf("--hcdm: %s\n",    opt_hcdm ? "true" : "false");
+     printf("--verbose: %d\n", opt_verbose);
 
-     debugf("\n");
-     debugf("-E: %s\n", opt_erase  ? "true" : "false");
-     debugf("-O: %s\n", opt_older  ? "true" : "false");
-     debugf("-Q: %s\n", opt_quiet  ? "true" : "false");
-     debugf("-U: %s\n", opt_unsafe ? "true" : "false");
-     debugf("-V: %s\n", opt_verify ? "true" : "false");
+     printf("\n");
+     printf("-E: %s\n", opt_erase  ? "true" : "false");
+     printf("-K: %s\n", opt_keep   ? "true" : "false");
+     printf("-O: %s\n", opt_older  ? "true" : "false");
+     printf("-Q: %s\n", opt_quiet  ? "true" : "false");
+     printf("-U: %s\n", opt_unsafe ? "true" : "false");
+     printf("-V: %s\n", opt_verify ? "true" : "false");
    }
 
    try {
@@ -303,6 +314,6 @@ extern int                          // Return code
    //-------------------------------------------------------------------------
    rdterm();
 
-   if( HCDM ) debugf("%4d RdClient::main() COMPLETE\n", __LINE__);
+   if( HCDM ) printf("%4d RdClient::main() COMPLETE\n", __LINE__);
    return(0);
 }

@@ -17,7 +17,7 @@
 //       Base object for ListenThread, ClientThread, and ServerThread.
 //
 // Last change date-
-//       2026/07/05
+//       2026/07/10
 //
 //----------------------------------------------------------------------------
 #ifndef COMMONTHREAD_H_INCLUDED
@@ -69,7 +69,7 @@ enum                                // Compile-time control: RdClient/RdServer
 //----------------------------------------------------------------------------
 // CommonThread::Attributes
 //----------------------------------------------------------------------------
-int                    fsm= FSM_RESET;  // Finite State Machine
+int                    fsm= FSM_RESET;   // Finite State Machine
 int                    mode= MODE_RESET; // Buffer mode
 
 char*                  buffer= nullptr; // Our working input/output bufferInput Ioda
@@ -138,9 +138,6 @@ int                                 // Result: <0, =0, >0
 // Purpose-
 //       Remove path from the Path_stack
 //
-// Implementation notes-
-//       TODO: Decide whether this method should delete all files
-//
 //----------------------------------------------------------------------------
 RdPath*                             // The removed Path
    pop( void )                      // Remove newest RdPath from the Path_stack
@@ -201,8 +198,6 @@ void
 //       Read from Socket
 //
 //----------------------------------------------------------------------------
-void io_debug(int line, const char* info= ""); // I/O Debugging
-
 void
    rd_buff(size_t size);            // Fill the read buffer (to minimum length)
 

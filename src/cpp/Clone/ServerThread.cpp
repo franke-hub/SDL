@@ -195,7 +195,7 @@ void
            // Verify that we have permission to read into this directory
            if( (file.desc.file_info&INFO_RUSR) == 0
                || (file.desc.file_info&INFO_XUSR) == 0 ) {
-             say_no();                // Reject, can't use directory
+             say_no();              // Reject, can't use directory
              break;
            }
            wr_data(&qresp, 1);      // Command accepted
@@ -325,7 +325,7 @@ void
    //-------------------------------------------------------------------------
    // Close the file
    //-------------------------------------------------------------------------
-   if( close(fd) != 0 )              // Close data file failed
+   if( close(fd) != 0 )             // Close data file failed
      throwf("%4d Server: close(%s) failure", __LINE__
            , s2c(file->get_file_name()));
 }

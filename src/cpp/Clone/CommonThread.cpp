@@ -17,10 +17,7 @@
 //       Implement CommonThread object methods
 //
 // Last change date-
-//       2026/07/05
-//
-// TODO-
-//       _ Check comment alignment
+//       2026/07/10
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -39,8 +36,6 @@ using std::bad_alloc;               // For convenience
 enum                                // Generic enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
-
-,  IODM= true                       // Activate io_debug?
 }; // Generic enum
 
 //----------------------------------------------------------------------------
@@ -189,7 +184,7 @@ void
 {
    memset(&lVersionInfo, 0, sizeof(lVersionInfo));
    strcpy(lVersionInfo.version, RD_VERSION);
-   #if defined(_OS_CYGWIN)           // For Cygwin
+   #if defined(_OS_CYGWIN)          // For Cygwin
      lVersionInfo.f[0] |= VersionInfo::VIF0_ABSD; // BSD attributes
      lVersionInfo.f[1] |= VersionInfo::VIF1_OCYG; // CYG operating system
 
@@ -205,30 +200,6 @@ void
    // Operational controls
    if( opt_verify )
      lVersionInfo.f[7] |= VersionInfo::VIF7_KSUM; // Verify checksum
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonThread::io_debug
-//
-// Purpose-
-//       I/O debugging
-//
-//----------------------------------------------------------------------------
-void
-   CommonThread::io_debug(          // I/O debugging
-     int               line,        // Caller's line number
-     const char*       info)        // Caller information
-{  if( !IODM )                      // If disabled
-     return;
-
-   debugf("%4d io_debug(%s)\n", line, info);
-
-   debugf("mode(%s) buffer(%p) used(%zd),size(%zd)\n"
-         , mode_name(mode), buffer, buff_used, buff_size);
-   if( buff_used < buff_size )
-     dump(buffer + buff_used, buff_size - buff_used);
 }
 
 //----------------------------------------------------------------------------
@@ -384,7 +355,7 @@ string                              // The resultant string
 
    rd_buff(sizeof(name_size));      // Prepare the buffer
    rd_buff(name_size);              // Read the name size
-   if( name_size > NAME_MAX ) {     // TODO: REMOVE DIAGNOSTIC
+   if( name_size > NAME_MAX ) {
      debugf("Name too large(%d > %d)\n", name_size, NAME_MAX);
      SNO(__LINE__);
    }
@@ -534,8 +505,11 @@ size_t                              // Number of bytes received
    }
 
    if( L < 1 ) {
-     if( L == 0 || errno == ECONNABORTED )
-       throwf("%4d Connection aborted", __LINE__);
+     if( L == 0 || errno == ECONNABORTED ) {
+       fprintf(stderr, "Connection aborted (recv)\n");
+       rdterm();
+       exit(1);
+     }
      throwf("%4d ERROR: %'zd= rd_recv %d:%s", __LINE__, L
            , errno, strerror(errno));
    }
@@ -831,8 +805,11 @@ size_t                              // Number of bytes sent
    }
 
    if( L < 1 ) {
-     if( L == 0 || errno == ECONNABORTED )
-       throwf("%4d Connection aborted", __LINE__);
+     if( L == 0 || errno == ECONNABORTED ) {
+       fprintf(stderr, "Connection aborted (send)\n");
+       rdterm();
+       exit(1);
+     }
      throwf("%4d ERROR: %'zd= wr_send %d:%s", __LINE__, L
            , errno, strerror(errno));
    }

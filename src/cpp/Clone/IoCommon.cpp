@@ -161,7 +161,7 @@ static void
    msglog("Backout(%s)\n", s2c(full_name));
 
    chmod(s2c(full_name), file->get_chmod()|S_IWUSR);
-   if( rmfile(full_name) != 0 ) // Remove file failed
+   if( rmfile(full_name) != 0 )     // Remove file failed
      msgioerr("%4d Backout: remove(%s) failure", __LINE__, s2c(full_name));
    else
      msgout("  %-10s %c %-32s %s\n"
@@ -349,18 +349,12 @@ void
 
 //----------------------------------------------------------------------------
 // RdFile::compare_info | ACCESSOR: Compare desc.file_time, desc.file_info
-bool                                // TRUE iff !0
+bool                                // TRUE iff file_time or file_info differs
    RdFile::compare_info(            // Compare (this Client's) desc.file_info
      const RdFile*     that) const  // To this Server's desc.file_info
 {
-   // For directories, the time attribute is meaningful only if both the local
-   // and remote are running pure BSD
-   if( this->desc.file_time != that->desc.file_time ) { // If file times differ
-     if( this->get_file_type() != FT_PATH )
-       return true;
-     if( get_owner()->getGVersionInfo().f[1] == VersionInfo::VIF1_OBSD )
-       return true;
-   }
+   if( this->desc.file_time != that->desc.file_time ) // If file times differ
+     return true;
 
    return this->desc.file_info != that->desc.file_info;
 }
@@ -452,7 +446,7 @@ const CommonThread*                 // The associated CommonThread
 //----------------------------------------------------------------------------
 // RdFile::set_attr | ACCESSOR: Set file attributes (from HostDesc)
 void
-   RdFile::set_attr( void )          // Set permissions and change time
+   RdFile::set_attr( void )         // Set permissions and change time
 {
    string full_name= get_full_name(); // Get the file name
    const char* full_char= s2c(full_name);
@@ -476,7 +470,7 @@ void
    Host_info_t  mout= 0;            // The output mode
 
    // Determine type of file
-          if( S_ISREG(minp) ) {     // If regular file
+   if( S_ISREG(minp) ) {            // If regular file
      mout= INFO_ISFILE;
    } else if( S_ISLNK(minp) ) {     // If link
      mout= INFO_ISLINK;

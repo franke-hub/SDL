@@ -17,7 +17,7 @@
 //       Implement ClientThread object methods
 //
 // Last change date-
-//       2026/07/05
+//       2026/07/12
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -315,11 +315,16 @@ int                                 // Return code, 0 expected
      return(RC_ERROR);
    }
 
+   if( opt_keep ) {
+     print_action("skipped", client, "[Install disallowed: -K]");
+     return(RC_ERROR);
+   }
+
    //-------------------------------------------------------------------------
    // Install the item
    //-------------------------------------------------------------------------
    int result= RC_NORM;             // Default, successful
-   switch(get_file_type(server)) { // Process by item type
+   switch(get_file_type(server)) {  // Process by item type
      case FT_PATH:                  // If it's a directory
        //---------------------------------------------------------------------
        // Install a directory
@@ -367,7 +372,7 @@ int                                 // Return code, 0 expected
        //---------------------------------------------------------------------
        fd_t fd= open(s2c(full_name), O_WRONLY|O_BINARY|O_TRUNC|O_CREAT
                     , S_IRUSR|S_IWUSR);
-       if( fd < 0 ) {             // Open failed
+       if( fd < 0 ) {               // Open failed
          msgioerr("%4d ClientThread: open(%s) failure", __LINE__
                  , s2c(full_name));
          print_action("aborted", client, "[Open failure]");
@@ -412,7 +417,7 @@ int                                 // Return code, 0 expected
        //---------------------------------------------------------------------
        client->desc.file_info= server->desc.file_info;
        int rc= mkfifo(full_name, client->get_chmod());
-       if( rc != 0 ) {            // Failed to make the pipe
+       if( rc != 0 ) {              // Failed to make the pipe
          msgioerr("%4d ClientThread: mkfifo(%s) failure", __LINE__
                  , s2c(full_name));
          result= RC_ERROR;
@@ -477,6 +482,11 @@ int                                 // Return code (0 expected)
 
    if( BRINGUP_MODE ) {
      print_action("kept", client, "[BRINGUP (won't remove)]");
+     return(RC_ERROR);
+   }
+
+   if( opt_keep ) {
+     print_action("kept", client, "[Remove disallowed: -K]");
      return(RC_ERROR);
    }
 
@@ -563,10 +573,15 @@ void
      return;
    }
 
+   if( opt_keep ) {
+     print_action("kept", client, "[Remove path disallowed: -K]");
+     return;
+   }
+
    //-------------------------------------------------------------------------
    // Switch into new subdirectory
    //-------------------------------------------------------------------------
-   if( (client->desc.file_info&INFO_RUSR) == 0  // Don't have permission to read
+   if( (client->desc.file_info&INFO_RUSR) == 0 // Don't have permission to read
        || (client->desc.file_info&INFO_WUSR) == 0 // or can't write in it
        || (client->desc.file_info&INFO_XUSR) == 0 ) { // or can't change to it
      int rc= chmod(full_name, client->get_chmod()|(S_IRUSR|S_IWUSR|S_IXUSR));
@@ -686,6 +701,17 @@ void
      return;
    }
 
+   if( client->desc.file_size == server->desc.file_size
+       && client->desc.file_time == server->desc.file_time
+       && client->desc.file_info == server->desc.file_info
+       && client->desc.file_ksum == server->desc.file_ksum )
+     return;                        // Attributes unchanged
+
+   if( opt_keep ) {
+     print_action("skipped", client, "[Update attr disallowed: -K]");
+     return;
+   }
+
    //-------------------------------------------------------------------------
    // We don't update attributes for links!
    //-------------------------------------------------------------------------
@@ -729,6 +755,11 @@ int                                 // Return code
 
    if( BRINGUP_MODE ) {
      print_action("kept", client, "[BRINGUP (won't update)]");
+     return(RC_ERROR);
+   }
+
+   if( opt_keep ) {
+     print_action("skipped", client, "[Update disallowed: -K]");
      return(RC_ERROR);
    }
 
@@ -827,15 +858,15 @@ void
    for(;;) {                        // Process this directory
      // Diagnostics
      msglog("\n");
-     if( server_file == nullptr )
-       msglog("SERVER: nullptr\n");
-     else
-       server_file->display("SERVER:");
-
      if( client_file == nullptr )
        msglog("CLIENT: nullptr\n");
      else
        client_file->display("CLIENT:");
+
+     if( server_file == nullptr )
+       msglog("SERVER: nullptr\n");
+     else
+       server_file->display("SERVER:");
 
      //-----------------------------------------------------------------------
      // See if directory processing is complete.
@@ -991,7 +1022,7 @@ void
          client_file->desc.file_info &= ~(INFO_ISTYPE); // Prevent subdirectory scan
        } else {                     // If erasure allowed
          if( get_file_type(client_file) == FT_PATH ) // If a path
-           remove_path(client_file);     // Remove the subtree
+           remove_path(client_file); // Remove the subtree
 
          int rc= remove_item(client_file); // Remove the item itself
          if( rc == RC_NORM )
@@ -1027,7 +1058,8 @@ void
          if( client_file->compare_info(server_file) != 0 ) {
            print_path(once, full_name);
            update_attr(client_file, server_file);
-           print_action("attributes", client_file, "");
+           if( !opt_keep )
+             print_action("attributes", client_file, "");
            break;
          }
          break;
@@ -1051,7 +1083,8 @@ void
            if( client_file->compare_info(server_file) != 0 ) {
              print_path(once, full_name);
              update_attr(client_file, server_file);
-             print_action("attributes", client_file, "");
+             if( !opt_keep )
+               print_action("attributes", client_file, "");
            }
            break;
          }
@@ -1079,7 +1112,8 @@ void
              ||server_file->desc.file_time != client_file->desc.file_time ) {
            print_path(once, full_name);
            update_attr(client_file, server_file);
-           print_action("attributes", client_file, "");
+           if( !opt_keep )
+             print_action("attributes", client_file, "");
          }
          break;
 
@@ -1145,7 +1179,7 @@ deferred_action:
    //-------------------------------------------------------------------------
    client_path->list.sort();        // Re-sort (for inserted files)
    client_file= client_path->get_head(); // Address the first element
-   while(client_file != nullptr) {      // Dive into each subdirectory
+   while(client_file != nullptr) {  // Dive into each subdirectory
      if( get_file_type(client_file) == FT_PATH ) {
        //---------------------------------------------------------------------
        // Install a subdirectory

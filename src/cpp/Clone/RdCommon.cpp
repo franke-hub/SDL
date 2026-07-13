@@ -17,7 +17,7 @@
 //       Common routines used by RdClient and RdServer.
 //
 // Last change date-
-//       2026/07/09
+//       2026/07/12
 //
 // Environment variables-
 //       LOG_HCDM=n    Hard Core Debug Mode verbosity
@@ -77,6 +77,7 @@ int                    opt_erase= false; // Erase remote target if it does
                                     // not exist locally
 int                    opt_older= false; // Update remote target even if
                                     // source is newer
+int                    opt_keep= false;  // Keep mode (Don't make/allow change)
 int                    opt_quiet= false; // Quiet mode
 int                    opt_unsafe= false; // Unsafe mode
 int                    opt_verify= false; // Verify mode
@@ -113,7 +114,7 @@ static Signal*         the_final_signal= nullptr; // The singleton final signal
 //
 //----------------------------------------------------------------------------
 Signal*
-   get_check_signal( void )     // Get the debugging check Signal
+   get_check_signal( void )         // Get the debugging check Signal
 {  lock_guard<decltype(mutex)> lock(mutex);
 
    if( the_check_signal == nullptr )
@@ -151,7 +152,7 @@ void
 //
 //----------------------------------------------------------------------------
 Signal*
-   get_final_signal( void )     // Get the termination final Signal
+   get_final_signal( void )         // Get the termination final Signal
 {  lock_guard<decltype(mutex)> lock(mutex);
 
    if( the_final_signal == nullptr )
@@ -196,8 +197,8 @@ PEER32_t                            // PEER format
      HOST32_t          host32)      // HOST format int value
 {  return htobe32(host32); }
 
-PEER64_t                           // PEER format
-   host_to_peer(                   // Convert HOST format to PEER format
+PEER64_t                            // PEER format
+   host_to_peer(                    // Convert HOST format to PEER format
      HOST64_t          host64)      // HOST format 64 bit value
 {  return htobe64(host64); }
 
@@ -461,8 +462,8 @@ static void
        break;
 
      // Any other (handled) signal terminate all threads
-//   case SIGSEGV:                  // (Program fault)
      default:
+//   case SIGSEGV:                  // (Program fault)
        Trace::trace(".BUG", __LINE__, text);
        Trace::stop();
 

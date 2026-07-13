@@ -17,7 +17,7 @@
 //       Common objects and subroutines.
 //
 // Last change date-
-//       2026/07/05
+//       2026/07/12
 //
 //----------------------------------------------------------------------------
 #ifndef RDCOMMON_H_INCLUDED
@@ -74,6 +74,7 @@ extern int             opt_verbose; // Verbosity, higher is more verbose
 
 extern int             opt_erase;   // Erase local target if it does
                                     // not exist remotely
+extern int             opt_keep;    // Don't make/allow any changes. (Dry run)
 extern int             opt_older;   // Update local target even if remote
                                     // source is older
 extern int             opt_quiet;   // Quiet mode

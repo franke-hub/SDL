@@ -17,7 +17,7 @@
 //       The (multi-threaded) file server.
 //
 // Last change date-
-//       2026/07/05
+//       2026/07/12
 //
 // Usage-
 //       RdServer <-options>
@@ -207,11 +207,11 @@ extern int                          // Return code
    }
 
    if( opt_hcdm || opt_verbose ) {
-     debugf("--hcdm: %s\n",    opt_hcdm ? "true" : "false");
-     debugf("--verbose: %d\n", opt_verbose);
+     printf("--hcdm: %s\n",    opt_hcdm ? "true" : "false");
+     printf("--verbose: %d\n", opt_verbose);
 
-     debugf("\n");
-     debugf("-V: %s\n", opt_verify ? "true" : "false");
+     printf("\n");
+     printf("-V: %s\n", opt_verify ? "true" : "false");
    }
 
    //-------------------------------------------------------------------------
