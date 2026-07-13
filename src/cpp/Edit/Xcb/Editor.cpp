@@ -17,7 +17,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2026/07/09
+//       2026/07/13
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -931,15 +931,16 @@ void
      return;
    }
 
-   std::string wild_file= wild.get_file_name();
    std::string wild_path= wild.get_path_name();
+   std::string wild_file= wild.get_file_name();
    const char* cc_wild= wild_file.c_str();
 
    {{{{ // Search directory, handling all wildcard file name matches
      bool found= false;
      Path path(wild_path);          // (Temporary)
      for(File* file= path.list.get_head(); file; file= file->get_next() ) {
-       const char* cc_file= file->get_file_name().c_str();
+       std::string file_name= file->get_file_name();
+       const char* cc_file= file_name.c_str();
        if( wildstrcmp(cc_wild, cc_file) == 0 ) {
          std::string full= wild_path + "/" + file->get_file_name();
          Name wild(full);           // The wildcard match name
