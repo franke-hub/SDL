@@ -17,7 +17,7 @@
 //       Source file checker.
 //
 // Last change date-
-//       2026/07/09
+//       2026/07/13
 //
 // Usage-
 //       Scanner {path} options
@@ -28,6 +28,7 @@
 //       --all:        Check file mode, file format, and copyright text
 //       --auto:       Enable auto-correct (alias of --x)
 //       --copy:       [auto-correct] Verify copyright
+//       --format:     [auto-correct] Verify code formatting
 //       --listx:      Get list of file extentions
 //       --mode:       [auto-correct] Verify file mode (permissions)
 //       --multi:      Allow multiple detections or corrections
@@ -113,7 +114,6 @@ enum
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 ,  _USE_AUTOCORRECT_CODE= true      // Use auto_correct_code function?
-,  _USE_AUTOCORRECT_FORM= false     // Use auto_correct_form function?
 ,  _USE_AUTOCORRECT_HTML= true      // Use auto_correct_html function?
 ,  _USE_AUTOCORRECT_PREFIX= true    // Use auto_correct_prefix function?
 }; // Generic enum
@@ -505,7 +505,7 @@ static void
    if( list.get_head() )            // If data present
      return;                        // Everything's OK
 
-   errorf("Error: File(%s) is empty/missing\n", s2c(data->full()));
+   fprintf(stderr, "Error: File(%s) is empty/missing\n", s2c(data->full()));
    exit(1);
 }
 
@@ -532,13 +532,13 @@ static void
    if( rc == 0 && S_ISDIR(info.st_mode) )
      remove= new Path(".remove.d");
    else if( opt_verbose )
-     errorf("Directory(.remove.d) missing or invalid\n");
+     fprintf(stderr, "Directory(.remove.d) missing or invalid\n");
 
    rc= stat(".revise.d", &info);
    if( rc == 0 && S_ISDIR(info.st_mode) )
      revise= new Path(".revise.d");
    else if( opt_verbose )
-     errorf("Directory(.revise.d) missing or invalid\n");
+     fprintf(stderr, "Directory(.revise.d) missing or invalid\n");
 
    if( remove && revise ) {         // If paths found
      pub::DHDL_sort<File>& rem_li= remove->list;
@@ -557,7 +557,8 @@ static void
            rr_item.remove= new Data();
            rc= rr_item.remove->open(".remove.d", rem_name);
            if( rc != 0 ) {
-             errorf("ERROR: %d= open(%s,%s)\n", rc, ".remove.d", s2c(rem_name));
+             fprintf(stderr, "ERROR: %d= open(%s,%s)\n", rc
+                           , ".remove.d", s2c(rem_name));
              delete rr_item.remove;
              break;
            }
@@ -565,7 +566,8 @@ static void
            rr_item.revise= new Data();
            rc= rr_item.revise->open(".revise.d", rev_name);
            if( rc != 0 ) {
-             errorf("ERROR: %d= open(%s,%s)\n", rc, ".revise.d", s2c(rev_name));
+             fprintf(stderr, "ERROR: %d= open(%s,%s)\n", rc
+                           , ".revise.d", s2c(rev_name));
              delete rr_item.remove;
              delete rr_item.revise;
              break;
@@ -579,8 +581,8 @@ static void
          *rr_copy= rr_item;
          remove_revise_list.fifo(rr_copy);
        } else {
-         errorf("ERROR: .remove.d/%s without .revise.d/%s\n"
-               , s2c(rem_name), s2c(rem_name));
+         fprintf(stderr, "ERROR: .remove.d/%s without .revise.d/%s\n"
+                       , s2c(rem_name), s2c(rem_name));
        }
      }
    }
@@ -807,26 +809,27 @@ static void
      for(Line* line= IGNORE.line().get_head(); line; line= line->get_next())
      {
        if( files == 0 && paths == 0 )
-         errorf("Missing .ignores:\n");
+         fprintf(stderr, "Missing .ignores:\n");
        size_t L= strlen(line->text);
        if( L > 1 && strcmp(&line->text[L-2], "/*") == 0 ) { // If ignored path
-         errorf("Path: %s\n", line->text);
+         fprintf(stderr, "Path: %s\n", line->text);
          ++paths;
        } else {                     // If ignore file
-         errorf("File: %s\n", line->text);
+         fprintf(stderr, "File: %s\n", line->text);
          ++files;
        }
      }
      if( paths == 0 )
-       debugf("*ALL* .ignore paths found\n");
+       printf("*ALL* .ignore paths found\n");
      else
-       errorf("%5d .ignore path%s not found\n", paths
-             , paths == 1 ? "" : "s");
+       fprintf(stderr, "%5d .ignore path%s not found\n", paths
+                     , paths == 1 ? "" : "s");
 
      if( files == 0 )
-       debugf("*ALL* .ignore files found\n");
+       printf("*ALL* .ignore files found\n");
      else
-       errorf("%5d .ignore file%s not found\n", files, files == 1 ? "" : "s");
+       fprintf(stderr, "%5d .ignore file%s not found\n", files
+                     , files == 1 ? "" : "s");
    }
    IGNORE.close();
 
@@ -834,43 +837,43 @@ static void
    // Display verification statistics
    //-------------------------------------------------------------------------
    if( true ) {
-     debugf("\nBash format copyrights:\n");
+     printf("\nBash format copyrights:\n");
      for(int i=  0; i < COPY_TYPES; ++i ) {
-       debugf("%s: %6d\n", bash_table[i].name, bash_count[i]);
+       printf("%s: %6d\n", bash_table[i].name, bash_count[i]);
      }
 
-     debugf("\nCode format copyrights:\n");
+     printf("\nCode format copyrights:\n");
      for(int i= 0; i < COPY_TYPES; ++i ) {
-       debugf("%s: %6d\n", code_table[i].name, code_count[i]);
+       printf("%s: %6d\n", code_table[i].name, code_count[i]);
      }
 
-     debugf("\nHtml format copyrights:\n");
+     printf("\nHtml format copyrights:\n");
      for(int i= 0; i < COPY_TYPES; ++i ) {
-       debugf("%s: %6d\n", html_table[i].name, html_count[i]);
+       printf("%s: %6d\n", html_table[i].name, html_count[i]);
      }
 
-     debugf("\nLily format copyrights:\n");
+     printf("\nLily format copyrights:\n");
      for(int i= 0; i < COPY_TYPES; ++i ) {
-       debugf("%s: %6d\n", lily_table[i].name, lily_count[i]);
+       printf("%s: %6d\n", lily_table[i].name, lily_count[i]);
      }
 
-     debugf("\nMark format copyrights:\n");
+     printf("\nMark format copyrights:\n");
      for(int i= 0; i < COPY_TYPES; ++i ) {
-       debugf("%s: %6d\n", mark_table[i].name, mark_count[i]);
+       printf("%s: %6d\n", mark_table[i].name, mark_count[i]);
      }
 
-     debugf("\nMisc format copyrights:\n");
+     printf("\nMisc format copyrights:\n");
      for(int i= 0; i < COPY_TYPES; ++i ) {
-       debugf("%s: %6d\n", misc_table[i].name, misc_count[i]);
+       printf("%s: %6d\n", misc_table[i].name, misc_count[i]);
      }
 
-     debugf("\nMore format copyrights:\n");
+     printf("\nMore format copyrights:\n");
      for(int i= 0; i < MORE_TYPES; ++i ) {
-       debugf("%s: %6d\n", more_table[i].name, more_count[i]);
+       printf("%s: %6d\n", more_table[i].name, more_count[i]);
      }
 
      // No copyright found
-     debugf("NONE: %6d\n", none_count);
+     printf("NONE: %6d\n", none_count);
    }
 }
 
@@ -886,16 +889,16 @@ static void
 static void
    info( void )
 {
-   errorf("\n");
-   errorf("Scanner {path} <options>\n");
-   errorf("Options:\n"
+   fprintf(stderr, "\n");
+   fprintf(stderr, "Scanner {path} <options>\n");
+   fprintf(stderr, "Options:\n"
           "  --help\tWrite this help message and exit\n"
           "  --verbose\t{=n} Verbosity, 1 if =n unspecified\n"
           "\n"
-          "  --all\t\tIncludes --code, --copy, --mode, and --unix\n"
+          "  --all\t\tIncludes --copy, --mode, and --unix\n"
           "  --auto\tAuto-correct mode\n"
-          "  --code\tVerify code formatting\n"
           "  --copy\tVerify copyright text\n"
+          "  --format\tVerify code formatting\n"
           "  --listx\tList filename extensions\n"
           "  --mode\tVerify file mode\n"
           "  --multi\tAllow multiple errors/changes\n"
@@ -928,11 +931,13 @@ static int                          // The integer value
    if( errno ) {
      opt_help= true;
      if( errno == ERANGE )
-       errorf("--%s, range error: '%s'\n", OPTS[opt_index].name, optarg);
+       fprintf(stderr, "--%s, range error: '%s'\n"
+                     , OPTS[opt_index].name, optarg);
      else if( *optarg == '\0' )
-       errorf("--%s, no value specified\n", OPTS[opt_index].name);
+       fprintf(stderr, "--%s, no value specified\n", OPTS[opt_index].name);
      else
-       errorf("--%s, format error: '%s'\n", OPTS[opt_index].name, optarg);
+       fprintf(stderr, "--%s, format error: '%s'\n", OPTS[opt_index].name
+                     , optarg);
    }
 
    return value;
@@ -976,7 +981,6 @@ static void
 
            case OPT_ALL:
              opt_copy= true;
-             opt_form= true;
              opt_mode= true;
              opt_unix= true;
              break;
@@ -990,23 +994,24 @@ static void
        case ':':
          opt_help= true;
          if( optopt == 0 )
-           errorf("Option requires an argument '%s'\n", argv[optind-1]);
+           fprintf(stderr, "Option requires an argument '%s'\n"
+                         , argv[optind-1]);
          else
-           errorf("Option requires an argument '-%c'\n", optopt);
+           fprintf(stderr, "Option requires an argument '-%c'\n", optopt);
          break;
 
        case '?':
          opt_help= true;
          if( optopt == 0 )
-           errorf("Unknown option '%s'\n", argv[optind-1]);
+           fprintf(stderr, "Unknown option '%s'\n", argv[optind-1]);
          else if( isprint(optopt) )
-           errorf("Unknown option '-%c'\n",optopt);
+           fprintf(stderr, "Unknown option '-%c'\n",optopt);
          else
-           errorf("Unknown option character '0x%x'\n", optopt);
+           fprintf(stderr, "Unknown option character '0x%x'\n", optopt);
          break;
 
        default:
-         errorf("%4d ShouldNotOccur ('%c',0x%x)\n", __LINE__, C, C);
+         fprintf(stderr, "%4d ShouldNotOccur ('%c',0x%x)\n", __LINE__, C, C);
          break;
      }
    }
@@ -1015,15 +1020,15 @@ static void
      info();
 
    if( opt_verbose ) {
-     debugf("%5d --verbose\n", opt_verbose);
-     debugf("%5s --auto\n",    opt_auto  ? " true" : "false");
-     debugf("%5s --copy\n",    opt_copy  ? " true" : "false");
-     debugf("%5s --format\n",  opt_form  ? " true" : "false");
-     debugf("%5s --listx\n",   opt_listx ? " true" : "false");
-     debugf("%5s --mode\n",    opt_mode  ? " true" : "false");
-     debugf("%5d --multi\n",   opt_multi);
-     debugf("%5s --unix\n",    opt_unix  ? " true" : "false");
-     debugf("\n");
+     printf("%5d --verbose\n", opt_verbose);
+     printf("%5s --auto\n",    opt_auto  ? " true" : "false");
+     printf("%5s --copy\n",    opt_copy  ? " true" : "false");
+     printf("%5s --format\n",  opt_form  ? " true" : "false");
+     printf("%5s --listx\n",   opt_listx ? " true" : "false");
+     printf("%5s --mode\n",    opt_mode  ? " true" : "false");
+     printf("%5d --multi\n",   opt_multi);
+     printf("%5s --unix\n",    opt_unix  ? " true" : "false");
+     printf("\n");
    }
 }
 
@@ -1530,7 +1535,7 @@ static void
        return;
    }
 
-   errorf("File(%s) (c) Missing ending '.'\n", s2c(file));
+   fprintf(stderr, "File(%s) (c) Missing ending '.'\n", s2c(file));
    allow_multi();
 }
 
@@ -1552,7 +1557,7 @@ static void
 
    // Verify copyright year
    if( year < EARLY_YEAR )
-     errorf("File(%s) Early copyright(%d)\n", s2c(full), year);
+     fprintf(stderr, "File(%s) Early copyright(%d)\n", s2c(full), year);
 
    // Find last change date line (NOT an error if missing)
    int lineno= 0;                   // The current line counter
@@ -1568,7 +1573,7 @@ static void
      return;                        // Nothing to compare against
    line= line->get_next();          // The actual last change date line
    if( line == nullptr ) {          // If not found
-     errorf("File(%s) Missing last change date\n", s2c(full));
+     fprintf(stderr, "File(%s) Missing last change date\n", s2c(full));
      allow_multi();
      return;
    }
@@ -1585,8 +1590,8 @@ static void
    int l_dd= string2int((++tok_iter)());
    if( l_yy < 1 || l_mm < 1 || l_mm > 12 || l_dd < 1 || l_dd > 31
        || (++tok_iter)() != "" ) {
-     errorf("File(%s) Malformed last change date(%s)\n",
-            s2c(full), s2c(date));
+     fprintf(stderr, "File(%s) Malformed last change date(%s)\n"
+                   , s2c(full), s2c(date));
      allow_multi();
      return;
    }
@@ -1605,7 +1610,8 @@ static void
    }
 
    if( future ) {
-     errorf("File(%s) Future copy(%d) last(%s)\n", s2c(full), year, text);
+     fprintf(stderr, "File(%s) Future copy(%d) last(%s)\n"
+                   , s2c(full), year, text);
      allow_multi();
      return;
    }
@@ -1616,14 +1622,15 @@ static void
    //-------------------------------------------------------------------------
    // Correctable mismatch detected (and copyright line has been verified.)
    if( data.damaged() || data.changed() ) { // Cannot correct if file problem
-     errorf("File(%s) damaged(%d)/changed(%d)\n", s2c(full)
-           , data.damaged(), data.changed());
+     fprintf(stderr, "File(%s) damaged(%d)/changed(%d)\n", s2c(full)
+                   , data.damaged(), data.changed());
      allow_multi();
      return;
    }
 
    if( opt_auto == false ) {
-     errorf("File(%s) Correctable last(%d) copy(%d)\n", s2c(full), l_yy, year);
+     fprintf(stderr, "File(%s) Correctable last(%d) copy(%d)\n"
+                   , s2c(full), l_yy, year);
    } else {
      Line* line= get_copy_line(data); // The copyright line
      Tokenizer tok_line(line->text); // Our line Tokenizer
@@ -1651,21 +1658,21 @@ static void
      if( !ends_with(owner, ".") )
        is_error= true;
 
-     if( is_error ) {             // Invalid copyright text (UNEXPECTED)
-       errorf("%4d File(%s) Copy(%s) Invalid\n"
-             , __LINE__, s2c(full), line->text);
+     if( is_error ) {               // Invalid copyright text (UNEXPECTED)
+       fprintf(stderr, "%4d File(%s) Copy(%s) Invalid\n"
+                     , __LINE__, s2c(full), line->text);
        allow_multi();
        return;
      }
 
-     if( l_yy < f_year ) {        // if last change date < from year
-       errorf("file(%s) copy(%s) last(%d) not correctable\n"
-             , s2c(full), s2c(s_year), l_yy);
+     if( l_yy < f_year ) {          // if last change date < from year
+       fprintf(stderr, "file(%s) copy(%s) last(%d) not correctable\n"
+                     , s2c(full), s2c(s_year), l_yy);
        allow_multi();
        return;
      }
 
-     t_year= l_yy;                // Use last change date as to_year
+     t_year= l_yy;                  // Use last change date as to_year
      string n_year= pub::utility::to_string("%4d", t_year);
      if( f_year != t_year )
        n_year= pub::utility::to_string("%4d-%4d", f_year, t_year);
@@ -1681,8 +1688,8 @@ static void
      delete line;
 
      data.write();
-     errorf("File(%s) Corrected last(%d) copy(%s)\n", s2c(full)
-           , l_yy, s2c(s_year));
+     fprintf(stderr, "File(%s) Corrected last(%d) copy(%s)\n", s2c(full)
+                   , l_yy, s2c(s_year));
    }
 
    allow_multi();
@@ -1712,8 +1719,8 @@ static int                          // The copyright year, -1 if invalid
    if( text[0] != ' ' )             // If a leading token exists
      comment= (tok_iter++)();       // Get/skip leading comment token
    if( tok_iter() != "Copyright" ) { // If missing copyright statement
-     errorf("File(%s) Line '%s' is missing 'Copyright' token\n"
-           , s2c(full), s2c(text));
+     fprintf(stderr, "File(%s) Line '%s' is missing 'Copyright' token\n"
+                   , s2c(full), s2c(text));
      allow_multi();
      return -1;
    }
@@ -1721,7 +1728,7 @@ static int                          // The copyright year, -1 if invalid
    // Verify the copyright symbol
    string S= (++tok_iter)();
    if( S != "(C)" && S != "(c)" ) {
-     errorf("File(%s) (c) Malformed(%s)\n", s2c(full), s2c(text));
+     fprintf(stderr, "File(%s) (c) Malformed(%s)\n", s2c(full), s2c(text));
      allow_multi();
      return -1;
    }
@@ -1736,7 +1743,8 @@ static int                          // The copyright year, -1 if invalid
      if( OWNER_NAME != "" ) {
        string owner((++tok_iter).remainder());
        if( owner != OWNER_NAME )
-         errorf("File(%s) (c) Non-standard owner(%s)\n", s2c(full), s2c(owner));
+         fprintf(stderr, "File(%s) (c) Non-standard owner(%s)\n"
+                       , s2c(full), s2c(owner));
      }
      return c_year;
    }
@@ -1756,7 +1764,7 @@ static int                          // The copyright year, -1 if invalid
        c_year= verify_copy_date(next);
        if( c_year > 0 ) {
          if( (++tok_iter)() != "" ) // If ending date in the middle
-           c_year= -1;            // Not correctable
+           c_year= -1;              // Not correctable
        }
 
        break;
@@ -1766,14 +1774,14 @@ static int                          // The copyright year, -1 if invalid
    }
 
    if( c_year < 0 ) {
-     errorf("File(%s) Invalid (c) date(%s)\n", s2c(full), s2c(text));
+     fprintf(stderr, "File(%s) Invalid (c) date(%s)\n", s2c(full), s2c(text));
      allow_multi();
      return -1;
    }
 
    if( data.damaged() || data.changed() ) {
-     errorf("%4d File(%s) damaged(%d)/changed(%d)\n", __LINE__
-           , s2c(full), data.damaged(), data.changed());
+     fprintf(stderr, "%4d File(%s) damaged(%d)/changed(%d)\n", __LINE__
+                   , s2c(full), data.damaged(), data.changed());
      return c_year;
    }
 
@@ -1791,9 +1799,9 @@ static int                          // The copyright year, -1 if invalid
      delete line;
 
      data.write();
-     debugf("File(%s) Copyright line corrected\n", s2c(full));
+     printf("File(%s) Copyright line corrected\n", s2c(full));
    } else {                         // Auto-correct disallowed
-     errorf("File(%s) Copyright line correctable\n", s2c(full));
+     fprintf(stderr, "File(%s) Copyright line correctable\n", s2c(full));
    }
    allow_multi();
 
@@ -1824,8 +1832,8 @@ static void
 
      // Disallow "SA40" copyright (but allow for java)
      if( type == "SA40" && get_extension(data.file()) != "java" ) {
-       errorf("Code file(%s) has disallowed SA40 copyright\n"
-             , s2c(data.full()));
+       fprintf(stderr, "Code file(%s) has disallowed SA40 copyright\n"
+                     , s2c(data.full()));
        allow_multi();
      }
    }
@@ -1846,8 +1854,8 @@ static bool                         // (Always false)
      Line*             line,        // For this line
      string            code)        // With this text
 {
-   debugf(">>>>>%s<<<<<\n", line->text); // Debugging display
-   debugf(">>>>>%s<<<<<\n", s2c(code));  // Debugging display
+   printf(">>>>>%s<<<<<\n", line->text); // Debugging display
+   printf(">>>>>%s<<<<<\n", s2c(code));  // Debugging display
 // return false;
 
    pub::DHDL_list<Line>& list= data.line();
@@ -1877,8 +1885,6 @@ static bool                         // Change required but not applied
      Line*             line,        // For this line
      size_t            lnum)        // At this line number
 {
-   if( !_USE_AUTOCORRECT_FORM ) return false; // If function disabled
-
    size_t              alt_code= NPOS; // Alternate first code column offset
    size_t              alt_comm= NPOS; // Alternate comment column offset
    size_t              col_code= NPOS; // The first code column offset
@@ -1892,9 +1898,9 @@ static bool                         // Change required but not applied
    if( Q && false ) {               // If incomplete quote
      // This is too complex. The compiler handles any real problem.
      err_text= "incomplete quote";
-     errorf("%4d File(%s:%zd) %s: %s(%c)\n%4zd %s\n", __LINE__
-           , s2c(data.full()), lnum, "NOT CORRECTABLE", err_text, Q
-           , lnum, text);
+     fprintf(stderr, "%4d File(%s:%zd) %s: %s(%c)\n%4zd %s\n", __LINE__
+                   , s2c(data.full()), lnum, "NOT CORRECTABLE", err_text, Q
+                   , lnum, text);
      return true;
    }
 
@@ -1915,16 +1921,16 @@ static bool                         // Change required but not applied
      if( spaces == 0 ) {            // If no spaces
        err_text= "no space before comment";
        if( opt_auto ) {             // If auto-correcting
-         debugf("%4d File(%s:%zd) %s: %s\n", __LINE__
+         printf("%4d File(%s:%zd) %s: %s\n", __LINE__
                , s2c(data.full()), lnum, "correcting", err_text);
          string code(text, col_comm);
          string comm(text+col_comm);
          code= code + " " + comm;
          return auto_replace_line(data, line, code);
-       } else {                   // Not auto-correcting
-         errorf("%4d File(%s:%zd) %s: %s\n%4zd %s\n", __LINE__
-               , s2c(data.full()), lnum, "correctable", err_text
-               , lnum, text);
+       } else {                     // Not auto-correcting
+         fprintf(stderr, "%4d File(%s:%zd) %s: %s\n%4zd %s\n", __LINE__
+                       , s2c(data.full()), lnum, "correctable", err_text
+                       , lnum, text);
          return true;
        }
      }
@@ -1945,13 +1951,13 @@ static bool                         // Change required but not applied
 
        // No more excuses
        err_text= "comment too far right";
-       if( opt_auto ) {           // If auto-correcting
-         debugf("%4d File(%s:%zd) col(%zd) %s: %s\n", __LINE__
+       if( opt_auto ) {             // If auto-correcting
+         printf("%4d File(%s:%zd) col(%zd) %s: %s\n", __LINE__
                , s2c(data.full()), lnum, col_comm+1, "correcting", err_text);
 
          string code(text, col_comm);
          code= trim_trailing(code);
-         if( code.size() > 36 )
+         if( code.size() >= 36 )
            code= code + " ";
          else {
            code= code + blanks37;
@@ -1960,10 +1966,10 @@ static bool                         // Change required but not applied
          string comm(text+col_comm);
          code= code + comm;
          return auto_replace_line(data, line, code);
-       } else {                   // Not auto-correcting
-         errorf("%4d File(%s:%zd) col(%zd) %s: %s\n%4zd %s\n", __LINE__
-               , s2c(data.full()), lnum, col_comm+1, "correctable", err_text
-               , lnum, text);
+       } else {                     // Not auto-correcting
+         fprintf(stderr, "%4d File(%s:%zd) col(%zd) %s: %s\n%4zd %s\n"
+                       , __LINE__, s2c(data.full()), lnum, col_comm+1
+                       , "correctable", err_text, lnum, text);
          return true;
        }
      }
@@ -1974,18 +1980,22 @@ static bool                         // Change required but not applied
          || memcmp(text + col_code, "#endif ", 7) == 0 )
        return false;
 
-     // Excuse 2: End of a struct or enum
-     if( memcmp(text + col_code, "}; //", 5) == 0 )
+     // Excuse 2: End of an enum, struct, function, ... (possibly named)
+     if( memcmp(text + col_code, "} ", 2) == 0 && spaces == 1)
        return false;
 
-     // Excuse 3: End of a namespace
-     if( memcmp(text + col_code, "} // namespace ", 15) == 0 )
+     // Excuse 3: End of an enum, struct, function, ... (possibly extra ';')
+     if( memcmp(text + col_code, "}; // ", 6) == 0 )
+       return false;
+
+     // Excuse 4: End of a lambda function
+     if( memcmp(text + col_code, "}); // ", 7) == 0 )
        return false;
 
      // No more excuses
      err_text= "comment too far left";
-     if( opt_auto ) {             // If auto-correcting
-       debugf("%4d File(%s:%zd) col(%zd) %s: %s\n", __LINE__
+     if( opt_auto ) {               // If auto-correcting
+       printf("%4d File(%s:%zd) col(%zd) %s: %s\n", __LINE__
              , s2c(data.full()), lnum, col_comm+1, "correcting", err_text);
 
        string code(text, col_comm);
@@ -1995,9 +2005,9 @@ static bool                         // Change required but not applied
        code= code + comm;
        return auto_replace_line(data, line, code);
      } else {
-       errorf("%4d File(%s:%zd) col(%zd) %s: %s\n%4zd %s\n", __LINE__
-             , s2c(data.full()), lnum, col_comm+1, "correctable", err_text
-             , lnum, text);
+       fprintf(stderr, "%4d File(%s:%zd) col(%zd) %s: %s\n%4zd %s\n", __LINE__
+                     , s2c(data.full()), lnum, col_comm+1, "correctable"
+                     , err_text, lnum, text);
        return true;
      }
    }
@@ -2007,7 +2017,7 @@ static bool                         // Change required but not applied
    if( col_comm > 36 ) {            // If past column 37
      err_text= "comment too far right";
      if( opt_auto ) {               // If auto-correcting
-       debugf("%4d File(%s:%zd) col(%zd) %s: %s\n", __LINE__
+       printf("%4d File(%s:%zd) col(%zd) %s: %s\n", __LINE__
              , s2c(data.full()), lnum, col_comm+1, "correcting", err_text);
 
        string code= blanks37;
@@ -2015,28 +2025,32 @@ static bool                         // Change required but not applied
        code= code + comm;
        return auto_replace_line(data, line, code);
      } else {
-       errorf("%4d File(%s:%zd) col(%zd) %s: %s\n%4zd %s\n", __LINE__
-             , s2c(data.full()), lnum, col_comm+1, "correctable", err_text
-             , lnum, text);
+       fprintf(stderr, "%4d File(%s:%zd) col(%zd) %s: %s\n%4zd %s\n", __LINE__
+                     , s2c(data.full()), lnum, col_comm+1, "correctable"
+                     , err_text, lnum, text);
        return true;
      }
    }
 
    // Condition: stand-alone comment line before column 37
-   // Excuse 1: previous or next line has the same comment column
-   // Excuse 2: previous or next line has the same code column
+   // Excuse 1: Comment begins in column 4
+   if( col_comm == 3 )
+     return false;
+
+   // Excuse 2: previous or next line has the same comment column
    get_format_cols(line->get_prev()->text, alt_code, alt_comm, spaces);
    if( alt_comm == col_comm || alt_code == col_comm )
      return false;
 
+   // Excuse 3: previous or next line has the same code column
    get_format_cols(line->get_next()->text, alt_code, alt_comm, spaces);
    if( alt_comm == col_comm || alt_code == col_comm )
      return false;
 
    // No more excuses
    err_text= "comment too far left";
-   if( opt_auto ) {             // If auto-correcting
-     debugf("%4d File(%s:%zd) col(%zd) %s: %s\n", __LINE__
+   if( opt_auto ) {                 // If auto-correcting
+     printf("%4d File(%s:%zd) col(%zd) %s: %s\n", __LINE__
            , s2c(data.full()), lnum, col_comm+1, "correcting", err_text);
 
      string code= blanks37;
@@ -2044,9 +2058,9 @@ static bool                         // Change required but not applied
      code= code + comm;
      return auto_replace_line(data, line, code);
    } else {
-     errorf("%4d File(%s:%zd) col(%zd) %s: %s\n%4zd %s\n", __LINE__
-           , s2c(data.full()), lnum, col_comm+1, "correctable", err_text
-           , lnum, text);
+     fprintf(stderr, "%4d File(%s:%zd) col(%zd) %s: %s\n%4zd %s\n", __LINE__
+                   , s2c(data.full()), lnum, col_comm+1, "correctable"
+                   , err_text, lnum, text);
      return true;
    }
 }
@@ -2082,11 +2096,11 @@ static void
      if( disallowed ) {             // If disallowed type detected
        if( opt_auto ) {             // If auto-correcting
          replace_copyright(data, copy, html_sa40);
-         debugf("File(%s) copyright(%s=>SA40)\n"
+         printf("File(%s) copyright(%s=>SA40)\n"
                , s2c(data.full()), s2c(type));
        } else {
-         errorf("File(%s) has disallowed %s copyright\n"
-              , s2c(data.full()), disallowed);
+         fprintf(stderr, "File(%s) has disallowed %s copyright\n"
+                       , s2c(data.full()), disallowed);
        }
 
        allow_multi();
@@ -2117,12 +2131,12 @@ static void
      if( type != "SA40" ) {
        if( opt_auto ) {             // If auto-correcting
          replace_copyright(data, copy, html_sa40);
-         debugf("Markdown file(%s) format(%s=>SA40)\n"
+         printf("Markdown file(%s) format(%s=>SA40)\n"
                , s2c(data.full()), s2c(type));
 
        } else {
-         errorf("Markdown file(%s) requires SA40 copyright\n"
-               , s2c(data.full()));
+         fprintf(stderr, "Markdown file(%s) requires SA40 copyright\n"
+                       , s2c(data.full()));
        }
 
        allow_multi();
@@ -2147,7 +2161,7 @@ static void
 {
    if( _USE_AUTOCORRECT_PREFIX ) {  // If function is enabled
    if( HCDM )
-       debugf("auto_correct_prefix(%s,%s,%s)\n"
+       printf("auto_correct_prefix(%s,%s,%s)\n"
              , s2c(data.full()), s2c(copy->full()), s2c(prefix));
 
      typedef pub::DHDL_list<Line>     List; // The Data's line list type
@@ -2172,15 +2186,15 @@ static void
            if( rh_str[prefix.size()] != ' ' ) // If consistent alignment
              is_valid= true;
            else if( opt_verbose > 1 ) // ERROR: Inconsistent alignment
-             errorf("ERROR: alignment inconsistent\n");
+             fprintf(stderr, "ERROR: inconsistent alignment\n");
          }
        } else if( opt_verbose > 1 ) { // ERROR: Does not start with prefix_token
-         errorf("ERROR: prefix_token(%s) line(%s)\n"
-               , s2c(prefix_token), rhs->text);
+         fprintf(stderr, "ERROR: prefix_token(%s) line(%s)\n"
+                       , s2c(prefix_token), rhs->text);
        }
 
        if( !is_valid ) {
-         if( opt_auto ) {             // If auto-correct allowed
+         if( opt_auto ) {           // If auto-correct allowed
            string old_text= rhs->text;
            string new_text= prefix_token;
            string lh_str= skipb(findb(lhs->text)); // Get the associated text
@@ -2193,18 +2207,19 @@ static void
            Line* line= data.get_line(new_text);
 
            // Correct the prefix
-           List& list= data.line();   // (The File's line list)
+           List& list= data.line(); // (The File's line list)
            list.insert(rhs->get_prev(), line);
            list.remove(line->get_next());
 
            if( !corrected ) {
              corrected= true;
-             debugf("File(%s) prefix modified:\n", s2c(data.full()));
+             printf("File(%s) prefix modified:\n", s2c(data.full()));
            }
-           debugf("old: '%s'\nnew: '%s'\n", s2c(old_text), line->text);
+           printf("old: '%s'\nnew: '%s'\n", s2c(old_text), line->text);
          } else {
-           errorf("File(%s) Inconsistent copyright format (unchanged)\n"
-                 , s2c(data.full()));
+           fprintf(stderr, "File(%s) Inconsistent copyright format "
+                           "(unchanged)\n"
+                         , s2c(data.full()));
            allow_multi();
          }
        }
@@ -2254,12 +2269,12 @@ static bool                         // TRUE if SPDX identifier added
        list.insert(rhs->get_prev(), line);
 
        data.write();
-       debugf("File(%s) %s SPDX-License-Identifier added\n"
+       printf("File(%s) %s SPDX-License-Identifier added\n"
              , s2c(data.full()), type);
        changed= true;
      } else {                       // Auto-correct not allowed
-       errorf("File(%s) %s SPDX-License-Identifier missing\n"
-             , s2c(data.full()), type);
+       fprintf(stderr, "File(%s) %s SPDX-License-Identifier missing\n"
+                     , s2c(data.full()), type);
      }
 
      if( opt_multi < 0 )            // If stricter multi enforcement
@@ -2296,10 +2311,11 @@ static void
 
      if( opt_auto ) {               // If auto-correcting
        replace_copyright(data, copy, bash_mit0);
-       debugf("File(%s) copyright(%s=>MIT0)\n"
+       printf("File(%s) copyright(%s=>MIT0)\n"
              , s2c(data.full()), s2c(type));
      } else {
-       errorf("File(%s) requires MIT-0 copyright\n", s2c(data.full()));
+       fprintf(stderr, "File(%s) requires MIT-0 copyright\n"
+                     , s2c(data.full()));
      }
 
      allow_multi();
@@ -2322,11 +2338,11 @@ static void
      if( disallowed ) {             // If disallowed type detected
        if( opt_auto ) {             // If auto-correcting
          replace_copyright(data, copy, html_sa40);
-         debugf("File(%s) copyright(%s=>SA40)\n"
+         printf("File(%s) copyright(%s=>SA40)\n"
                , s2c(data.full()), s2c(type));
        } else {
-         errorf("File(%s) has disallowed %s copyright\n"
-              , s2c(data.full()), disallowed);
+         fprintf(stderr, "File(%s) has disallowed %s copyright\n"
+                       , s2c(data.full()), disallowed);
        }
 
        allow_multi();
@@ -2357,10 +2373,11 @@ static bool                         // TRUE if copyright converted
        if( opt_auto ) {             // If auto-correcting
          replace_copyright(data, rr_item->remove, rr_item->revise);
          data.write();
-         debugf("File(%s) copyright updated\n", s2c(data.full()));
+         printf("File(%s) copyright updated\n", s2c(data.full()));
          changed= true;
        } else {
-         errorf("File(%s) copyright update required\n", s2c(data.full()));
+         fprintf(stderr, "File(%s) copyright update required\n"
+                       , s2c(data.full()));
        }
 
        if( opt_multi < 0 )          // If stricter multi enforcement
@@ -2394,7 +2411,7 @@ static void
 {
    Line* line= get_copy_line(data); // The copyright line
    if( line == nullptr ) {          // If missing
-     errorf("File(%s) Copyright missing\n", s2c(data.full()));
+     fprintf(stderr, "File(%s) Copyright missing\n", s2c(data.full()));
      allow_multi();
      return;
    }
@@ -2421,7 +2438,7 @@ static void
      table= mark_table;
    } else {                         // Miscellaneous (misc_count, misc_table)
      if( false ) {                  // (Not an error)
-       debugf("File(%s) MISC format\n", full);
+       printf("File(%s) MISC format\n", full);
        allow_multi();
      }
    }
@@ -2432,7 +2449,7 @@ static void
      Data* copy= *table[i].data;
      Line* lhs= get_copy_line(*copy)->get_next();
      if( lhs == nullptr ) {
-       errorf("Table(%s) invalid, exiting\n", table[i].name);
+       fprintf(stderr, "Table(%s) invalid, exiting\n", table[i].name);
        exit(1);
      }
      Line* rhs= line->get_next();
@@ -2468,7 +2485,7 @@ static void
 
        // Update match count
        if( opt_verbose > 1 )
-         debugf("[%s]: '%s'\n", table[i].name, full);
+         printf("[%s]: '%s'\n", table[i].name, full);
 
        ++count[i];
        return;
@@ -2492,7 +2509,7 @@ static void
      Data* copy= *more_table[i].data;
      Line* lhs= get_copy_line(*copy);
      if( lhs == nullptr ) {         // (Should not occur)
-       errorf("More(%s) invalid, exiting\n", more_table[i].name);
+       fprintf(stderr, "More(%s) invalid, exiting\n", more_table[i].name);
        exit(1);
      }
 
@@ -2525,7 +2542,7 @@ static void
      if( lhs == nullptr ) {         // If copyright found
        // Update match count
        if( opt_verbose > 1 )
-         debugf("[%s]: '%s'\n", more_table[i].name, full);
+         printf("[%s]: '%s'\n", more_table[i].name, full);
 
        // Handle special cases
        string type= more_table[i].name; // The copyright type
@@ -2539,7 +2556,7 @@ static void
      }
    }
 
-   errorf("File(%s): No copyright match\n", full);
+   fprintf(stderr, "File(%s): No copyright match\n", full);
    allow_multi();
 }
 
@@ -2557,13 +2574,13 @@ static void
      Data&             data)        // The content
 {
    if( data.file() == "README" ) {
-     errorf("File(%s) named README\n", s2c(data.full()));
+     fprintf(stderr, "File(%s) named README\n", s2c(data.full()));
      allow_multi();
    }
 
    Line* line= get_copy_line(data);
    if( line == nullptr ) {
-     errorf("File(%s) (c) Missing\n", s2c(data.full()));
+     fprintf(stderr, "File(%s) (c) Missing\n", s2c(data.full()));
      allow_multi();
      return;
    }
@@ -2593,7 +2610,7 @@ static void
 {
    Line* line= get_copy_line(data);
    if( line == nullptr ) {
-     errorf("File(%s) (c) Missing\n", s2c(data.full()));
+     fprintf(stderr, "File(%s) (c) Missing\n", s2c(data.full()));
      allow_multi();
      return;
    }
@@ -2620,7 +2637,7 @@ static void
 {
    Line* line= get_copy_line(data);
    if( line == nullptr ) {
-     errorf("File(%s) (c) Missing\n", s2c(data.full()));
+     fprintf(stderr, "File(%s) (c) Missing\n", s2c(data.full()));
      allow_multi();
      return;
    }
@@ -2647,7 +2664,7 @@ static void
 {
    Line* line= get_copy_line(data);
    if( line == nullptr ) {
-     errorf("File(%s) (c) Missing\n", s2c(data.full()));
+     fprintf(stderr, "File(%s) (c) Missing\n", s2c(data.full()));
      allow_multi();
      return;
    }
@@ -2676,7 +2693,7 @@ static void
    if( line == nullptr ) {          // (Missing copyright allowed)
      ++none_count;
      if( opt_verbose > 1 )
-       errorf("[NONE]: '%s'\n", s2c(data.full()));
+       fprintf(stderr, "[NONE]: '%s'\n", s2c(data.full()));
      return;
    }
 
@@ -2713,7 +2730,7 @@ static void
    }
 
    if( fix_needed ) {               // If fix needed but not applied
-     errorf("File(%s) fixes not applied\n", s2c(data.full()));
+     fprintf(stderr, "File(%s) fixes not applied\n", s2c(data.full()));
      allow_multi();
      return;
    }
@@ -2744,7 +2761,7 @@ static void
    // Debugging
    //-------------------------------------------------------------------------
    if( opt_verbose > 4 )
-     debugf("D: %s\n", s2c(path));
+     printf("D: %s\n", s2c(path));
 
    //-------------------------------------------------------------------------
    // Handle items in this directory
@@ -2762,7 +2779,7 @@ static void
      }
 
      if( opt_verbose > 4 )
-       debugf("F: %.8x %10ld %s/%s\n", file->st.st_mode
+       printf("F: %.8x %10ld %s/%s\n", file->st.st_mode
              , file->st.st_size, s2c(path), s2c(file->get_file_name()));
 
      if( S_ISREG(file->st.st_mode) ) {
@@ -2774,7 +2791,7 @@ static void
        }
        if( line ) {                 // If IGNORE file
          if( opt_verbose > 2 )
-           debugf("SKIP: %s (file)\n", s2c(full));
+           printf("SKIP: %s (file)\n", s2c(full));
          IGNORE.line().remove(line, line); // Remove the IGNORE line
          delete line;               // Delete it
          continue;                  // And ignore it
@@ -2786,7 +2803,7 @@ static void
 
        Data data(path, name);
        if( data.damaged() ) {
-         errorf("File(%s) Damaged\n", s2c(data.full()));
+         fprintf(stderr, "File(%s) Damaged\n", s2c(data.full()));
          allow_multi();
          continue;
        }
@@ -2802,25 +2819,25 @@ static void
            want= S_IRUSR;
 
          if( mode != want ) {       // If correction required
-           errorf("File(%s) mode(%.3o) want(%.3o)\n"
-                 , s2c(full), mode, want);
+           fprintf(stderr, "File(%s) mode(%.3o) want(%.3o)\n"
+                         , s2c(full), mode, want);
            if( !opt_auto || (mode & S_IWUSR) == 0 ) { // If can't auto-correct
-             errorf("Mode: -%s%s%s%s%s%s%s%s%s unchanged\n"
-                   , mode & S_IRUSR ? "r" : "-"
-                   , mode & S_IWUSR ? "w" : "-"
-                   , mode & S_IXUSR ? "x" : "-"
-                   , mode & S_IRGRP ? "r" : "-"
-                   , mode & S_IWGRP ? "w" : "-"
-                   , mode & S_IXGRP ? "x" : "-"
-                   , mode & S_IROTH ? "r" : "-"
-                   , mode & S_IWOTH ? "w" : "-"
-                   , mode & S_IXOTH ? "x" : "-"
-                   );
+             fprintf(stderr, "Mode: -%s%s%s%s%s%s%s%s%s unchanged\n"
+                           , mode & S_IRUSR ? "r" : "-"
+                           , mode & S_IWUSR ? "w" : "-"
+                           , mode & S_IXUSR ? "x" : "-"
+                           , mode & S_IRGRP ? "r" : "-"
+                           , mode & S_IWGRP ? "w" : "-"
+                           , mode & S_IXGRP ? "x" : "-"
+                           , mode & S_IROTH ? "r" : "-"
+                           , mode & S_IWOTH ? "w" : "-"
+                           , mode & S_IXOTH ? "x" : "-"
+                           );
            } else {                 // Auto-correct
              mode= file->st.st_mode & ~(ACCESSPERMS);
              mode |= want;
              chmod(s2c(full), mode);
-             debugf("CHMOD File: %s\n", s2c(full));
+             printf("CHMOD File: %s\n", s2c(full));
            }
            allow_multi();
          }
@@ -2832,13 +2849,14 @@ static void
          if( had_change || had_blanks ) { // If file changed
            if( opt_auto ) {
              if( had_change )
-               debugf("File(%s) ==> unix format\n", s2c(data.full()));
+               printf("File(%s) ==> unix format\n", s2c(data.full()));
              data.write();
              data.change(false);
            } else {
              if( had_change )
-               errorf("File(%s) NOT IN unix format\n", s2c(data.full()));
-             errorf("File(%s) unchanged\n", s2c(data.full()));
+               fprintf(stderr, "File(%s) NOT IN unix format\n"
+                             , s2c(data.full()));
+             fprintf(stderr, "File(%s) unchanged\n", s2c(data.full()));
            }
            allow_multi();
          }
@@ -2883,7 +2901,7 @@ static void
 
        if( line ) {                 // If directory in IGNORE list
          if( opt_verbose > 2 )
-           debugf("SKIP: %s (path)\n", s2c(full));
+           printf("SKIP: %s (path)\n", s2c(full));
          IGNORE.line().remove(line, line); // Remove the IGNORE Line*
          delete line;               // Delete it
          continue;                  // And ignore it
@@ -2899,19 +2917,20 @@ static void
              mode= file->st.st_mode & ~(ACCESSPERMS);
              mode |= exec;
              chmod(s2c(full), mode);
-             debugf("CHMOD Path: %s\n", s2c(full));
+             printf("CHMOD Path: %s\n", s2c(full));
            } else {                 // Auto-correct disallowed
-             errorf("Path: -%s%s%s%s%s%s%s%s%s %s\n"
-                    , mode & S_IRUSR ? "r" : "-"
-                    , mode & S_IWUSR ? "w" : "-"
-                    , mode & S_IXUSR ? "x" : "-"
-                    , mode & S_IRGRP ? "r" : "-"
-                    , mode & S_IWGRP ? "w" : "-"
-                    , mode & S_IXGRP ? "x" : "-"
-                    , mode & S_IROTH ? "r" : "-"
-                    , mode & S_IWOTH ? "w" : "-"
-                    , mode & S_IXOTH ? "x" : "-"
-                    , s2c(full));
+             fprintf(stderr, "Path: -%s%s%s%s%s%s%s%s%s %s\n"
+                           , mode & S_IRUSR ? "r" : "-"
+                           , mode & S_IWUSR ? "w" : "-"
+                           , mode & S_IXUSR ? "x" : "-"
+                           , mode & S_IRGRP ? "r" : "-"
+                           , mode & S_IWGRP ? "w" : "-"
+                           , mode & S_IXGRP ? "x" : "-"
+                           , mode & S_IROTH ? "r" : "-"
+                           , mode & S_IWOTH ? "w" : "-"
+                           , mode & S_IXOTH ? "x" : "-"
+                           , s2c(full)
+                           );
            }
            allow_multi();
          }
@@ -2942,8 +2961,9 @@ static bool                         // TRUE if blanks removed
      if( L > 0 && line->text[L-1] == ' ' ) {
        if( !found ) {
          found= true;
-         errorf("File(%s) correct%s line with ending blank(s)\n'%s'\n"
-               , s2c(data.full()), opt_auto ? "ed" : "able", line->text);
+         fprintf(stderr, "File(%s) correct%s line with ending blank(s)\n'%s'\n"
+                       , s2c(data.full()), opt_auto ? "ed" : "able"
+                       , line->text);
        }
 
        if( opt_auto ) {
@@ -3005,9 +3025,9 @@ extern int                          // Return code
    //-------------------------------------------------------------------------
    if( opt_listx ) {
      typedef pub::Properties::MapIter_t MapIter_t;
-     debugf("List of file types:\n");
+     printf("List of file types:\n");
      for(MapIter_t it= props.begin(); it != props.end(); ++it)
-       debugf("%s\n", s2c(it->first));
+       printf("%s\n", s2c(it->first));
    }
 
    //-------------------------------------------------------------------------
