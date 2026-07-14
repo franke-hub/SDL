@@ -17,7 +17,7 @@
 //       Editor: Implement EdInps.h: Keyboard and mouse handlers.
 //
 // Last change date-
-//       2026/07/08
+//       2026/07/14
 //
 //----------------------------------------------------------------------------
 #include <cstdio>                   // For sprintf
@@ -568,7 +568,7 @@ void
 
        if( button_row != data->row ) { // If row changed
          if( button_row > row_used ) // (Button should not cause scroll up)
-           button_row= row_used;
+           button_row= row_used + 1;
          data->move_cursor_V(button_row - data->row); // Set new row
        }
        move_cursor_H(data->col_zero + get_col(E.event_x)); // Set new column

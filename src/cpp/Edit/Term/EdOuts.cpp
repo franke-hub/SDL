@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2024-2025 Frank Eskesen.
+//       Copyright (C) 2024-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Editor: Implement EdOuts.h: Terminal output services
 //
 // Last change date-
-//       2025/09/15
+//       2026/07/14
 //
 //----------------------------------------------------------------------------
 #define _XOPEN_SOURCE_EXTENDED 1
@@ -297,6 +297,8 @@ void
      size_t      L= strlen(C);
 
      strcpy(buffer, "Edit: ");
+     if( act_file->protect )
+       strcpy(buffer, "View: ");
      if( L > 57 ) {
        memcpy(buffer + 6, C, 27);
        memcpy(buffer + 33, "...", 3);
