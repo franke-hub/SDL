@@ -17,7 +17,7 @@
 //       Common I/O objects and subroutines used by RdClient and RdServer.
 //
 // Last change date-
-//       2026/07/05
+//       2026/07/21
 //
 //----------------------------------------------------------------------------
 #include <memory>                   // For std::make_unique, ...
@@ -81,9 +81,12 @@ static constexpr const uint64_t
 static pub::signals::Connector
                        tree_check_handler; // The check_signal handler
 
+//----------------------------------------------------------------------------
+// Static initialization/termination
+//----------------------------------------------------------------------------
 namespace {                         // Anonymous namespace
 static struct init_term {
-   init_term( void )                // Initialize (the tree_list_handler)
+   init_term( void )                // Initialization
 {
 tree_check_handler=                 // Connect the tree_check_handler
    handle_check_signal([](pub::signals::Event_t& E)
@@ -162,7 +165,7 @@ static void
 
    chmod(s2c(full_name), file->get_chmod()|S_IWUSR);
    if( rmfile(full_name) != 0 )     // Remove file failed
-     msgioerr("%4d Backout: remove(%s) failure", __LINE__, s2c(full_name));
+     msgioerr("%4d Backout: rmfile(%s) failure", __LINE__, s2c(full_name));
    else
      msgout("  %-10s %c %-32s %s\n"
            , "removed", 'F', s2c(file->file_name), "[Backout action]");
@@ -331,13 +334,12 @@ void
    RdFile::debug(                   // Debugging display
      const char*       info) const  // Heading information
 {
-   string link_text;
+   string link_text("");
    if( link_name != "" )
      link_text= " -> " + link_name;
    if( *info == '\0' )              // If short version
      debugf(": RdFile(%p) path(%p) %c %s%s\n", this, path
            , get_file_type() , s2c(file_name), s2c(link_text));
-
    else
      debugf("RdFile(%p) debug(%s) %c I(0x%.8zX) T(%'12zd)"
             " S(%'12zd) K(0x%.8zx.%.8zx) %s%s\n"
@@ -624,7 +626,6 @@ void
 
    for(RdFile* file= get_head(); file; file= file->get_next()) {
      file->debug();
-
      if( this != file->path ) {     // Consistency check
        debugf("this(%p) != file->path(%p)\n", this, file->path);
      }
@@ -766,16 +767,21 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       RdPath::remove
+//       RdPath::remove_and_delete
 //
 // Purpose-
-//       Remove an RdFile from the File list
+//       Remove an RdFile from the File list, then delete it
 //
 //----------------------------------------------------------------------------
-void
-   RdPath::remove(                  // Remove an RdFile from the File list
-     RdFile*           file)        // The RdFile to remove
-{  list.remove(file);  }
+RdFile*                             // The *NEXT* RdFile in the list
+   RdPath::remove_and_delete (      // Remove from the List and delete
+     RdFile*           file)        // This RdFile
+{
+   RdFile* next= file->get_next();
+   list.remove(file);
+   delete file;
+   return next;
+}
 
 //----------------------------------------------------------------------------
 //

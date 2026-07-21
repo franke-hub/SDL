@@ -17,7 +17,7 @@
 //       Implement CommonThread object methods
 //
 // Last change date-
-//       2026/07/10
+//       2026/07/21
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -805,13 +805,9 @@ size_t                              // Number of bytes sent
    }
 
    if( L < 1 ) {
-     if( L == 0 || errno == ECONNABORTED ) {
-       fprintf(stderr, "Connection aborted (send)\n");
-       rdterm();
-       exit(1);
-     }
-     throwf("%4d ERROR: %'zd= wr_send %d:%s", __LINE__, L
-           , errno, strerror(errno));
+     fprintf(stderr, "%4d ERROR: %'zd= wr_send %d:%s\nConnection aborted\n"
+                   , __LINE__, L, errno, strerror(errno));
+     throw "disconnected";
    }
 
    return L;

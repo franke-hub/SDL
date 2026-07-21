@@ -14,10 +14,10 @@
 //       RdClient.cpp
 //
 // Purpose-
-//       The (multi-threaded) client. EXPERIMENTAL PARAMETER UPDATE
+//       The RdServer's client.
 //
 // Last change date-
-//       2026/07/12
+//       2026/07/21
 //
 // Usage-
 //       RdClient <-options> <server_host<:server_port> <client_path>>
@@ -256,7 +256,7 @@ static void
    }
 
    //-------------------------------------------------------------------------
-   // Create and run the client worker Thread (without starting it)
+   // Create and directly invoke the client worker pseudo-Thread
    //-------------------------------------------------------------------------
    ClientThread* thread= new ClientThread(socket, path_name);
    thread->run();

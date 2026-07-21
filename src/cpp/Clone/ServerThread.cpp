@@ -17,7 +17,7 @@
 //       Implement ServerThread object methods
 //
 // Last change date-
-//       2026/07/05
+//       2026/07/21
 //
 // Implementation notes-
 //       This multi-threaded server DOES NOT change path or file permissions
@@ -78,7 +78,7 @@ static void
      Socket*           socket,      // Associated Socket
      string            path)        // Initial directory (from ListenThread)
 :  CommonThread(socket), init_path(path)
-{  if( HCDM || opt_hcdm )
+{  if( opt_hcdm )
      debugf("ServerThread(%p)::ServerThread(%p,%s)\n", this
            , socket, s2c(init_path));
 
@@ -103,7 +103,7 @@ static void
 //
 //----------------------------------------------------------------------------
    ServerThread::~ServerThread( void ) // Destructor
-{  if( HCDM || opt_hcdm ) debugf("ServerThread(%p)::~ServerThread\n", this); }
+{  if( opt_hcdm ) debugf("ServerThread(%p)::~ServerThread\n", this); }
 
 //----------------------------------------------------------------------------
 //
@@ -116,7 +116,7 @@ static void
 //----------------------------------------------------------------------------
 int                                 // TRUE if version identifiers match
    ServerThread::exchange_versionID( void ) // Exchange version identifiers
-{  if( HCDM || opt_hcdm )
+{  if( opt_hcdm )
      debugf("ServerThread(%p)::exchange_versionID\n", this);
 
    set_localVersionInformation();   // Initialize local version information
@@ -156,7 +156,7 @@ int                                 // TRUE if version identifiers match
 //----------------------------------------------------------------------------
 void
    ServerThread::run( void )        // Operate this ServerThread
-{  if( HCDM || opt_hcdm ) debugf("ServerThread(%p)::run...\n", this);
+{  if( opt_hcdm ) debugf("ServerThread(%p)::run...\n", this);
 
    // Connected message
    if( init_path.size() > (PATH_MAX-1) )
@@ -166,6 +166,11 @@ void
    string peer_name= socket->get_peer_name();
    msgout("Server: Connected... Host(%s:%d)\n"
          , s2c(peer_name), socket->get_peer_port());
+
+   if( HCDM )
+     opt_hcdm= true;
+   if( VERBOSE > opt_verbose )
+     opt_verbose= VERBOSE;
 
    // Handle client request messages
    msglog("ServerThread(%s)\n", s2c(init_path));
@@ -245,7 +250,7 @@ void
            , s2c(peer_name), socket->get_peer_port());
    }
 
-   if( HCDM || opt_hcdm ) debugf("...ServerThread(%p)::run\n", this);
+   if( opt_hcdm ) debugf("...ServerThread(%p)::run\n", this);
 }
 
 //----------------------------------------------------------------------------
@@ -259,7 +264,7 @@ void
 //----------------------------------------------------------------------------
 void
    ServerThread::say_no( void )     // Send negative response
-{  if( HCDM || opt_hcdm ) debugf("ServerThread(%p)::say_no\n", this);
+{  if( opt_hcdm ) debugf("ServerThread(%p)::say_no\n", this);
 
    PeerResponse qresp;              // Reply data block
    qresp.rc= RSP_NO;
@@ -279,7 +284,7 @@ void
    ServerThread::serve_file(        // Install a file
      string            path_name,   // Current Path name
      RdFile*           file)        // -> RdFile
-{  if( HCDM || opt_hcdm )
+{  if( opt_hcdm )
      debugf("ServerThread(%p)::serve_file(%s/%s)\n", this
            , s2c(path_name), s2c(file->get_file_name()));
 
@@ -342,7 +347,7 @@ void
 void
    ServerThread::serve_path(        // Serve directory subtree
      RdFile*           path_file)   // The directory RdFile
-{  if( HCDM || opt_hcdm )
+{  if( opt_hcdm )
      debugf("ServerThread(%p)::serve_path(%s)\n", this
            , s2c(path_file->get_full_name()) );
 

@@ -17,7 +17,7 @@
 //       Common I/O objects and subroutines used by RdClient and RdServer.
 //
 // Last change date-
-//       2026/07/05
+//       2026/07/21
 //
 //----------------------------------------------------------------------------
 #ifndef IOCOMMON_H_INCLUDED
@@ -518,9 +518,9 @@ static RdPath*
 static void
    push(RdPath*);                   // Add Path onto the Stack
 
-void
-   remove(                          // Remove an RdFile from the File list
-     RdFile*           file);       // The RdFile to remove
+RdFile*                             // The *NEXT* RdFile in the list
+   remove_and_delete(               // Remove from the List and delete
+     RdFile*           file);       // This RdFile
 
 void
    reset(                           // Reset and load the directory

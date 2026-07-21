@@ -17,11 +17,11 @@
 //       The client Thread
 //
 // Last change date-
-//       2026/07/05
+//       2026/07/21
 //
 // Implementation notes-
-//       The ClientThread does not run under control of a Thread, but it does
-//       use CommonThread services.
+//       The ClientThread does not run under control of a Thread, but uses
+//       CommonThread services.
 //
 //----------------------------------------------------------------------------
 #ifndef CLIENTTHREAD_H_INCLUDED
@@ -79,6 +79,19 @@ int                                 // TRUE if version identifiers match
 //----------------------------------------------------------------------------
 //
 // Method-
+//       ClientThread::install_attr
+//
+// Function-
+//       Install item attributes.
+//
+//----------------------------------------------------------------------------
+bool                                // TRUE iff attributes were updated
+   install_attr(                    // Install attributes
+     RdFile*           client);     // -> Client RdFile
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       ClientThread::install_item
 //
 // Function-
@@ -131,13 +144,26 @@ virtual void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       ClientThread::stop
+//
+// Purpose-
+//       Stop the client (Early termination)
+//
+//----------------------------------------------------------------------------
+[[noreturn]]
+static void
+   stop( void );                    // Stop the Client (Early termination)
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       ClientThread::update_attr
 //
 // Function-
 //       Update item attributes.
 //
 //----------------------------------------------------------------------------
-void
+bool                                // TRUE iff attributes were updated
    update_attr(                     // Update attributes
      RdFile*           client,      // -> Client RdFile
      RdFile*           server);     // -> Server RdFile
@@ -151,7 +177,7 @@ void
 //       Update a file, link or directory.
 //
 //----------------------------------------------------------------------------
-int                                 // Return code
+int                                 // Return code (0 expected)
    update_item(                     // Update something
      RdFile*           client,      // -> Client RdFile
      RdFile*           server);     // -> Server RdFile
@@ -165,7 +191,7 @@ int                                 // Return code
 //       Update a path subtree
 //
 //----------------------------------------------------------------------------
-void
+int                                 // Return code (0 expected)
    update_path(                     // Update path subtree
      const RdFile*     path_file);  // The directory RdFile
 }; // class ClientThread
