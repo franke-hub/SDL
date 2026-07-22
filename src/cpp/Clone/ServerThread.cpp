@@ -17,7 +17,7 @@
 //       Implement ServerThread object methods
 //
 // Last change date-
-//       2026/07/21
+//       2026/07/22
 //
 // Implementation notes-
 //       This multi-threaded server DOES NOT change path or file permissions
@@ -369,7 +369,7 @@ void
      this_name=path_file->path->path_name;
 
    RdPath this_path(this, this_name);
-   RdPath::push(&this_path);
+   push(&this_path);
 
    //-------------------------------------------------------------------------
    // Reply with directory information
@@ -439,7 +439,7 @@ void
          //-------------------------------------------------------------------
          wr_data(&qresp, 1);        // The operation is accepted
          msglog("..serve_path(%s)\n", s2c(this_name));
-         RdPath::pop();
+         pop();
          return;
 
        default:                     // Error, invalid question

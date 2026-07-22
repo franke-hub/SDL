@@ -17,7 +17,7 @@
 //       Base object for ListenThread, ClientThread, and ServerThread.
 //
 // Last change date-
-//       2026/07/10
+//       2026/07/22
 //
 //----------------------------------------------------------------------------
 #ifndef COMMONTHREAD_H_INCLUDED
@@ -25,6 +25,7 @@
 
 #include <pub/List.h>               // For pub::List
 #include <pub/Thread.h>             // For pub::Thread, base class
+#include <pub/Signals.h>            // For pub::signals::Signal
 
 #include "IoCommon.h"               // For I/O common objects and subroutines
 
@@ -82,6 +83,9 @@ Path_stack             stack;       // The RdPath Stack
 VersionInfo            gVersionInfo; // Global version information
 VersionInfo            lVersionInfo; // Local  version information
 VersionInfo            rVersionInfo; // Remote version information
+
+pub::signals::Connector
+                       tree_check_handler; // The check_signal handler
 
 //----------------------------------------------------------------------------
 // CommonThread::Constructors/destructor

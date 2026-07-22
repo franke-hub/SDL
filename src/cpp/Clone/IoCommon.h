@@ -17,7 +17,7 @@
 //       Common I/O objects and subroutines used by RdClient and RdServer.
 //
 // Last change date-
-//       2026/07/21
+//       2026/07/22
 //
 //----------------------------------------------------------------------------
 #ifndef IOCOMMON_H_INCLUDED
@@ -453,14 +453,12 @@ struct RdPath : public pub::data::Path, public pub::List<RdPath>::Link {
 // RdPath::Typedefs and enumerations
 typedef pub::data::File   File;     // The base File
 typedef pub::data::Path   Path;     // The base Path
-typedef pub::List<RdPath> Stack;    // The Path stack type
 
 //----------------------------------------------------------------------------
 // RdPath::Attributes
 // const std::string   path_name;   // The file name (in pub::data::Path)
 // DHDL_sort<File>     list;        // The (sortable) list of Files
 const CommonThread*    thread= nullptr; // The associated CommonThread
-static Stack           stack;       // The Path Stack
 
 //----------------------------------------------------------------------------
 // RdPath::Constructors/destructor
@@ -480,10 +478,6 @@ virtual
 void
    debug(                           // Debugging display
      const char*       info= "") const override; // Caller information
-
-static void
-   debug_static(                    // Static debugging display
-     const char*       info= "");   // Caller information
 
 //----------------------------------------------------------------------------
 // RdPath::Methods
@@ -511,12 +505,6 @@ File*                               // The new RdFile*
    make_file(                       // Create a new RdFile*
      const PeerDesc&   desc,        // PeerDesc descriptor
      const string&     name) const; // The File name
-
-static RdPath*
-   pop(void);                       // Pop Path from the Stack
-
-static void
-   push(RdPath*);                   // Add Path onto the Stack
 
 RdFile*                             // The *NEXT* RdFile in the list
    remove_and_delete(               // Remove from the List and delete

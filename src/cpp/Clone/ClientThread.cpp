@@ -17,7 +17,7 @@
 //       Implement ClientThread object methods
 //
 // Last change date-
-//       2026/07/21
+//       2026/07/22
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -890,7 +890,7 @@ int                                 // Return code (RC_NORM expected)
    RdPath* client_path= new RdPath(this, full_name);
    std::unique_ptr<RdPath> unique_client(client_path);
    RdFile* client_file= client_path->get_head();
-   RdPath::push(client_path);
+   push(client_path);
 
    PeerRequest  query;              // Server request
    PeerResponse qresp;              // Reply from server
@@ -1238,7 +1238,7 @@ deferred_action:
    if( qresp.rc != RSP_YO )
      invalid_response(__LINE__, "QUIT", qresp.rc);
 
-   RdPath::pop();
+   pop();
    msglog("%4d ClientThread: update_path(%s) complete\n", __LINE__
          , s2c(full_name));
    return RC_NORM;

@@ -17,17 +17,19 @@
 //       Implement CommonThread object methods
 //
 // Last change date-
-//       2026/07/21
+//       2026/07/22
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
 
 #include <pub/Latch.h>              // For PUB::Latch
+#include <pub/Signals.h>            // For pub::signals::Signal
 
 #include "CommonThread.h"           // For CommonThread, implemented
 #include "RdCommon.h"               // For common objects and subroutines
 
 using PUB::Latch;                   // For convenience
+using PUB::signals::Signal;         // For convenience
 using std::bad_alloc;               // For convenience
 
 //----------------------------------------------------------------------------
@@ -110,11 +112,34 @@ static const char*                  // The mode name
    buffer= (char*)malloc(MAX_TRANSFER);
    if( buffer == nullptr )
      throw bad_alloc();
+
+tree_check_handler=                 // Connect the tree_check_handler
+   handle_check_signal([this](pub::signals::Event_t& E)
+{
+   CheckEvent* event= dynamic_cast<CheckEvent*>(&E);
+   if( event ) {
+     debugf("RdPath::debug_stack(%s)\n", event->info);
+
+     RdPath* path= stack.get_tail();
+     while( path ) {
+       debugf("\nRdPath(%p) '%s'\n", path, s2c(path->path_name));
+       const RdFile* file= path->get_head();
+       while( file ) {
+         file->debug(event->info);
+         file= file->get_next();
+       }
+
+       path= path->get_prev();
+     }
+   }
+});
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    CommonThread::~CommonThread( void ) // Destructor
 {  if( HCDM ) debugf("CommonThread(%p)::~CommonThread()\n", this);
+
+   tree_check_handler.disconnect(); // Disconnect the tree check handler
 
    if( socket ) {
      socket->close();

@@ -17,7 +17,7 @@
 //       Common I/O objects and subroutines used by RdClient and RdServer.
 //
 // Last change date-
-//       2026/07/21
+//       2026/07/22
 //
 //----------------------------------------------------------------------------
 #include <memory>                   // For std::make_unique, ...
@@ -37,7 +37,6 @@
 #include <pub/Latch.h>              // For pub::RecursiveLatch
 #include <pub/List.h>               // For pub::List<>
 #include <pub/memory.h>             // For pub::scoped_ptr
-#include <pub/Signals.h>            // For pub::signals::Signal
 
 #include "IoCommon.h"               // For I/O common objects and subroutines
 #include "CommonThread.h"           // For CommonThread
@@ -50,7 +49,6 @@
 // Objects
 using PUB::List;                    // For convenience
 using PUB::RecursiveLatch;          // For convenience
-using PUB::signals::Signal;         // For convenience
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -66,42 +64,12 @@ enum                                // Generic enum
 typedef struct stat    stat_t;      // The struct stat type
 
 //----------------------------------------------------------------------------
-// External data areas
-//----------------------------------------------------------------------------
-pub::List<RdPath>      RdPath::stack; // The RdPath stack
-
-//----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
 static constexpr const uint64_t
                        JULIAN_DAY1970= 2'440'588;
 static constexpr const uint64_t
                        JULIAN_SEC1970= JULIAN_DAY1970 * 86'400;
-
-static pub::signals::Connector
-                       tree_check_handler; // The check_signal handler
-
-//----------------------------------------------------------------------------
-// Static initialization/termination
-//----------------------------------------------------------------------------
-namespace {                         // Anonymous namespace
-static struct init_term {
-   init_term( void )                // Initialization
-{
-tree_check_handler=                 // Connect the tree_check_handler
-   handle_check_signal([](pub::signals::Event_t& E)
-{
-   CheckEvent* event= dynamic_cast<CheckEvent*>(&E);
-   if( event ) {
-     RdPath::debug_static(event->info);
-   }
-});
-}
-
-   ~init_term( void )               // Disconnect the tree_check_handler
-{  tree_check_handler.disconnect(); }
-} IT; // static struct init_term
-}; // Anonymous namespace
 
 //----------------------------------------------------------------------------
 //
@@ -521,8 +489,8 @@ int                                 // Return code, 0 expected
    string full_name= get_full_name();
    fd_t fd= open(s2c(full_name), O_RDONLY | O_BINARY);
    if( fd < 0 ) {                   // If open failed
-     msgioerr("%4d RdFile.init_desc_ksum: open(%s) failure",
-              __LINE__, s2c(full_name));
+     msglog("%4d IoCommon: open(%s) failure %d:%s", __LINE__, s2c(full_name)
+           , errno, strerror(errno));
      return -2;
    }
 
@@ -537,8 +505,7 @@ int                                 // Return code, 0 expected
      size_t    L= read(fd, buffer.get(), size); // Read the entire file
      HOST64_t  ksum= 0;             // Runnning checksum
      if( L != size ) {              // If read error
-       msgioerr("%4d RdFile.init_desc_ksum: read(%s) I/O error", __LINE__
-               , s2c(full_name));
+       msgioerr("%4d IoCommon: read(%s) I/O error", __LINE__, s2c(full_name));
        close(fd);
        return -2;
      }
@@ -547,8 +514,7 @@ int                                 // Return code, 0 expected
        ksum += peer_to_host(buffer[X]);
 
      if( close(fd) != 0 ) {         // If close failed
-       msgioerr("%4d RdFile.init_desc_ksum: close(%s) failure", __LINE__
-               , s2c(full_name));
+       msgioerr("%4d IoCommon: close(%s) failure", __LINE__, s2c(full_name));
        return -2;
      }
 
@@ -635,34 +601,6 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       RdPath::debug_static
-//
-// Purpose-
-//       Debugging stack display
-//
-//----------------------------------------------------------------------------
-void
-   RdPath::debug_static(            // Debugging display
-     const char*       info)        // Caller information
-{
-   debugf("RdPath::debug_static(%s)\n", info);
-
-   RdPath* path= stack.get_tail();
-   while( path ) {
-     debugf("RdPath(%p) '%s'\n", path, s2c(path->path_name));
-     const RdFile* file= path->get_head();
-     while( file ) {
-       file->debug(info);
-       file= file->get_next();
-     }
-
-     path= path->get_prev();
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       RdPath::get_head
 //
 // Purpose-
@@ -736,33 +674,6 @@ pub::data::File*                    // The new RdFile*
      const PeerDesc&   desc,        // PeerDesc descriptor
      const string&     name) const  // Peer name
 {  return new RdFile(this, desc, name); }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       RdPath::pop
-//
-// Purpose-
-//       Remove RdPath from stack
-//
-//----------------------------------------------------------------------------
-RdPath*
-   RdPath::pop( void )              // Remove RdPath from stack
-{  return stack.remq(); }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       RdPath::push
-//
-// Purpose-
-//       Add RdPath onto stack
-//
-//----------------------------------------------------------------------------
-void
-   RdPath::push(                    // Add RdPath onto stack
-     RdPath*           path)        // The RdPath
-{  stack.lifo(path); }
 
 //----------------------------------------------------------------------------
 //
