@@ -17,7 +17,7 @@
 //       Debug object methods.
 //
 // Last change date-
-//       2026/02/23
+//       2026/07/23
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard, ...
@@ -164,20 +164,6 @@ static void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Debug::~Debug
-//
-// Function-
-//       Destructor.
-//
-//----------------------------------------------------------------------------
-   Debug::~Debug( void )            // Destructor
-{  if( HCDM ) { fprintf(stderr, "Debug(%p)::~Debug()\n", this); }
-   term();
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       Debug::Debug
 //
 // Function-
@@ -194,7 +180,25 @@ static void
    if( name != nullptr && name[0] != '\0' )
      this->file_name= name;
 
+   std::lock_guard<decltype(mutex)> lock(mutex);
+   if( common == nullptr )
+     common= this;
+
    if( HCDM ) mode= MODE_INTENSIVE;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Debug::~Debug
+//
+// Function-
+//       Destructor.
+//
+//----------------------------------------------------------------------------
+   Debug::~Debug( void )            // Destructor
+{  if( HCDM ) { fprintf(stderr, "Debug(%p)::~Debug()\n", this); }
+   term();
 }
 
 //----------------------------------------------------------------------------
