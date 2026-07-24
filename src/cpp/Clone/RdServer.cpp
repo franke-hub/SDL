@@ -17,7 +17,7 @@
 //       The (multi-threaded) file server.
 //
 // Last change date-
-//       2026/07/12
+//       2026/07/23
 //
 // Usage-
 //       RdServer <-options>
@@ -55,6 +55,33 @@ enum                                // Generic enum
 {  HCDM= true                       // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 }; // Generic enum
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       hcdm
+//       verbose
+//       hcdm_verbose
+//
+// Purpose-
+//       Is Hard Core Debug Mode active?
+//       Is Verbosity greater than N?
+//       Are hcdm() && verbose(N) both true?
+//
+//----------------------------------------------------------------------------
+static inline bool                  // TRUE if Hard Core Debug Mode is active
+   hcdm( void )                     // Is Hard Core Debug Mode active?
+{  return HCDM || opt_hcdm; }
+
+static inline bool                  // TRUE if Verbosity is greater than N
+   verbose(                         // Is Verbosity greater than
+     int               N= 0)        // This value?
+{  return VERBOSE > N || opt_verbose > N; }
+
+static inline bool                  // TRUE if hcdm && verbose(N)
+   hcdm_verbose(                    // If hcdm() && verbose(N)
+     int               N= 0)
+{  return hcdm() && verbose(N); }
 
 //----------------------------------------------------------------------------
 //
@@ -197,16 +224,11 @@ extern int                          // Return code
    //-------------------------------------------------------------------------
    // Initialize
    //-------------------------------------------------------------------------
-   set_log_name("Server.log");      // Initialize default log name
-   rdinit();                        // Initialize message services
+   set_app_name("RdServer");        // Set the application name
    parm(argc, argv);                // Parameter analysis
+   rdinit();                        // Initialize message services
 
-   if( opt_hcdm ) {
-     Debug::set(new Debug("/tmp/Server.out"));
-     debug_set_mode(Debug::MODE_INTENSIVE);
-   }
-
-   if( opt_hcdm || opt_verbose ) {
+   if( hcdm_verbose() ) {
      printf("--hcdm: %s\n",    opt_hcdm ? "true" : "false");
      printf("--verbose: %d\n", opt_verbose);
 

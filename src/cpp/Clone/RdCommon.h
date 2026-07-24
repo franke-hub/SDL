@@ -17,7 +17,7 @@
 //       Common objects and subroutines.
 //
 // Last change date-
-//       2026/07/12
+//       2026/07/23
 //
 //----------------------------------------------------------------------------
 #ifndef RDCOMMON_H_INCLUDED
@@ -238,6 +238,18 @@ extern HOST64_t                     // HOST format
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       init_debug
+//
+// Purpose-
+//       Initialize debugging
+//
+//----------------------------------------------------------------------------
+extern void
+   init_debug( void );              // Initialize debugging
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       min
 //
 // Purpose-
@@ -351,14 +363,14 @@ extern void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       set_log_name
+//       set_app_name
 //
 // Purpose-
-//       Set the default log filename
+//       Set the application name
 //
 //----------------------------------------------------------------------------
 extern void
-   set_log_name(const char*);       // Set the default log filename
+   set_app_name(const char*);       // Set the application name
 
 //----------------------------------------------------------------------------
 // IoCommon requires RdCommon

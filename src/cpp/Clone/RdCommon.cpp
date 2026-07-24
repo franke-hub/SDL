@@ -17,7 +17,7 @@
 //       Common routines used by RdClient and RdServer.
 //
 // Last change date-
-//       2026/07/12
+//       2026/07/23
 //
 // Environment variables-
 //       LOG_HCDM=n    Hard Core Debug Mode verbosity
@@ -38,12 +38,14 @@
 #include <sys/signal.h>             // For signal, ...
 #include <sys/stat.h>               // For stat, struct stat, ...
 
+#include <pub/Debug.h>              // For pub::Debug
 #include <pub/Latch.h>              // For pub::RecursiveLatch
 #include <pub/List.h>               // For pub::List<>
 #include <pub/Signals.h>            // For pub::signals::Signal
 
 #include "RdCommon.h"               // For common objects and subroutines
 
+using PUB::Debug;
 using PUB::List;
 using PUB::RecursiveLatch;
 using PUB::signals::Signal;
@@ -58,7 +60,7 @@ enum                                // Generic enum
 ,  USE_SIGNAL= true                 // Use system signal handler?
 }; // Generic enum
 
-static const char*     LOG_FILENAME= "debug.log"; // The default log filename
+static const char*     APP_NAME= "debug"; // The default application name
 
 //----------------------------------------------------------------------------
 // Global data areas
@@ -71,7 +73,7 @@ unsigned               env_iodm= 0; // In/Output Debug Size (LOG_IODM)
 
 int                    opt_help= false; // --help option specified
 int                    opt_hcdm= 0;     // --hcdm (Hard Core Debug Mode)
-int                    opt_verbose= VERBOSE; // Verbosity, higher is more
+int                    opt_verbose= 0; // Verbosity, higher is more verbose
 
 int                    opt_erase= false; // Erase remote target if it does
                                     // not exist locally
@@ -99,6 +101,7 @@ static sig_handler_t   usr2_handler= nullptr; // System SIGUSR2 signal handler
 static RecursiveLatch  mutex;       // Recursive mutex
 static Signal*         the_check_signal= nullptr; // The singleton check signal
 static Signal*         the_final_signal= nullptr; // The singleton final signal
+static Debug*          debug= nullptr; // Debugging file
 
 //----------------------------------------------------------------------------
 //
@@ -217,6 +220,28 @@ HOST64_t                            // HOST format
    peer_to_host(                    // Convert PEER format to HOST format
      PEER64_t          peer64)      // PEER format 64 bit value
 {  return be64toh(peer64); }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       init_debug
+//
+// Purpose-
+//       Initialize debugging file
+//
+//----------------------------------------------------------------------------
+void
+   init_debug( void )               // Initialize debugging file
+{
+   if( debug == nullptr && Debug::show() == nullptr ) {
+     string file_name= APP_NAME;
+     file_name= "/tmp/" + file_name + ".out";
+     const char* file_char= s2c(file_name);
+
+     debug= new Debug(file_char);
+     debug->set_mode(Debug::MODE_INTENSIVE);
+   }
+}
 
 //----------------------------------------------------------------------------
 //
@@ -391,6 +416,8 @@ static void
      const char*       info)        // Signal type
 {
    Trace::trace(".SIG", __LINE__, info);
+
+   init_debug();
    Debug::Mode mode= debug_get_mode();
    debug_set_mode(Debug::MODE_INTENSIVE);
 
@@ -413,6 +440,8 @@ static void
      const char*       info)        // Signal type
 {
    Trace::trace(".SIG", __LINE__, info);
+
+   init_debug();
    Debug::Mode mode= debug_get_mode();
    debug_set_mode(Debug::MODE_INTENSIVE);
 
@@ -467,12 +496,14 @@ static void
        Trace::trace(".BUG", __LINE__, text);
        Trace::stop();
 
+       init_debug();
+       traceh("Signal(%d) %s\n", id, text);
        debug_set_mode(Debug::MODE_INTENSIVE);
        debug_backtrace();           // Attempt diagnosis (recursion aborts)
        debugf("..terminated..\n");
        rd_signal_term(text);        // Handle termination signal
        rdterm();
-       debugf("..EXIT_FAILURE..\n");
+       fprintf(stderr, "..EXIT_FAILURE..\n");
        exit(EXIT_FAILURE);
        break;
    }
@@ -500,41 +531,45 @@ void
    }
 
    // Extract log controls
-   const char* file_name= nullptr;
+   string file_name= APP_NAME;
+   file_name= "/tmp/" + file_name + ".log";
+   const char* file_char= s2c(file_name);
 
+   bool logging_active= false;
    const char* envout= getenv("LOG_HCDM");
    if( envout ) {
      env_hcdm= atol(envout);
-     file_name= LOG_FILENAME;
+     logging_active= true;
    }
 
    envout= getenv("LOG_IODM");
    if( envout ) {
      env_iodm= atol(envout);
-     file_name= LOG_FILENAME;
+     logging_active= true;
    }
 
    envout= getenv("LOG_SCDM");
    if( envout ) {
      env_scdm= atol(envout);
-     file_name= LOG_FILENAME;
+     logging_active= true;
    }
 
    envout= getenv("LOG_FILE");
-   if( envout )
-     file_name= envout;
+   if( envout ) {
+     file_char= envout;
+     logging_active= true;
+   }
 
-   if( file_name ) {
-     stdlog= fopen(file_name, "w");
+   if( logging_active ) {
+     stdlog= fopen(file_char, "w");
      if( stdlog == nullptr )
-       msgioerr("LogFile(%s): Open failure", file_name);
+       msgioerr("LogFile(%s): Open failure", file_char);
 
-     debug_set_mode(Debug::MODE_INTENSIVE); // (For debugf, not LOG_FILENAME)
      msgout("Environment options:\n");
      msgout("LOG_HCDM: %d\n", env_hcdm);
      msgout("LOG_IODM: %d\n", env_iodm);
      msgout("LOG_SCDM: %d\n", env_scdm);
-     msgout("LOG_FILE: %s\n", file_name);
+     msgout("LOG_FILE: %s\n", file_char);
      msgout("\n");
    }
 
@@ -601,18 +636,23 @@ void
      fclose(stdlog);
      stdlog= nullptr;
    }
+
+   if( debug ) {
+     delete debug;
+     debug= nullptr;
+   }
 }
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       set_log_name
+//       set_app_name
 //
 // Purpose-
-//       Set the default log filename
+//       Set the default application name
 //
 //----------------------------------------------------------------------------
 extern void
-   set_log_name(                    // Set the default log filename to
+   set_app_name(                    // Set the application name
      const char*       name)        // This (constant) file name
-{  LOG_FILENAME= name; }
+{  APP_NAME= name; }

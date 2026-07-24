@@ -17,7 +17,7 @@
 //       Implement ServerThread object methods
 //
 // Last change date-
-//       2026/07/22
+//       2026/07/23
 //
 // Implementation notes-
 //       This multi-threaded server DOES NOT change path or file permissions
@@ -67,6 +67,33 @@ static void
 
 //----------------------------------------------------------------------------
 //
+// Subroutine-
+//       hcdm
+//       verbose
+//       hcdm_verbose
+//
+// Purpose-
+//       Is Hard Core Debug Mode active?
+//       Is Verbosity greater than N?
+//       Are hcdm() && verbose(N) both true?
+//
+//----------------------------------------------------------------------------
+static inline bool                  // TRUE if Hard Core Debug Mode is active
+   hcdm( void )                     // Is Hard Core Debug Mode active?
+{  return HCDM || opt_hcdm; }
+
+static inline bool                  // TRUE if Verbosity is greater than N
+   verbose(                         // Is Verbosity greater than
+     int               N= 0)        // This value?
+{  return VERBOSE > N || opt_verbose > N; }
+
+static inline bool                  // TRUE if hcdm && verbose(N)
+   hcdm_verbose(                    // If hcdm() && verbose(N)
+     int               N= 0)
+{  return hcdm() && verbose(N); }
+
+//----------------------------------------------------------------------------
+//
 // Method-
 //       ServerThread::ServerThread
 //
@@ -78,7 +105,7 @@ static void
      Socket*           socket,      // Associated Socket
      string            path)        // Initial directory (from ListenThread)
 :  CommonThread(socket), init_path(path)
-{  if( opt_hcdm )
+{  if( hcdm() )
      debugf("ServerThread(%p)::ServerThread(%p,%s)\n", this
            , socket, s2c(init_path));
 
@@ -90,7 +117,7 @@ static void
      socket->set_option(SOL_SOCKET, SO_RCVBUF, &optval, sizeof(optval));
    }
 
-   start();                         // Start the Thread, invoking run()
+   start(ITS_DETACHED);             // Start the Thread, invoking run()
 }
 
 //----------------------------------------------------------------------------
@@ -103,7 +130,7 @@ static void
 //
 //----------------------------------------------------------------------------
    ServerThread::~ServerThread( void ) // Destructor
-{  if( opt_hcdm ) debugf("ServerThread(%p)::~ServerThread\n", this); }
+{  if( hcdm() ) debugf("ServerThread(%p)::~ServerThread\n", this); }
 
 //----------------------------------------------------------------------------
 //
@@ -116,7 +143,7 @@ static void
 //----------------------------------------------------------------------------
 int                                 // TRUE if version identifiers match
    ServerThread::exchange_versionID( void ) // Exchange version identifiers
-{  if( opt_hcdm )
+{  if( hcdm() )
      debugf("ServerThread(%p)::exchange_versionID\n", this);
 
    set_localVersionInformation();   // Initialize local version information
@@ -156,7 +183,7 @@ int                                 // TRUE if version identifiers match
 //----------------------------------------------------------------------------
 void
    ServerThread::run( void )        // Operate this ServerThread
-{  if( opt_hcdm ) debugf("ServerThread(%p)::run...\n", this);
+{  if( hcdm() ) debugf("ServerThread(%p)::run...\n", this);
 
    // Connected message
    if( init_path.size() > (PATH_MAX-1) )
@@ -166,11 +193,6 @@ void
    string peer_name= socket->get_peer_name();
    msgout("Server: Connected... Host(%s:%d)\n"
          , s2c(peer_name), socket->get_peer_port());
-
-   if( HCDM )
-     opt_hcdm= true;
-   if( VERBOSE > opt_verbose )
-     opt_verbose= VERBOSE;
 
    // Handle client request messages
    msglog("ServerThread(%s)\n", s2c(init_path));
@@ -203,12 +225,12 @@ void
              say_no();              // Reject, can't use directory
              break;
            }
-           wr_data(&qresp, 1);      // Command accepted
 
+           wr_data(&qresp, 1);      // Command accepted
            serve_path(&file);
            validated= false;
            break;
-           }}}}
+         }}}}
 
          case REQ_VERSION:          // Exchange version identifiers
            validated= exchange_versionID();
@@ -223,8 +245,8 @@ void
            break;
 
          case REQ_QUIT:             // Exit
-           fsm= FSM_CLOSE;          // Normal termination
            wr_data(&qresp, 1);      // The operation is accepted
+           fsm= FSM_CLOSE;          // Normal termination
            sleep(0.5);              // Allow time for send completion
            break;
 
@@ -250,7 +272,9 @@ void
            , s2c(peer_name), socket->get_peer_port());
    }
 
-   if( opt_hcdm ) debugf("...ServerThread(%p)::run\n", this);
+   void* that= this;
+   delete this;
+   if( hcdm() ) debugf("ServerThread(%p)::...run\n", that);
 }
 
 //----------------------------------------------------------------------------
@@ -264,7 +288,7 @@ void
 //----------------------------------------------------------------------------
 void
    ServerThread::say_no( void )     // Send negative response
-{  if( opt_hcdm ) debugf("ServerThread(%p)::say_no\n", this);
+{  if( hcdm() ) debugf("ServerThread(%p)::say_no\n", this);
 
    PeerResponse qresp;              // Reply data block
    qresp.rc= RSP_NO;
@@ -284,7 +308,7 @@ void
    ServerThread::serve_file(        // Install a file
      string            path_name,   // Current Path name
      RdFile*           file)        // -> RdFile
-{  if( opt_hcdm )
+{  if( hcdm() )
      debugf("ServerThread(%p)::serve_file(%s/%s)\n", this
            , s2c(path_name), s2c(file->get_file_name()));
 
@@ -347,7 +371,7 @@ void
 void
    ServerThread::serve_path(        // Serve directory subtree
      RdFile*           path_file)   // The directory RdFile
-{  if( opt_hcdm )
+{  if( hcdm() )
      debugf("ServerThread(%p)::serve_path(%s)\n", this
            , s2c(path_file->get_full_name()) );
 
@@ -405,7 +429,7 @@ void
 
          serve_file(this_name, file);
          break;
-         }}}}
+       }}}}
 
        case REQ_GOTO: {{{{          // Goto subdirectory
          //-------------------------------------------------------------------
@@ -431,7 +455,7 @@ void
          wr_data(&qresp, 1);        // The operation is accepted
          serve_path(file);
          break;
-         }}}}
+       }}}}
 
        case REQ_QUIT:               // Exit
          //-------------------------------------------------------------------

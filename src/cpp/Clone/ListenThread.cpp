@@ -17,7 +17,7 @@
 //       Implement ListenThread object methods
 //
 // Last change date-
-//       2026/07/05
+//       2026/07/23
 //
 //----------------------------------------------------------------------------
 #include "IoCommon.h"               // For I/O common objects and subroutines
@@ -43,8 +43,7 @@ enum                                // Generic enum
 //----------------------------------------------------------------------------
    ListenThread::ListenThread(      // Constructor
      int               port)        // Connection port
-:  CommonThread(nullptr)
-,  port(port)
+:  Thread(), port(port)
 {
    if( HCDM )
      debugf("ListenThread(%p)::ListenThread(%p)\n", this, socket);
@@ -67,6 +66,9 @@ enum                                // Generic enum
 {
    if( HCDM )
      debugf("ListenThread(%p)::~ListenThread()\n", this);
+
+   delete socket;
+   socket= nullptr;
 
    if( init_path ) {
      free(init_path);
@@ -126,7 +128,6 @@ void
          , s2c(socket->get_host_addr().to_string()), init_path);
 
    // Operate the thread
-   fsm= FSM_READY;                  // Indicate operational
    for(;;) {                        // Wait for connections
      Socket* server= socket->accept();
      if( server == nullptr ) {

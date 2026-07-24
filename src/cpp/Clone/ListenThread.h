@@ -17,13 +17,15 @@
 //       The listener thread
 //
 // Last change date-
-//       2026/07/05
+//       2026/07/23
 //
 //----------------------------------------------------------------------------
 #ifndef LISTENTHREAD_H_INCLUDED
 #define LISTENTHREAD_H_INCLUDED
 
-#include "CommonThread.h"           // For CommonThread, base class
+#include <pub/Socket.h>             // For pub::Socket
+#include <pub/Thread.h>             // For pub::Thread, base class
+
 #include "IoCommon.h"               // For I/O common objects and subroutines
 
 //----------------------------------------------------------------------------
@@ -35,12 +37,13 @@
 //       ListenThread descriptor.
 //
 //----------------------------------------------------------------------------
-class ListenThread : public CommonThread { // ListenThread descriptor
+class ListenThread : public pub::Thread { // ListenThread descriptor
 //----------------------------------------------------------------------------
 // ListenThread::Attributes
 //----------------------------------------------------------------------------
 protected:
-char*                  init_path;   // Initial path
+pub::Socket*           socket= nullptr; // Listener Socket
+char*                  init_path= nullptr; // Initial path
 int                    port;        // Server port
 
 //----------------------------------------------------------------------------

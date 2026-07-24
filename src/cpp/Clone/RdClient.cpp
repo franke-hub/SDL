@@ -17,7 +17,7 @@
 //       The RdServer's client.
 //
 // Last change date-
-//       2026/07/21
+//       2026/07/23
 //
 // Usage-
 //       RdClient <-options> <server_host<:server_port> <client_path>>
@@ -82,6 +82,33 @@ enum                                // Generic enum
 //----------------------------------------------------------------------------
 static string          host_name= Socket::gethostname(); // Default, this host
 static string          path_name= "."; // Default, current directory
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       hcdm
+//       verbose
+//       hcdm_verbose
+//
+// Purpose-
+//       Is Hard Core Debug Mode active?
+//       Is Verbosity greater than N?
+//       Are hcdm() && verbose(N) both true?
+//
+//----------------------------------------------------------------------------
+static inline bool                  // TRUE if Hard Core Debug Mode is active
+   hcdm( void )                     // Is Hard Core Debug Mode active?
+{  return HCDM || opt_hcdm; }
+
+static inline bool                  // TRUE if Verbosity is greater than N
+   verbose(                         // Is Verbosity greater than
+     int               N= 0)        // This value?
+{  return VERBOSE > N || opt_verbose > N; }
+
+static inline bool                  // TRUE if hcdm && verbose(N)
+   hcdm_verbose(                    // If hcdm() && verbose(N)
+     int               N= 0)
+{  return hcdm() && verbose(N); }
 
 //----------------------------------------------------------------------------
 //
@@ -277,18 +304,13 @@ extern int                          // Return code
      char*             argv[])      // Argument array
 {
    //-------------------------------------------------------------------------
-   // Run the client
+   // Initialize
    //-------------------------------------------------------------------------
-   set_log_name("Client.log");      // Initialize default log name
-   rdinit();                        // Initialize message services
+   set_app_name("RdClient");        // Set the application name
    parm(argc, argv);                // Parameter analysis
+   rdinit();                        // Initialize message services
 
-   if( opt_hcdm ) {
-     Debug::set(new Debug("/tmp/Client.out"));
-     debug_set_mode(Debug::MODE_INTENSIVE);
-   }
-
-   if( opt_hcdm || opt_verbose ) {
+   if( hcdm_verbose() ) {
      printf("--hcdm: %s\n",    opt_hcdm ? "true" : "false");
      printf("--verbose: %d\n", opt_verbose);
 

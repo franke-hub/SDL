@@ -17,7 +17,7 @@
 //       Base object for ListenThread, ClientThread, and ServerThread.
 //
 // Last change date-
-//       2026/07/22
+//       2026/07/23
 //
 //----------------------------------------------------------------------------
 #ifndef COMMONTHREAD_H_INCLUDED
@@ -115,10 +115,6 @@ const VersionInfo&                  // The local  version info
 const VersionInfo&                  // The remote version info
    getRVersionInfo( void ) const    // Get remote version info
 {  return rVersionInfo; }
-
-virtual int                         // TRUE iff ListenThread
-   isListenThread( void ) const     // Is this the ListenThread?
-{  return false; }
 
 //----------------------------------------------------------------------------
 //

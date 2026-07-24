@@ -17,7 +17,7 @@
 //       Implement CommonThread object methods
 //
 // Last change date-
-//       2026/07/22
+//       2026/07/23
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -58,6 +58,33 @@ static Latch           mutex;       // Exclusion mutex
 static void
    SNO(int line)                    // (Should Not Occur)
 {  throwf("%4d %s (Should Not Occur)\n", line, __FILE__); }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       hcdm
+//       verbose
+//       hcdm_verbose
+//
+// Purpose-
+//       Is Hard Core Debug Mode active?
+//       Is Verbosity greater than N?
+//       Are hcdm() && verbose(N) both true?
+//
+//----------------------------------------------------------------------------
+static inline bool                  // TRUE if Hard Core Debug Mode is active
+   hcdm( void )                     // Is Hard Core Debug Mode active?
+{  return HCDM || opt_hcdm; }
+
+static inline bool                  // TRUE if Verbosity is greater than N
+   verbose(                         // Is Verbosity greater than
+     int               N= 0)        // This value?
+{  return VERBOSE > N || opt_verbose > N; }
+
+static inline bool                  // TRUE if hcdm && verbose(N)
+   hcdm_verbose(                    // If hcdm() && verbose(N)
+     int               N= 0)
+{  return hcdm() && verbose(N); }
 
 //----------------------------------------------------------------------------
 //
@@ -107,7 +134,8 @@ static const char*                  // The mode name
    CommonThread::CommonThread(      // Constructor
      Socket*           socket)      // Associated Socket
 :  Thread(), fsm(FSM_RESET), socket(socket)
-{  if( HCDM ) debugf("CommonThread(%p)::CommonThread(%p)\n", this, socket);
+{  if( hcdm() )
+     debugf("CommonThread(%p)::CommonThread(%p)\n", this, socket);
 
    buffer= (char*)malloc(MAX_TRANSFER);
    if( buffer == nullptr )
@@ -137,7 +165,7 @@ tree_check_handler=                 // Connect the tree_check_handler
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    CommonThread::~CommonThread( void ) // Destructor
-{  if( HCDM ) debugf("CommonThread(%p)::~CommonThread()\n", this);
+{  if( hcdm() ) debugf("CommonThread(%p)::~CommonThread()\n", this);
 
    tree_check_handler.disconnect(); // Disconnect the tree check handler
 
@@ -242,8 +270,7 @@ void
 void
    CommonThread::rd_buff(           // Fill the read buffer
      size_t            size)        // To this minimum length
-{  if( HCDM )
-     debugf("CommonThread(%p)::rd_buff(%'zd)\n", this, size);
+{  if( hcdm() ) debugf("CommonThread(%p)::rd_buff(%'zd)\n", this, size);
 
    if( size > MAX_TRANSFER ) SNO(__LINE__); // Disallow buffer overfill
 
@@ -285,7 +312,7 @@ void
    CommonThread::rd_buff(           // Read buffer data area
      void*             v_addr,      // Input data buffer address
      size_t            i_size)      // Input data buffer length
-{  if( HCDM )
+{  if( hcdm() )
      debugf("CommonThread(%p)::rd_buff(%p,%'zd)\n", this, v_addr, i_size);
 
    rd_mode();                       // Set read mode
@@ -344,17 +371,16 @@ void
 HOST16_t                            // The resultant HOST16_t
    CommonThread::rd_buff(           // Read (PEER16_t) size; convert it into
      HOST16_t&         host)        // (OUT) This HOST16_t size
-{  if( HCDM )
-     debugf("CommonThread(%p)::rd_buff(HOST16_t(%'d))\n", this, host);
+{  if( hcdm() ) debugf("CommonThread(%p)::rd_buff(HOST16_t))\n", this);
 
    PEER16_t peer;
 
    rd_buff(sizeof(peer));           // Fill the buffer
    rd_buff(&peer, sizeof(peer));    // Read the peer data
    host= peer_to_host(peer);
-
-   if( HCDM )
-     debugf("CommonThread(%p)::rd_buff(HOST16_t(%d)\n", this, host);
+   if( env_iodm ) {
+     msglog("rd_buff(HOST16_t(%'d))\n", host);
+   }
 
    return host;
 }
@@ -387,9 +413,9 @@ string                              // The resultant string
 
    rd_buff(name_buff, name_size);   // Read into name buffer
    name= string(name_buff, name_size); // The (OUTPUT) name string
-
-   if( HCDM )
-     debugf("CommonThread(%p)::rd_buff(string(%s))\n", this, s2c(name));
+   if( env_iodm ) {
+     msglog("rd_buff(string(%s))\n", s2c(name));
+   }
 
    return name;
 }
@@ -407,7 +433,7 @@ void
    CommonThread::rd_data(           // Read data area
      void*             addr,        // Input data buffer address
      size_t            size)        // Input data buffer length
-{  if( HCDM )
+{  if( hcdm_verbose(2) )
      debugf("CommonThread(%p)::rd_data(%p,%'zd)\n", this, addr, size);
 
    rd_buff(addr, size);
@@ -428,7 +454,7 @@ string
 {
    rd_buff(name);
 
-   if( HCDM )
+   if( hcdm_verbose(1) )
      debugf("CommonThread(%p)::rd_data(string(%s))\n", this, s2c(name));
 
    return name;
@@ -448,7 +474,7 @@ string
 //----------------------------------------------------------------------------
 void
    CommonThread::rd_mode( void )    // Go into input mode
-{  if( HCDM ) debugf("rd_mode(%s)\n", mode_name(mode));
+{  if( hcdm() ) debugf("rd_mode(%s)\n", mode_name(mode));
 
    if( mode == MODE_RD )            // If already in READ mode
      return;
@@ -469,7 +495,7 @@ void
 RdPath*                             // The new RdPath
    CommonThread::rd_path(           // Get server RdPath
      const RdFile*     file)        // The client path file
-{  if( HCDM )
+{  if( hcdm() )
      debugf("CommonThread(%p)::rd_path(RdFile({%s,%s}))\n", this
            , s2c(file->path->path_name), s2c(file->file_name));
 
@@ -519,24 +545,20 @@ size_t                              // Number of bytes received
      msglog("\n");
      msglog("%'zd= rd_recv(%p,%'zd)\n", L, addr, size);
      msgdump(addr, min(size_t(L), env_iodm));
-     if( HCDM ) {
+     if( hcdm() ) {
        debugf("\n");
        debugf("%'zd= rd_recv(%p,%'zd)\n", L, addr, size);
        dump(addr, min(size_t(L), env_iodm));
      }
-   } else if( HCDM ) {
+   } else if( hcdm_verbose(1) ) {
      debugf("%'zd= rd_recv(%p,%'zd)\n", L, addr, size);
      dump(addr, min(size_t(L), 32));
    }
 
    if( L < 1 ) {
-     if( L == 0 || errno == ECONNABORTED ) {
-       fprintf(stderr, "Connection aborted (recv)\n");
-       rdterm();
-       exit(1);
-     }
-     throwf("%4d ERROR: %'zd= rd_recv %d:%s", __LINE__, L
-           , errno, strerror(errno));
+     fprintf(stderr, "%4d ERROR: %'zd= rd_recv %d:%s\nConnection aborted\n"
+                   , __LINE__, L, errno, strerror(errno));
+     throw "disconnected";
    }
 
    return L;
@@ -556,7 +578,7 @@ size_t                              // Number of bytes received
 //----------------------------------------------------------------------------
 void
    CommonThread::wr_buff( void )    // Empty the write buffer
-{  if( HCDM ) debugf("wr_buff()\n");
+{  if( hcdm() ) debugf("wr_buff()\n");
 
    wr_mode();                       // Go into WRITE mode
 
@@ -591,12 +613,12 @@ void
      msglog("\n");
      msglog("wr_buff(%p,%'zd)\n", v_addr, size);
      msgdump(v_addr, min(size, env_iodm));
-     if( HCDM ) {
+     if( hcdm() ) {
        debugf("\n");
        debugf("wr_buff(%p,%'zd)\n", v_addr, size);
        dump(v_addr, min(size, env_iodm));
      }
-   } else if( HCDM ) {
+   } else if( hcdm_verbose(1) ) {
      debugf("wr_buff(%p,%'zd)\n", v_addr, size);
      dump(v_addr, min(size, 32));
    }
@@ -633,7 +655,7 @@ void
 void
    CommonThread::wr_buff(           // Append into buffer
      const HOST16_t&   host)        // This file size string
-{  if( HCDM ) debugf("wr_buff(HOST16_t(%d))\n", host);
+{  if( hcdm() ) debugf("wr_buff(HOST16_t(%d))\n", host);
 
    PEER16_t peer= host_to_peer(host);
    wr_buff(&peer, sizeof(peer));
@@ -651,7 +673,7 @@ void
 void
    CommonThread::wr_buff(           // Append into buffer
      const string&     name)        // This file name string
-{  if( HCDM )
+{  if( hcdm() )
      debugf("wr_buff(string(%s)) size(%zd)\n", s2c(name), name.size());
 
    if( name.size() > NAME_MAX ) SNO(__LINE__);
@@ -681,12 +703,12 @@ void
      msglog("\n");
      msglog("wr_data(%p,%'zd)\n", v_addr, size);
      msgdump(v_addr, min(size, env_iodm));
-     if( HCDM ) {
+     if( hcdm() ) {
        debugf("\n");
        debugf("wr_data(%p,%'zd)\n", v_addr, size);
        dump(v_addr, min(size, env_iodm));
      }
-   } else if( HCDM ) {
+   } else if( hcdm_verbose(1) ) {
      debugf("wr_buff(%p,%'zd)\n", v_addr, size);
      dump(v_addr, min(size, 32));
    }
@@ -717,7 +739,7 @@ void
 void
    CommonThread::wr_data(           // Append into buffer
      const string&     name)        // This file name string
-{  if( HCDM )
+{  if( hcdm() )
      debugf("wr_data(string(%s)) size(%zd)\n", s2c(name), name.size());
 
    wr_buff(name);                   // Add the string to the buffer, then
@@ -738,7 +760,7 @@ void
 //----------------------------------------------------------------------------
 void
    CommonThread::wr_mode( void )    // Go into WRITE mode
-{  if( HCDM )
+{  if( hcdm() )
      debugf("wr_mode(%s) {%zd,%zd}\n", mode_name(mode), buff_used, buff_size);
 
    if( mode == MODE_WR )            // If already in WRITE mode
@@ -770,7 +792,7 @@ void
 void
    CommonThread::wr_path(           // Send a sorted directory
      const RdPath*     path)        // -> RdPath
-{  if( HCDM ) debugf("wr_path\n");
+{  if( hcdm() ) debugf("wr_path\n");
 
    msglog("wr_path\n");
 
@@ -819,12 +841,12 @@ size_t                              // Number of bytes sent
      msglog("\n");
      msglog("%'zd= wr_send(%p,%'zd)\n", L, addr, size);
      msgdump(addr, min(size_t(L), env_iodm));
-     if( HCDM ) {
+     if( hcdm() ) {
        debugf("\n");
        debugf("%'zd= wr_send(%p,%'zd)\n", L, addr, size);
        dump(addr, min(size_t(L), env_iodm));
      }
-   } else if( HCDM ) {
+   } else if( hcdm_verbose(1) ) {
      debugf("%'zd= wr_send(%p,%'zd)\n", L, addr, size);
      dump(addr, min(size_t(L), 32));
    }
