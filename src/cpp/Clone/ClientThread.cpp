@@ -17,7 +17,7 @@
 //       Implement ClientThread object methods
 //
 // Last change date-
-//       2026/07/23
+//       2026/07/25
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -102,8 +102,10 @@ static inline bool                  // TRUE if hcdm && verbose(N)
 static void
    attempted_const_modify(          // Attempt to modify
      const string&     name)        // This const file
-{  throwf("ERROR: Attempt to modify(%s)\n(This must be done manually.)\n"
-          , s2c(name));
+{  fprintf(stderr, "ERROR: Attempt to modify(%s)\n"
+                   "(This must be done manually.)\n"
+                 , s2c(name));
+   throw "disconnect";
 }
 
 //----------------------------------------------------------------------------
@@ -383,12 +385,10 @@ int                                 // Return code, 0 expected
        //---------------------------------------------------------------------
        // Install a directory
        //---------------------------------------------------------------------
-       if( mkpath(full_name, S_IRWXU) == 0 ) { // Create writeable
-         int rc= update_path(client);
-         if( rc == RC_NORM )
+       if( mkpath(full_name, S_IRWXU) == 0 ) { // Initialize writeable
+         result= update_path(client);
+         if( result == RC_NORM )
            install_attr(client);
-         else
-           result= RC_ERROR;
        } else {                     // If mkpath failure
          msgioerr("%4d ClientThread: mkpath(%s) failure", __LINE__
                  , s2c(full_name));
@@ -411,7 +411,7 @@ int                                 // Return code, 0 expected
 
      case FT_FILE: {{{{             // If it's a file
        //---------------------------------------------------------------------
-       // Request the file
+       // Install a file
        //---------------------------------------------------------------------
        PeerRequest  query;          // Server request
        PeerResponse qresp;          // Server response
@@ -462,8 +462,8 @@ int                                 // Return code, 0 expected
        //---------------------------------------------------------------------
        int rc= close(fd);           // Close the file
        if( rc == 0 ) {              // If closed OK
-         install_attr(client);      // Install attributes
          backout.reset();           // Cancel backout
+         install_attr(client);      // Install attributes
        } else {                     // If close failure
          // Backout will remove the file
          msgioerr("%4d ClientThread: close(%s) failure", __LINE__
@@ -509,8 +509,8 @@ int                                 // Return code, 0 expected
 //       Delete a Client file, link or path.
 //
 // Implementation notes-
-//       For a path, call remove_path first. (If that was done here, it would
-//       add an extra stack level per subdirectory.)
+//       For a path, call remove_path first. (This also updates permissions.)
+//       (If done here, it would add an extra stack level per subdirectory.)
 //
 //----------------------------------------------------------------------------
 int                                 // Return code (0 expected)
@@ -606,6 +606,9 @@ int                                 // Return code (0 expected)
 // Function-
 //       Remove all subtree content
 //
+// Implementation notes-
+//       Always invoked *before* remove_item. (Restore permissions not needed)
+//
 //----------------------------------------------------------------------------
 void
    ClientThread::remove_path(       // Remove all subtree content
@@ -659,18 +662,6 @@ void
 
      remove_item(file);
      file= file->get_next();
-   }
-
-   //-------------------------------------------------------------------------
-   // Restore permissions
-   //-------------------------------------------------------------------------
-   if( (client->desc.file_info&INFO_RUSR) == 0 // Didn't have permission to read
-       || (client->desc.file_info&INFO_WUSR) == 0 // or to write in it
-       || (client->desc.file_info&INFO_XUSR) == 0 ) { // or to change to it
-     int rc= chmod(full_name, client->get_chmod()); // Restore permissions
-     if( rc != 0 )
-       throwf("%4d ClientThread: chmod(%s) restore failure", __LINE__
-             , s2c(full_name));
    }
 }
 
@@ -993,7 +984,7 @@ int                                 // Return code (RC_NORM expected)
      }
 
      //-----------------------------------------------------------------------
-     // Disallow possible "!const" file modification
+     // Disallow possible client "!const" file modification
      //-----------------------------------------------------------------------
      if( compare(client_file->file_name, const_file_name) == 0 ) {
        bool files_differ= false;    // Default: Files do not differ
@@ -1005,13 +996,11 @@ int                                 // Return code (RC_NORM expected)
            || server_file->file_name != client_file->file_name )
          files_differ= true;        // Types or exact names differ
 
-       if( server_file->desc.file_size != client_file->desc.file_size
+       if(    client_file->desc.file_info != server_file->desc.file_info
            || server_file->desc.file_ksum != client_file->desc.file_ksum
+           || server_file->desc.file_size != client_file->desc.file_size
            || server_file->desc.file_time != client_file->desc.file_time )
-         files_differ= true;        // Contents or times differ
-
-       if( client_file->desc.file_info != server_file->desc.file_info )
-         files_differ= true;        // Attributes differ
+         files_differ= true;        // If attributes or contents differ
 
        if( files_differ )
          attempted_const_modify(full_name);
@@ -1026,6 +1015,7 @@ int                                 // Return code (RC_NORM expected)
          print_path(once, full_name);
          if( get_file_type(client_file) == FT_PATH ) // If a path
            remove_path(client_file); // Remove the subtree
+
          int rc= remove_item(client_file); // Remove the item itself
          if( rc == RC_NORM )
            print_action("removed", client_file, "");
