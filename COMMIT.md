@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2026/07/08
+//       2026/07/26
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -1109,8 +1109,26 @@ the file to appear changed. (The history/command background color changes)
   - ~/src/cpp/inc/pub/Socket.h: Removed get_addr_string function
     - Use get_host_addr().to_string() or get_peer_addr().to_string() instead
 
-### <a id="last-change">2026/07/08 maint</a>
+### 2026/07/08 maint
 - Updated ~/src/cpp/Edit/Xcb and ~/src/cpp/Edit/Term
   - Fixed open problems
   - Added feature: File save does not save an unchanged file.
     - However: "save file-name" saves (the same) file even if unchanged.
+
+### <a id="last-change">2026/07/26 maint/trunk</a>
+- Updated ~/src/cpp/Clone
+  - Rewritten to use PUB library (compatible with prior version)
+    - Prior version: ~/src/cpp/com-Clone
+  - Multiple commits to fix problems found during testing
+  - New rdclient option: -K (keep) Doesn't update; displays required actions
+- Updated ~/src/cpp/Scanner
+  - New option: --format (Checks code comment alignment)
+    - Not included with --all; Currently overly aggressive
+- Updated ~/src/cpp/Edit/Xcb, ~/src/cpp/Edit/Term
+  - Fixed coding errors exposed by later GCC version (Use of character strings
+derived from temporary std::string objects)
+  - Fixed annoyance problems regarding accessing last line of screen.
+  - Protected files display "View" rather than "Edit" in title.
+    - Fixed command sequence that allowed modification of proteced files.
+- ~/src/cpp/lib/pub/Debug.cpp
+  - Constructor initializes Debug::common if required
