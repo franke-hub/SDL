@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014-2023 Frank Eskesen.
+//       Copyright (c) 2014-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,79 +17,80 @@
 //       Implement ServerThread object methods
 //
 // Last change date-
-//       2023/08/03
+//       2026/07/23
 //
 // Implementation notes-
 //       This multi-threaded server DOES NOT change path or file permissions
 //       during transfer. (A second thread might use the modified permissions,
-//       making the change permanent.)
+//       making such a change permanent.)
 //
 //----------------------------------------------------------------------------
-#include <exception>
-#include <string>                   // For std::string
+#include <exception>                // For std::exception
 #include <cstdlib>                  // For size_t
-#include <cstring>
+#include <cstring>                  // For memcpy, ...
 
 #include <sys/stat.h>               // For S_IREAD ...
 
-#include <com/Atomic.h>
-#include <com/Barrier.h>
-#include <com/Debug.h>
-#include <com/define.h>             // For NULL
+#include "IoCommon.h"               // For I/O common objects and subroutines
+#include "ServerThread.h"           // For ServerThread, implemented
 
-#include "ocrw.h"
-#include "RdCommon.h"
-
-#include "ServerThread.h"
-
-using std::string;
+#ifndef O_BINARY                    // Defined in CYGWIN, not in LINUX
+  #define O_BINARY 0
+#endif
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
-#endif
-
-#ifndef SCDM
-#undef  SCDM                        // If defined, Soft Core Debug Mode
-#endif
-
-//----------------------------------------------------------------------------
-// Dependent macros
-//----------------------------------------------------------------------------
-#include <com/ifmacro.h>
+enum                                // Generic enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
+}; // Generic enum
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       invalidRequest
+//       SNO (Should Not Occur)
 //
-// Function-
-//       An invalid resquest was received from the client
+// Purpose-
+//       Handle "Should Not Occur" situation
 //
 //----------------------------------------------------------------------------
-static void                         // (Does not return)
-   invalidRequest(                  // Handle invalid request
-     int               lineno,      // Calling line number
-     int               op)          // The invalid request
-{
-   throwf("%4d ServerThread: Why did Client ask '%c' (%d)?", lineno, op, op);
-}
+[[noreturn]]
+static void
+   SNO(int line)                    // (Should Not Occur)
+{  throwf("%4d %s (Should Not Occur)\n", line, __FILE__); }
+
+[[noreturn]]
+static void
+   SNO(int line, int op)            // (Should Not Occur, invalid opcode )
+{  throwf("%4d %s Client op(%c,%d) invalid\n", line, __FILE__, op, op); }
 
 //----------------------------------------------------------------------------
 //
-// Method-
-//       ServerThread::~ServerThread
+// Subroutine-
+//       hcdm
+//       verbose
+//       hcdm_verbose
 //
 // Purpose-
-//       Destructor.
+//       Is Hard Core Debug Mode active?
+//       Is Verbosity greater than N?
+//       Are hcdm() && verbose(N) both true?
 //
 //----------------------------------------------------------------------------
-   ServerThread::~ServerThread( void ) // Destructor
-{
-   IFSCDM( debugf("%4d ServerThread(%p)::~ServerThread()\n", __LINE__, this); )
-}
+static inline bool                  // TRUE if Hard Core Debug Mode is active
+   hcdm( void )                     // Is Hard Core Debug Mode active?
+{  return HCDM || opt_hcdm; }
+
+static inline bool                  // TRUE if Verbosity is greater than N
+   verbose(                         // Is Verbosity greater than
+     int               N= 0)        // This value?
+{  return VERBOSE > N || opt_verbose > N; }
+
+static inline bool                  // TRUE if hcdm && verbose(N)
+   hcdm_verbose(                    // If hcdm() && verbose(N)
+     int               N= 0)
+{  return hcdm() && verbose(N); }
 
 //----------------------------------------------------------------------------
 //
@@ -102,65 +103,73 @@ static void                         // (Does not return)
 //----------------------------------------------------------------------------
    ServerThread::ServerThread(      // Constructor
      Socket*           socket,      // Associated Socket
-     const char*       path)        // Initial directory (in ListenThread)
-:  CommonThread(socket)
-,  path(path)
-{
-   IFSCDM(
-     debugf("%4d ServerThread(%p)::ServerThread(%p,%s)\n", __LINE__, this,
-            socket, path);
-   )
+     string            path)        // Initial directory (from ListenThread)
+:  CommonThread(socket), init_path(path)
+{  if( hcdm() )
+     debugf("ServerThread(%p)::ServerThread(%p,%s)\n", this
+           , socket, s2c(init_path));
 
-   // Run the Thread
-   start();
+   //-------------------------------------------------------------------------
+   // Set transfer size -- optimization attempt (has no noticable effect)
+   //-------------------------------------------------------------------------
+   if( USE_RCVBUF_SIZE > 0 ) {      // If transfer size optimization
+     int optval= USE_RCVBUF_SIZE;
+     socket->set_option(SOL_SOCKET, SO_RCVBUF, &optval, sizeof(optval));
+   }
+
+   start(ITS_DETACHED);             // Start the Thread, invoking run()
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ServerThread::exchangeVersionID
+//       ServerThread::~ServerThread
+//
+// Purpose-
+//       Destructor.
+//
+//----------------------------------------------------------------------------
+   ServerThread::~ServerThread( void ) // Destructor
+{  if( hcdm() ) debugf("ServerThread(%p)::~ServerThread\n", this); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ServerThread::exchange_versionID
 //
 // Function-
-//       Exchange version identifiers.
+//       Exchange version identifiers, setting rVersionInfo
 //
 //----------------------------------------------------------------------------
 int                                 // TRUE if version identifiers match
-   ServerThread::exchangeVersionID( void ) // Exchange version identifiers
-{
-   int                 L;           // Request length
-   struct
-   {
-     VersionInfo       info;        // Input version info
-     char              pad[16];     // Pad
-   }                   inpVersion;  // Version info
+   ServerThread::exchange_versionID( void ) // Exchange version identifiers
+{  if( hcdm() )
+     debugf("ServerThread(%p)::exchange_versionID\n", this);
 
-   //-------------------------------------------------------------------------
-   // Exchange version identifiers
-   //-------------------------------------------------------------------------
-   localVersionInformation();       // Initialize local version information
-   if( sw_verify )                  // If verify switch
-     lVersionInfo.f[7] |= VersionInfo::VIF7_KSUM;// Indicate checksum switch
+   set_localVersionInformation();   // Initialize local version information
 
-   memset(&inpVersion, 0, sizeof(inpVersion));
-   L= nRecvString(&inpVersion, sizeof(inpVersion));
-   nSendString(&lVersionInfo, sizeof(lVersionInfo));
-   if( strcmp(inpVersion.info.version, RD_VERSION) != 0 )
-   {
-     msgout("%4d Server: Version mismatch: Here(%s) Peer(%s)\n",
-            __LINE__, RD_VERSION, inpVersion.info.version);
-     return FALSE;
+   HOST16_t peer_size= 0;
+   rd_buff(peer_size);
+   rd_data(&rVersionInfo, sizeof(rVersionInfo));
+
+   HOST16_t host_size= (HOST16_t)sizeof(lVersionInfo);
+   wr_buff(host_size);
+   wr_data(&lVersionInfo, sizeof(lVersionInfo));
+
+   if( host_size != peer_size ) {
+     msgout("Server: exchange size mismatch: Here(%d) Peer(%d)\n"
+           , host_size, peer_size);
+     return false;
    }
 
-   if( L != sizeof(VersionInfo) )
-   {
-     msgout("%4d Server: Version length: Got(%d) Expected(%ld)\n",
-            __LINE__, L, (long)sizeof(VersionInfo));
-     return FALSE;
+   if( strcmp(RD_VERSION, rVersionInfo.version) != 0 ) {
+     msgout("Server: exchange version mismatch: Here(%s) Peer(%s)\n"
+           , RD_VERSION, rVersionInfo.version );
+     return false;
    }
-   memcpy(&rVersionInfo, &inpVersion.info, sizeof(rVersionInfo));
-   globalVersionInformation();
 
-   return TRUE;
+   set_globalVersionInformation();
+   return true;
 }
 
 //----------------------------------------------------------------------------
@@ -172,353 +181,294 @@ int                                 // TRUE if version identifiers match
 //       Operate the ServerThread.
 //
 //----------------------------------------------------------------------------
-long                                // Return code (always 0)
+void
    ServerThread::run( void )        // Operate this ServerThread
-{
-   IFSCDM( debugf("%4d ServerThread(%p)::run()...\n", __LINE__, this); )
+{  if( hcdm() ) debugf("ServerThread(%p)::run...\n", this);
 
    // Connected message
-   if( strlen(path) >= (MAX_DIRPATH-1) )
-     throwf("Path(%s) name too long", path);
+   if( init_path.size() > (PATH_MAX-1) )
+     throwf("Path(%s) name too long (%'zd > %'zd", s2c(init_path)
+           , init_path.size(), size_t(PATH_MAX-1));
 
-   const char* peerName= socket->getPeerName();
-   if( peerName == NULL )
-     peerName= Socket::addrToChar(socket->getPeerAddr());
-   msgout("Server: Connected... Host(%s:%d)\n",
-          peerName, socket->getPeerPort());
+   string peer_name= socket->get_peer_name();
+   msgout("Server: Connected... Host(%s:%d)\n"
+         , s2c(peer_name), socket->get_peer_port());
 
    // Handle client request messages
-   msglog("ServerThread(%s)\n", path);
+   msglog("ServerThread(%s)\n", s2c(init_path));
    fsm= FSM_READY;                  // Indicate operational
    try {
-     serve();                       // Process server requests
-     fsm= FSM_CLOSE;                // Normal termination
-     msgout("Server: ...Completed Host(%s:%d)\n",
-            peerName, socket->getPeerPort());
-     sleep(1.5);                    // Allow time for message transfer
-   } catch( const char* X ) {
-     fprintf(stderr, "Server: exception(%s)\n", X);
-              msglog("Server: exception(%s)\n", X);
+     bool validated= false;         // Default, not validated
+     while( fsm == FSM_READY ) {    // Process initial server requests
+       PeerRequest  query;          // Client command
+       PeerResponse qresp;          // Reply to query
+       rd_data(&query, 1);          // Read client command
+       qresp.rc= RSP_YO;            // Default, operation accepted
+
+       switch(query.oc) {           // Process request
+         case REQ_GOTO: {{{{        // Goto subdirectory
+           if( !validated ) {
+             msgout("%4d Server: missing exchange_vertionID\n", __LINE__);
+             say_no();
+             break;
+           }
+
+           RdPath path(this);       // The initial RdPath
+           path.path_name= init_path;
+           string file_name;        // Get path file name
+           rd_data(file_name);      // Get path file name
+           RdFile file(&path, file_name); // The requested path file
+
+           // Verify that we have permission to read into this directory
+           if( (file.desc.file_info&INFO_RUSR) == 0
+               || (file.desc.file_info&INFO_XUSR) == 0 ) {
+             say_no();              // Reject, can't use directory
+             break;
+           }
+
+           wr_data(&qresp, 1);      // Command accepted
+           serve_path(&file);
+           validated= false;
+           break;
+         }}}}
+
+         case REQ_VERSION:          // Exchange version identifiers
+           validated= exchange_versionID();
+           if( !validated )
+             qresp.rc= RSP_NO;
+           wr_data(&qresp, 1);
+           break;
+
+         case REQ_CWD:              // Retrieve CWD
+           wr_data(&qresp, 1);
+           wr_data(init_path);
+           break;
+
+         case REQ_QUIT:             // Exit
+           wr_data(&qresp, 1);      // The operation is accepted
+           fsm= FSM_CLOSE;          // Normal termination
+           sleep(0.5);              // Allow time for send completion
+           break;
+
+         default:                   // Error, invalid question
+           SNO(__LINE__, query.oc);
+           break;
+       }
+     }
+
+     msgout("Server: ...Completed Host(%s:%d)\n"
+           , s2c(peer_name), socket->get_peer_port());
    } catch( std::exception& X ) {
-     fprintf(stderr, "Server: exception(%s)\n", X.what());
-              msglog("Server: exception(%s)\n", X.what());
+     msgerr("Server: exception(%s)\n", X.what());
+   } catch( const char* X ) {
+     msgerr("Server: const char*(%s)\n", X);
    } catch(...) {
-     fprintf(stderr, "Server: exception(%s)\n", "...");
-              msglog("Server: exception(%s)\n", "...");
+     msgerr("Server: catch(...)\n");
    }
 
    // Thread termination
-   term();                          // Indicate terminated
+   if( fsm == FSM_READY ) {         // If forced termination
+     msgout("Server: ...Cancelled Host(%s:%d)\n"
+           , s2c(peer_name), socket->get_peer_port());
+   }
 
-   IFSCDM( debugf("%4d ...ServerThread(%p)::run()\n", __LINE__, this); )
-   return 0;
+   void* that= this;
+   delete this;
+   if( hcdm() ) debugf("ServerThread(%p)::...run\n", that);
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ServerThread::serve
+//       ServerThread::say_no
 //
 // Purpose-
-//       Process server requests (initial directory)
+//       Send negative reponse
 //
 //----------------------------------------------------------------------------
 void
-   ServerThread::serve( void )      // Process server requests
-{
-   int                 isValid;     // TRUE if version has been validated
-   DirEntry            dirEntry(this); // Working DirEntry
-   PeerRequest         query;       // Question from client
-   PeerResponse        qresp;       // Reply to client
+   ServerThread::say_no( void )     // Send negative response
+{  if( hcdm() ) debugf("ServerThread(%p)::say_no\n", this);
 
-   isValid= FALSE;                  // Default, invalid
-   while( fsm == FSM_READY )        // Process initial server requests
-   {
-     nRecv(&query, 1);              // Read question from client
-     qresp.rc= RSP_YO;              // Default, operation accepted
-
-     switch(query.oc)               // Process request
-     {
-       case REQ_GOTO:               // Goto subdirectory
-         //-------------------------------------------------------------------
-         // Install subdirectory
-         //-------------------------------------------------------------------
-         if( !isValid )
-         {
-           msgout("%4d Server not validated\n", __LINE__);
-           qresp.rc= RSP_NO;
-           nSend(&qresp, 1);
-           break;
-         }
-
-         nRecvString(dirEntry.fileName, sizeof(dirEntry.fileName));
-         dirEntry.list= new DirList(this, path, &dirEntry);
-
-         // Install the subdirectory
-         nSend(&qresp, 1);          // The operation is accepted
-         serveDirectory(path, &dirEntry);
-         isValid= FALSE;
-         break;
-
-       case REQ_VERSION:            // Exchange version identifiers
-         isValid= exchangeVersionID();
-
-         if( !isValid )
-           qresp.rc= RSP_NO;
-         nSend(&qresp, 1);
-         break;
-
-       case REQ_CWD:                // Retrieve CWD
-         nSend(&qresp, 1);
-         nSendString(path, strlen(path));
-         break;
-
-       case REQ_QUIT:               // Exit
-         //-------------------------------------------------------------------
-         // Exit
-         //-------------------------------------------------------------------
-         nSend(&qresp, 1);          // The operation is accepted
-         return;
-
-       default:                     // Error, invalid question
-         invalidRequest(__LINE__, query.oc);
-         break;
-     }
-   }
+   PeerResponse qresp;              // Reply data block
+   qresp.rc= RSP_NO;
+   wr_data(&qresp, 1);
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ServerThread::serveDirectory
-//
-// Function-
-//       Install a directory subtree.
-//
-//----------------------------------------------------------------------------
-void
-   ServerThread::serveDirectory(    // Serve directory subtree
-     const char*       path,        // Path to current directory
-     DirEntry*         dirEntry)    // The directory entry
-{
-   DirEntry*           ptrE;        // -> DirEntry
-   DirList*            ptrL;        // -> DirList
-   char                fileName[MAX_DIRNAME+1]; // Current file name
-
-   PeerRequest         query;       // Question from client
-   PeerResponse        qresp;       // Reply to client
-
-   //-------------------------------------------------------------------------
-   // Load the directory
-   //-------------------------------------------------------------------------
-   msglog("serveDirectory(%s,%s)..\n", path, dirEntry->fileName);
-
-   string newPath= makeFileName(path, dirEntry->fileName);
-
-   //-------------------------------------------------------------------------
-   // Reply with directory information
-   //-------------------------------------------------------------------------
-   ptrL= dirEntry->list;            // Get the associated DirList
-   #ifdef USE_ASYNCHRONOUS_LOADER
-     ptrL->start();                 // Start the loader process
-     nSendDirectory(ptrL);
-   #else
-     nSendDirectory(ptrL);
-     ptrL->runLoader();
-   #endif
-
-   //-------------------------------------------------------------------------
-   // Install the directory
-   //-------------------------------------------------------------------------
-   while( fsm == FSM_READY )        // Process this directory
-   {
-     nRecv(&query, 1);              // Read question from client
-     qresp.rc= RSP_YO;              // Default, operation accepted
-
-     switch(query.oc)               // Process request
-     {
-       case REQ_FILE:               // Install file
-         //-------------------------------------------------------------------
-         // Install file
-         //-------------------------------------------------------------------
-         nRecvString(fileName, MAX_DIRNAME+1); // Read filename
-         ptrE= ptrL->locate(fileName);
-         if( verifyType(ptrE, FT_FILE) != 0 )
-           break;
-
-         #ifdef USE_CHECK_PERMISSIONS
-           // Verify that we have permission to read this file
-           if( (ptrE->fileInfo&INFO_RUSR) == 0 )
-           {
-             qresp.rc= RSP_NO;      // Reject, not permitted
-             nSend(&qresp, 1);
-             break;
-           }
-         #endif
-
-         serveFile(newPath.c_str(), ptrE);
-         break;
-
-       case REQ_GOTO:               // Goto subdirectory
-         //-------------------------------------------------------------------
-         // Install subdirectory
-         //-------------------------------------------------------------------
-         nRecvString(fileName, MAX_DIRNAME+1); // Read directory name
-         ptrE= ptrL->locate(fileName);
-         if( verifyType(ptrE, FT_PATH) != 0 )
-           break;
-
-         #ifdef USE_CHECK_PERMISSIONS
-           // Verify that we have permission to read into this directory
-           if( (ptrE->fileInfo&INFO_RUSR) == 0
-               ||(ptrE->fileInfo&INFO_XUSR) == 0 )
-           {
-             qresp.rc= RSP_NO;      // Reject, not permitted
-             nSend(&qresp, 1);
-             break;
-           }
-         #endif
-
-         // Install the new subdirectory
-         nSend(&qresp, 1);          // The operation is accepted
-         #ifdef USE_ASYNCHRONOUS_LOADER
-           ptrL->wait();            // Make sure loading has completed
-         #endif
-         serveDirectory(newPath.c_str(), ptrE);
-         break;
-
-       case REQ_QUIT:               // Exit
-         //-------------------------------------------------------------------
-         // Exit (back to previous directory)
-         //-------------------------------------------------------------------
-         nSend(&qresp, 1);          // The operation is accepted
-         #ifdef USE_EARLY_CLEANUP   // If early cleanup
-           delete ptrL;
-           dirEntry->list= NULL;
-         #endif
-         msglog("..serveDirectory(%s)\n", newPath.c_str());
-         return;
-
-       default:                     // Error, invalid question
-         invalidRequest(__LINE__, query.oc);
-         break;
-     }
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       ServerThread::serveFile
+//       ServerThread::serve_file
 //
 // Function-
 //       Return a file to the client.
 //
 //----------------------------------------------------------------------------
 void
-   ServerThread::serveFile(         // Install a file
-     const char*       path,        // Current Path
-     DirEntry*         ptrE)        // -> DirEntry
-{
-   PeerResponse        qresp;       // Reply to client
+   ServerThread::serve_file(        // Install a file
+     string            path_name,   // Current Path name
+     RdFile*           file)        // -> RdFile
+{  if( hcdm() )
+     debugf("ServerThread(%p)::serve_file(%s/%s)\n", this
+           , s2c(path_name), s2c(file->get_file_name()));
 
-   int                 hand;        // Input (changed) file handle
-   off64_t             left;        // Bytes of file left to send
-   int                 rlen;        // Number of bytes read
+   msglog("serve_file(%s/%s)\n", s2c(path_name), s2c(file->get_file_name()));
 
    //-------------------------------------------------------------------------
    // Open the file
    //-------------------------------------------------------------------------
-   msglog("serveFile(%s,%s)\n", path, ptrE->fileName);
-   string fileName= makeFileName(path, ptrE->fileName);
-   hand= open64(fileName.c_str(),O_RDONLY | O_RSHARE | O_BINARY);
-   if( hand < 0 )                   // If open failed
-   {
-     msgerr("%4d Server: open64(%s) failure", __LINE__, fileName.c_str());
+   string file_name= get_full_name(path_name, file->get_file_name());
+   fd_t fd= open(s2c(file_name), O_RDONLY | O_BINARY);
+   if( fd < 0 ) {                   // If open failed
+     msgioerr("%4d Server: open(%s) failure", __LINE__, s2c(file_name));
 
-     qresp.rc= RSP_NO;              // Reject the request
-     nSend(&qresp, 1);
+     say_no();
      return;
    }
 
    //-------------------------------------------------------------------------
    // Accept the request
    //-------------------------------------------------------------------------
+   PeerResponse qresp;              // Reply to client
    qresp.rc= RSP_YO;                // Default, request accepted
-   nSend(&qresp, 1);                // Accept the request
+   wr_data(&qresp, 1);              // Accept the request
 
    //-------------------------------------------------------------------------
    // Send the file
    //-------------------------------------------------------------------------
-   left= ptrE->fileSize;            // Entire file left to be sent
-   while( left > 0 )                // More bytes need to be sent
-   {
-     rlen= read(hand, buffer, min(left,MAX_TRANSFER)); // Read the file
-     if( rlen < 0 )
-       throwf("%4d Server: read(%s) I/O error", __LINE__, fileName.c_str());
+   size_t size= file->desc.file_size; // Entire file left to be sent
+   while( size > 0 ) {              // More bytes need to be sent
+     size_t read_size= size;
+     if( read_size > MAX_TRANSFER )
+       read_size= MAX_TRANSFER;
 
-     if( rlen < 1 )
-       throwf("%4d Server: read(%s) unexpected end of file", __LINE__
-             , fileName.c_str());
+     ssize_t L= read(fd, buffer, min(size, MAX_TRANSFER)); // Read file
+     if( L < 1 )
+       throwf("Server %'zd= read(%s) error: %d:%s"
+             , L, s2c(file->get_file_name()), errno, strerror(errno));
 
-     nSendStruct(buffer,rlen);      // Send some of the file
-     left -= rlen;                  // Those sent aren't left to send
+     wr_data(buffer, L);            // Send some of the file
+     size -= (size_t)L;             // Those sent aren't left to send
    }
 
    //-------------------------------------------------------------------------
    // Close the file
    //-------------------------------------------------------------------------
-   if( close(hand) != 0 )            // Close data file failed
-     throwf("%4d Server: close(%s) failure", __LINE__, fileName.c_str());
+   if( close(fd) != 0 )             // Close data file failed
+     throwf("%4d Server: close(%s) failure", __LINE__
+           , s2c(file->get_file_name()));
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ServerThread::term
+//       ServerThread::serve_path
 //
-// Purpose-
-//       Terminate this ServerThread.
+// Function-
+//       Install a directory subtree.
 //
 //----------------------------------------------------------------------------
 void
-   ServerThread::term( void )       // Terminate this ServerThread
-{
-   IFSCDM( debugf("%4d ServerThread(%p)::term()\n", __LINE__, this); )
+   ServerThread::serve_path(        // Serve directory subtree
+     RdFile*           path_file)   // The directory RdFile
+{  if( hcdm() )
+     debugf("ServerThread(%p)::serve_path(%s)\n", this
+           , s2c(path_file->get_full_name()) );
 
-   if( fsm == FSM_READY )           // If forced termination
-   {
-     const char* peerName= socket->getPeerName();
-     if( peerName == NULL )
-       peerName= Socket::addrToChar(socket->getPeerAddr());
-     msgout("Server: ...Cancelled Host(%s:%d)\n",
-            peerName, socket->getPeerPort());
+   //-------------------------------------------------------------------------
+   // Validate parameters
+   //-------------------------------------------------------------------------
+   if( path_file->get_file_type() != FT_PATH )  {
+     SNO(__LINE__);                 // Ask to serve path that's not a path
+     return;
    }
 
-   CommonThread::term();
+   //-------------------------------------------------------------------------
+   // Load the directory
+   //-------------------------------------------------------------------------
+   msglog("serve_path(%s)..\n", s2c(path_file->get_full_name()));
+
+   string this_name= path_file->get_full_name();
+   if( path_file->file_name == "." )
+     this_name=path_file->path->path_name;
+
+   RdPath this_path(this, this_name);
+   push(&this_path);
+
+   //-------------------------------------------------------------------------
+   // Reply with directory information
+   //-------------------------------------------------------------------------
+   wr_path(&this_path);
+
+   //-------------------------------------------------------------------------
+   // Install this subdirectory
+   //-------------------------------------------------------------------------
+   while( fsm == FSM_READY ) {      // Process this directory
+     PeerRequest  query;            // Question from client
+     PeerResponse qresp;            // Reply to client
+
+     rd_data(&query, 1);            // Read client command
+     qresp.rc= RSP_YO;              // Default, operation accepted
+
+     switch(query.oc) {             // Process request
+       case REQ_FILE: {{{{          // Install file
+         //-------------------------------------------------------------------
+         // Install file
+         //-------------------------------------------------------------------
+         string file_name;          // The file name
+         rd_data(file_name);        // Get the file name
+         RdFile* file= this_path.locate(file_name); // Locate the RdFile
+         if( file->get_file_type() != FT_FILE )
+           SNO(__LINE__);           // Shouldn't ask for non-regular file
+
+         // Verify that we have permission to read this file
+         if( (file->desc.file_info & INFO_RUSR) == 0 ) {
+           say_no();
+           break;
+         }
+
+         serve_file(this_name, file);
+         break;
+       }}}}
+
+       case REQ_GOTO: {{{{          // Goto subdirectory
+         //-------------------------------------------------------------------
+         // Install subdirectory
+         //-------------------------------------------------------------------
+         string file_name;          // The directory name
+         rd_data(file_name);        // Get directory name
+         RdFile* file= this_path.locate(file_name);
+         if( file == nullptr || file->get_file_type() != FT_PATH )  {
+           SNO(__LINE__);           // Ask to install path, but it's not a path
+           say_no();                // Reject, not a directory
+           break;
+         }
+
+         // Verify that we have permission to read into this directory
+         if( (file->desc.file_info&INFO_RUSR) == 0
+             || (file->desc.file_info&INFO_XUSR) == 0 ) {
+           say_no();                // Reject, can't use directory
+           break;
+         }
+
+         // Install the new subdirectory
+         wr_data(&qresp, 1);        // The operation is accepted
+         serve_path(file);
+         break;
+       }}}}
+
+       case REQ_QUIT:               // Exit
+         //-------------------------------------------------------------------
+         // Exit (back to previous directory)
+         //-------------------------------------------------------------------
+         wr_data(&qresp, 1);        // The operation is accepted
+         msglog("..serve_path(%s)\n", s2c(this_name));
+         pop();
+         return;
+
+       default:                     // Error, invalid question
+         SNO(__LINE__, query.oc);
+         break;
+     }
+   }
 }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       ServerThread::verifyType
-//
-// Function-
-//       Verify that an item is of the appropriate type
-//
-//----------------------------------------------------------------------------
-int                                 // Return code (0 OK)
-   ServerThread::verifyType(        // Verify item type
-     DirEntry*         ptrE,        // -> DirEntry
-     int               type)        // Expected type
-{
-   PeerResponse        qresp;       // Reply to client
-
-   if( ptrE != NULL && getFileType(ptrE->fileInfo) == type )
-     return 0;
-
-   qresp.rc= RSP_NO;
-   nSend(&qresp, sizeof(qresp));
-   return 1;
-}
-

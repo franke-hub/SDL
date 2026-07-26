@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2025 Frank Eskesen.
+//       Copyright (C) 2020-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Editor: Input/output unit interface
 //
 // Last change date-
-//       2025/08/16
+//       2026/07/08
 //
 //----------------------------------------------------------------------------
 #ifndef EDUNIT_H_INCLUDED

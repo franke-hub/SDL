@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (c) 2014-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,20 +17,19 @@
 //       The server thread
 //
 // Last change date-
-//       2014/01/01
+//       2026/07/05
 //
 //----------------------------------------------------------------------------
 #ifndef SERVERTHREAD_H_INCLUDED
 #define SERVERTHREAD_H_INCLUDED
 
-#ifndef COMMONTHREAD_H_INCLUDED
-#include "CommonThread.h"
-#endif
+#include "CommonThread.h"           // For CommonThread, base class
+#include "IoCommon.h"               // For I/O common objects and subroutines
 
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
-class DirEntry;
+class RdFile;
 
 //----------------------------------------------------------------------------
 //
@@ -46,108 +45,81 @@ class ServerThread : public CommonThread { // ServerThread descriptor
 // ServerThread::Attributes
 //----------------------------------------------------------------------------
 protected:
-const char*            path;        // The starting directory
+string                 init_path;   // The initial path name
 
 //----------------------------------------------------------------------------
 // ServerThread::Constructors
 //----------------------------------------------------------------------------
 public:
+   ServerThread(                    // Constructor
+     Socket*           socket,      // Our I/O Socket
+     string            path);       // Our initial path
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 virtual
    ~ServerThread( void );           // Destructor
-   ServerThread(                    // Constructor
-     Socket*           socket,      // Our working Socket
-     const char*       path);       // Our starting path
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ServerThread::exchangeVersionID
+//       ServerThread::exchange_versionID
 //
 // Function-
-//       Exchange version identifiers.
+//       Exchange version identifiers, setting rVersionInfo.
 //
 //----------------------------------------------------------------------------
 int                                 // TRUE if version identifiers match
-   exchangeVersionID( void );       // Exchange version identifiers
+   exchange_versionID( void );      // Exchange version identifiers
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ServerThread::run()
+//       ServerThread::run
 //
 // Purpose-
 //       Operate the server for one client.
 //
 //----------------------------------------------------------------------------
-public:
-virtual long                        // Return code
+virtual void
    run( void );                     // Operate the Thread
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ServerThread::serve
+//       ServerThread::say_no
 //
 // Purpose-
-//       Process server requests (Initial directory level)
+//       Send negative reponse
 //
 //----------------------------------------------------------------------------
 void
-   serve( void );                   // Process server requests
+   say_no( void );                  // Send negative response
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ServerThread::serveDirectory
-//
-// Function-
-//       Install a directory subtree.
-//
-//----------------------------------------------------------------------------
-void
-   serveDirectory(                  // Serve directory subtree
-     const char*       path,        // Path to current directory
-     DirEntry*         ptrE);       // -> DirEntry (DirEntry.list != NULL)
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       ServerThread::serveFile
+//       ServerThread::serve_file
 //
 // Function-
 //       Return a file to the client.
 //
 //----------------------------------------------------------------------------
 void
-   serveFile(                       // Install a file
-     const char*       path,        // Current Path
-     DirEntry*         ptrE);       // -> DirEntry
+   serve_file(                      // Install a file
+     string            path,        // Current Path
+     RdFile*           file);       // -> RdFile
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ServerThread::term
-//
-// Purpose-
-//       Terminate this ServerThread.
-//
-//----------------------------------------------------------------------------
-virtual void
-   term( void );                    // Terminate this ServerThread
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       ServerThread::verifyType
+//       ServerThread::serve_path
 //
 // Function-
-//       Verify that an item is of the appropriate type
+//       Install a subdirectory tree.
 //
 //----------------------------------------------------------------------------
-int                                 // Return code (0 OK)
-   verifyType(                      // Verify item type
-     DirEntry*         ptrE,        // -> DirEntry
-     int               type);       // Expected type
+void
+   serve_path(                      // Serve subdirectory tree
+     RdFile*           file);       // The subdirectory's RdFile
 }; // class ServerThread
-
 #endif // SERVERTHREAD_H_INCLUDED

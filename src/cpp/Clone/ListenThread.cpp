@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014-2025 Frank Eskesen.
+//       Copyright (c) 2014-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,62 +17,40 @@
 //       Implement ListenThread object methods
 //
 // Last change date-
-//       2025/01/30
+//       2026/07/23
 //
 //----------------------------------------------------------------------------
-#include <cstdlib>
-
-#include <unistd.h>
-
-#include <com/Atomic.h>
-#include <com/Barrier.h>
-#include <com/Debug.h>
-#include <com/define.h>             // For NULL
-#include <com/Socket.h>
-
-#include "RdPatch.h"                // For get_sockaddr
-#include "ListenThread.h"
-#include "ServerThread.h"
+#include "IoCommon.h"               // For I/O common objects and subroutines
+#include "ListenThread.h"           // For ListenThread, implemented
+#include "ServerThread.h"           // For ServerThread
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
-#endif
-
-#ifndef SCDM
-#undef  SCDM                        // If defined, Soft Core Debug Mode
-#endif
-
-//----------------------------------------------------------------------------
-// Dependent macros
-//----------------------------------------------------------------------------
-#include <com/ifmacro.h>
+enum                                // Generic enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
+}; // Generic enum
 
 //----------------------------------------------------------------------------
 //
-// Subroutine-
-//       createServer
+// Method-
+//       ListenThread::ListenThread
 //
 // Purpose-
-//       Create a ServerThread
+//       Constructor.
 //
 //----------------------------------------------------------------------------
-static void
-   createServer(                       // Create a ServerThread
-     Socket*           socket,         // Using this Socket
-     const char*       path)           // And this initial path
+   ListenThread::ListenThread(      // Constructor
+     int               port)        // Connection port
+:  Thread(), port(port)
 {
-   try {
-     new ServerThread(socket, path);   // Create the Server Thread
-   } catch( const char* X ) {
-     fprintf(stderr, "%4d ListenThread create server exception(%s)\n",
-             __LINE__, X);
-   } catch(...) {
-     fprintf(stderr, "%4d ListenThread create server exception(%s)\n",
-             __LINE__, "...");
-   }
+   if( HCDM )
+     debugf("ListenThread(%p)::ListenThread(%p)\n", this, socket);
+
+   init_path= getcwd(nullptr, 0);   // Get current directory
+   if( init_path == nullptr )
+     throwf("Listen:%d getcwd", __LINE__);
 }
 
 //----------------------------------------------------------------------------
@@ -86,40 +64,15 @@ static void
 //----------------------------------------------------------------------------
    ListenThread::~ListenThread( void ) // Destructor
 {
-   IFSCDM( debugf("%4d ListenThread(%p)::~ListenThread()\n", __LINE__, this); )
+   if( HCDM )
+     debugf("ListenThread(%p)::~ListenThread()\n", this);
 
-   if( path != NULL )
-   {
-     free(path);
-     path= NULL;
-   }
-}
+   delete socket;
+   socket= nullptr;
 
-//----------------------------------------------------------------------------
-//
-// Method-
-//       ListenThread::ListenThread
-//
-// Purpose-
-//       Constructor.
-//
-//----------------------------------------------------------------------------
-   ListenThread::ListenThread(      // Constructor
-     int               port)        // Connection port
-:  CommonThread(NULL)
-,  port(port)
-{
-   IFSCDM( debugf("%4d ListenThread(%p)::ListenThread(%p)\n", __LINE__, this,
-                  socket); )
-
-   path= getcwd(NULL, 0);           // Get current directory
-   if( path == NULL )
-     throwf("Listen:%d getcwd", __LINE__);
-
-   if( buffer != NULL )             // We don't need the transfer buffer
-   {
-     mx_buffer->release(buffer);
-     buffer= NULL;
+   if( init_path ) {
+     free(init_path);
+     init_path= nullptr;
    }
 }
 
@@ -132,49 +85,58 @@ static void
 //       Operate the ListenThread.
 //
 //----------------------------------------------------------------------------
-long                                // Return code (always 0)
+void
    ListenThread::run( void )        // Operate this ListenThread
 {
-   IFSCDM( debugf("%4d ListenThread(%p)::run()...\n", __LINE__, this); )
+   if( HCDM ) debugf("ListenThread(%p)::run()...\n", this);
 
    // Initialize the Listener socket
-   socket= new Socket(Socket::ST_STREAM); // The listener Socket
-   if( socket == NULL )
-     throwf("ListenThread:%d unable to create socket", __LINE__);
+   socket= new Socket();            // The listener Socket
+   if( socket == nullptr )
+     throwf("%4d ListenThread: unable to create listener", __LINE__);
 
-   // PATCH: Use /etc/host name ----------------------------------------------
-   int socklen= sizeof(socket->hInet); // (Set maximum size)
-   std::string nps= socket->getHostName();
-   nps += ":" + std::to_string(port);
-   if( get_sockaddr(nps, socket->hInet, &socklen) != 0 ) {
-     debugf("Host(%s) not in /etc/hosts\n", socket->getHostName());
-     return -1;
-   }
-   socket->hSize= socklen;
+   int rc= socket->open(AF_INET, SOCK_STREAM, PF_UNSPEC);
+   if( env_iodm )
+     msglog("%4d= open(%d,%d,%d)\n", rc, AF_INET, SOCK_STREAM, PF_UNSPEC);
+   if( rc )
+     throwf("%4d ListenThread: %d= open(%d,%d,%d)\n", __LINE__, rc
+           , AF_INET, SOCK_STREAM, PF_UNSPEC);
 
-   msgout("Server: Host(%s:%d) Path(%s) %s\n",
-          socket->getHostName(), port, path,
-          Socket::addrToChar(socket->getHostAddr()));
-   // PATCH: Use /etc/host name ----------------------------------------------
+   int optval= true;                // (Needed before the bind)
+   rc= socket->set_option(SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+   if( env_iodm )
+     msglog("%4d= set_option(%d,%d,...)\n", rc
+           , SOL_SOCKET, SO_REUSEADDR);
+   if( rc )
+     throwf("%4d ListenThread: %d= set_option(%d,%d,...)\n", __LINE__
+           , rc, SOL_SOCKET, SO_REUSEADDR);
+
+   rc= socket->bind(port);          // Set port number
+   if( env_iodm )
+     msglog("%4d= bind(%d)\n", rc, port);
+   if( rc )
+     throwf("%4d ListenThread: %d= bind(%d)\n", __LINE__, rc, port);
+
+   rc= socket->listen();            // Begin listening
+   if( env_iodm )
+     msglog("%4d= listen()\n", rc);
+   if( rc )
+     throwf("%4d ListenThread: %d= listen()\n", __LINE__, rc);
+
+   msgout("Server: Host(%s:%d) %s %s\n"
+         , s2c(socket->gethostname()), port
+         , s2c(socket->get_host_addr().to_string()), init_path);
 
    // Operate the thread
-   fsm= FSM_READY;                  // Indicate operational
-   for(;;)                          // Wait for connections
-   {
-     Socket* server= socket->listen(port);
-     if( server == NULL )
-     {
-       msgerr("%4d Listen: error(%s)", __LINE__, socket->getSocketEI());
+   for(;;) {                        // Wait for connections
+     Socket* server= socket->accept();
+     if( server == nullptr ) {
+       msgioerr("Listen: accept() error");
        break;
      }
 
-     createServer(server, path);
+     new ServerThread(server, init_path); // Create the Server Thread
    }
 
-   // Thread termination
-   term();                          // Indicate terminated
-
-   IFSCDM( debugf("%4d ...ListenThread(%p)::run()\n", __LINE__, this); )
-   return 0;
+   if( HCDM ) debugf("...ListenThread(%p)::run()\n", this);
 }
-

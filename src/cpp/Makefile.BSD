@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2023-2025 Frank Eskesen.
+##       Copyright (C) 2023-2026 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       C++ build control makefile
 ##
 ## Last change date-
-##       2025/11/24
+##       2026/07/06
 ##
 ## Implementation notes-
 ##       ~/obj/cpp/Makefile links to this file.
@@ -55,7 +55,7 @@ CPP_ :=
 CPP_ +=  lib/com/Test        lib/dev/Test        lib/gui/Test
 CPP_ +=  lib/obj/Test        lib/pub/Test
 CPP_ +=  Brian
-CPP_ +=  Clean     Clone     Copy
+CPP_ +=  Clean     Clone     com-Clone Copy
 CPP_ +=  Darwin    Decoder   Diag
 CPP_ +=  Edit      Edit/Xcb  Edit/Term EiDB
 CPP_ +=  Fileman   Forth

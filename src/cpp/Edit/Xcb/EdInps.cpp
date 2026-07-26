@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2025 Frank Eskesen.
+//       Copyright (C) 2020-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Editor: Implement EdInps.h: Keyboard and mouse handlers.
 //
 // Last change date-
-//       2025/09/15
+//       2026/07/14
 //
 //----------------------------------------------------------------------------
 #include <cstdio>                   // For sprintf
@@ -568,7 +568,7 @@ void
 
        if( button_row != data->row ) { // If row changed
          if( button_row > row_used ) // (Button should not cause scroll up)
-           button_row= row_used;
+           button_row= row_used + 1;
          data->move_cursor_V(button_row - data->row); // Set new row
        }
        move_cursor_H(data->col_zero + get_col(E.event_x)); // Set new column
@@ -913,7 +913,7 @@ void
        return;
      }
 
-     if( editor::data_protected() )
+     if( view == data && editor::file_protected() )
        return;
 
      if( key_state & KS_INS ) {     // If Insert state

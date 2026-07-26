@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (c) 2014-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,21 +17,23 @@
 //       The client Thread
 //
 // Last change date-
-//       2014/01/01
+//       2026/07/21
+//
+// Implementation notes-
+//       The ClientThread does not run under control of a Thread, but uses
+//       CommonThread services.
 //
 //----------------------------------------------------------------------------
 #ifndef CLIENTTHREAD_H_INCLUDED
 #define CLIENTTHREAD_H_INCLUDED
 
-#ifndef COMMONTHREAD_H_INCLUDED
-#include "CommonThread.h"
-#endif
+#include "IoCommon.h"               // For I/O common objects and subroutines
+#include "CommonThread.h"           // For CommonThread, base class
 
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
-class DirEntry;
-class Socket;
+class RdFile;
 
 //----------------------------------------------------------------------------
 //
@@ -47,22 +49,24 @@ class ClientThread : public CommonThread { // ClientThread descriptor
 // ClientThread::Attributes
 //----------------------------------------------------------------------------
 protected:
-const char*            path;        // The starting directory
+string                 init_path;   // The initial path name
 
 //----------------------------------------------------------------------------
-// ClientThread::Constructors
+// ClientThread::Constructors/destructor
 //----------------------------------------------------------------------------
 public:
-virtual
-   ~ClientThread( void );           // Destructor
    ClientThread(                    // Constructor
      Socket*           socket,      // Associated Socket
-     const char*       path);       // Initial directory
+     const string&     path);       // Initial path name
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+virtual
+   ~ClientThread( void );           // Destructor
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ClientThread::exchangeVersionID
+//       ClientThread::exchange_versionID
 //
 // Function-
 //       Exchange version identifiers.
@@ -70,125 +74,125 @@ virtual
 //----------------------------------------------------------------------------
 public:
 int                                 // TRUE if version identifiers match
-   exchangeVersionID( void );       // Exchange version identifiers
+   exchange_versionID( void );      // Exchange version identifiers
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ClientThread::installItem
+//       ClientThread::install_attr
+//
+// Function-
+//       Install item attributes.
+//
+//----------------------------------------------------------------------------
+bool                                // TRUE iff attributes were updated
+   install_attr(                    // Install attributes
+     RdFile*           client);     // -> Client RdFile
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ClientThread::install_item
 //
 // Function-
 //       Install one file, link or directory.
 //
 //----------------------------------------------------------------------------
 int
-   installItem(                     // Install something
-     const char*       path,        // Current Path
-     DirEntry*         serverE,     // -> Server DirEntry
-     DirEntry*         clientE);    // -> Target file descriptor
+   install_item(                    // Install something
+     RdFile*           client,      // -> Client RdFile
+     RdFile*           server);     // -> Server RdFile
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ClientThread::removeDirectory
-//
-// Function-
-//       Remove all files and directories from a subtree.
-//
-//----------------------------------------------------------------------------
-int                                 // Return code
-   removeDirectory(                 // Remove a directory
-     const char*       path,        // The current path
-     DirEntry*         clientE);    // -> Client item descriptor
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       ClientThread::removeItem
+//       ClientThread::remove_item
 //
 // Function-
 //       Delete a file, link or directory.
 //
-// Implementation notes-
-//       For a directory, call removeDirectory first.
-//       (This mechanism avoids an extra level of recursion per subdirectory.)
-//
 //----------------------------------------------------------------------------
 int                                 // Return code
-   removeItem(                      // Remove something
-     const char*       path,        // Current Path
-     DirEntry*         clientE);    // -> Client item descriptor
+   remove_item(                     // Remove something
+     RdFile*           file);       // -> Item RdFile
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ClientThread::term
-//
-// Purpose-
-//       Terminate this ClientThread.
-//
-//----------------------------------------------------------------------------
-virtual void
-   term( void );                    // Terminate this ClientThread
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       ClientThread::updateAttr
+//       ClientThread::remove_path
 //
 // Function-
-//       Update item attributes.
+//       Remove all subtree content
 //
 //----------------------------------------------------------------------------
 void
-   updateAttr(                      // Update attributes
-     const char*       path,        // Current Path
-     DirEntry*         serverE,     // -> Source file descriptor
-     DirEntry*         clientE);    // -> Target file descriptor
+   remove_path(                     // Remove all subtree content
+     RdFile*           file);       // -> Path RdFile
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ClientThread::updateDirectory
-//
-// Function-
-//       Update new and changed files, links and directories within a
-//       a directory subtree.
-//
-//----------------------------------------------------------------------------
-void
-   updateDirectory(                 // Update directory subtree
-     const char*       path,        // Base path
-     DirList*          clientL,     // -> Client list containing clientE
-     DirEntry*         clientE);    // -> Client file descriptor
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       ClientThread::updateItem
-//
-// Function-
-//       Update a file, link or directory.
-//
-//----------------------------------------------------------------------------
-int                                 // Return code
-   updateItem(                      // Update something
-     const char*       path,        // Current Path
-     DirEntry*         serverE,     // -> Source file descriptor
-     DirEntry*         clientE);    // -> Target file descriptor
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       ClientThread::run()
+//       ClientThread::run
 //
 // Purpose-
 //       Operate the client.
 //
 //----------------------------------------------------------------------------
-protected:
-virtual long                        // Return code
-   run( void );                     // Operate the Thread
-}; // class ClientThread
+virtual void
+   run( void ) override;            // Operate the Client
 
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ClientThread::stop
+//
+// Purpose-
+//       Stop the client (Early termination)
+//
+//----------------------------------------------------------------------------
+[[noreturn]]
+static void
+   stop( void );                    // Stop the Client (Early termination)
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ClientThread::update_attr
+//
+// Function-
+//       Update item attributes.
+//
+//----------------------------------------------------------------------------
+bool                                // TRUE iff attributes were updated
+   update_attr(                     // Update attributes
+     RdFile*           client,      // -> Client RdFile
+     RdFile*           server);     // -> Server RdFile
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ClientThread::update_item
+//
+// Function-
+//       Update a file, link or directory.
+//
+//----------------------------------------------------------------------------
+int                                 // Return code (0 expected)
+   update_item(                     // Update something
+     RdFile*           client,      // -> Client RdFile
+     RdFile*           server);     // -> Server RdFile
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ClientThread::update_path
+//
+// Function-
+//       Update a path subtree
+//
+//----------------------------------------------------------------------------
+int                                 // Return code (0 expected)
+   update_path(                     // Update path subtree
+     const RdFile*     path_file);  // The directory RdFile
+}; // class ClientThread
 #endif // CLIENTTHREAD_H_INCLUDED

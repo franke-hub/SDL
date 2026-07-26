@@ -24,8 +24,8 @@
 #define _LIBPUB_DICTIONARY_H_INCLUDED
 
 #include <list>                     // For std::list
+#include <memory>                   // For std::unique_ptr
 #include <string>                   // For std::string
-#include <cstring>                  // For strcmp, ...
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include "pub/List.h"               // For pub::List

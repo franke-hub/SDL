@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014-2023 Frank Eskesen.
+//       Copyright (c) 2014-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,225 +17,178 @@
 //       Implement ClientThread object methods
 //
 // Last change date-
-//       2023/08/03
+//       2026/07/25
 //
 //----------------------------------------------------------------------------
-#include <exception>
-#include <string>                   // For std::string
-#include <cstdlib>
-#include <cstring>
+#include <exception>                // For std::exception
+#include <cstring>                  // For strcasecmp
 
-#include <sys/stat.h>               // For S_IREAD ...
+#include <sys/stat.h>               // For S_IREAD, ...
 
-#include <com/Debug.h>
-#include <com/define.h>             // For NULL
-#include <com/istring.h>            // For stricmp
+#include <pub/IO.h>                 // For namespace pub::io
 
-#include "ocrw.h"
-#include "RdCommon.h"
-#include "ClientThread.h"
+#include "IoCommon.h"               // For I/O common objects and subroutines
+#include "ClientThread.h"           // For ClientThread, implemented
 
-using std::string;
-
-//----------------------------------------------------------------------------
-// Constants for parameterization
-//----------------------------------------------------------------------------
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
+#ifndef O_BINARY                    // Defined in CYGWIN, not in LINUX
+  #define O_BINARY 0
 #endif
 
-//----------------------------------------------------------------------------
-// Dependent macros
-//----------------------------------------------------------------------------
-#include <com/ifmacro.h>
+#define IO PUB::io
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#define AC_NOP                    0 // No action
-#define AC_GETSERVER              1 // Next SERVER, Keep CLIENT
-#define AC_GETCLIENT              2 // Keep SERVER, Next CLIENT
-#define AC_BOTH                   3 // Get next (CLIENT and SERVER)
+enum                                // Generic enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // VERBOSITY, higher is more verbose
+}; // generic enum
 
-// Standard return codes
-#define RC_NORM                   0 // Normal (No error)
-#define RC_ERROR                  1 // Error
+enum AC                             // Action codes
+{  AC_NOP=                        0 // No action
+,  AC_GETSERVER=                  1 // Next SERVER, Keep CLIENT
+,  AC_GETCLIENT=                  2 // Keep SERVER, Next CLIENT
+,  AC_BOTH=                       3 // Get next (CLIENT and SERVER)
+}; // enum AC
+
+enum RC                             // Return codes
+{  RC_NORM= 0                       // Normal (No error)
+,  RC_ERROR= 1                      // Error
+}; // enum RC
 
 //----------------------------------------------------------------------------
 // Constant data areas
 //----------------------------------------------------------------------------
-static const char*     constFile= "!const"; // The const file name
-//----------------------------------------------------------------------------
-// OS dependencies
-//----------------------------------------------------------------------------
-#if defined(_OS_WIN)
-  #define S_IRWXU (S_IREAD | S_IWRITE | S_IEXEC)
-#endif
+static constexpr const char*
+                       const_file_name= "!const"; // The const file name
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       constModify
+//       hcdm
+//       verbose
+//       hcdm_verbose
+//
+// Purpose-
+//       Is Hard Core Debug Mode active?
+//       Is Verbosity greater than N?
+//       Are hcdm() && verbose(N) both true?
+//
+//----------------------------------------------------------------------------
+static inline bool                  // TRUE if Hard Core Debug Mode is active
+   hcdm( void )                     // Is Hard Core Debug Mode active?
+{  return HCDM || opt_hcdm; }
+
+static inline bool                  // TRUE if Verbosity is greater than N
+   verbose(                         // Is Verbosity greater than
+     int               N= 0)        // This value?
+{  return VERBOSE > N || opt_verbose > N; }
+
+static inline bool                  // TRUE if hcdm && verbose(N)
+   hcdm_verbose(                    // If hcdm() && verbose(N)
+     int               N= 0)
+{  return hcdm() && verbose(N); }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       attempted_const_modify
 //
 // Function-
 //       Attempt to modify constant file
 //
 //----------------------------------------------------------------------------
+[[noreturn]]
 static void
-   constModify(                     // Attempt to modify constant file
-     const char*       path)        // Current Path
-{
-   throwf("ERROR: Attempt to modify(%s/%s)\n"
-          "(This must be done manually.)",
-          path, constFile);
+   attempted_const_modify(          // Attempt to modify
+     const string&     name)        // This const file
+{  fprintf(stderr, "ERROR: Attempt to modify(%s)\n"
+                   "(This must be done manually.)\n"
+                 , s2c(name));
+   throw "disconnect";
 }
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       getNamePart
+//       case_comp
 //
 // Function-
-//       Extract the path name part: return foo.bar for /home/user/tmp/foo.bar
+//       Case insensitive string compare
 //
 //----------------------------------------------------------------------------
-static const char*                  // The name part of path
-   getNamePart(                     // Get name part of path
-     const char*       path)        // For this directory name
+static int                          // Case insensitive comparison
+   case_comp(                       // Case insensitive string compare
+     string            lhs,         // Left Hand Side
+     string            rhs)         // Right Hand Side
 {
-   int x= strlen(path);
-   while( x > 0 )
-   {
-     x--;
-     if( path[x] == '/' )
-       return path + x + 1;
-   }
-
-   return path;
+   const char* cc_lhs= s2c(lhs);
+   const char* cc_rhs= s2c(rhs);
+   return strcasecmp(cc_lhs, cc_rhs);
 }
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       invalidResponse
+//       invalid_response
 //
 // Function-
 //       An invalid response was received from the server
 //
 //----------------------------------------------------------------------------
+[[noreturn]]
 static void                         // (Does not return)
-   invalidResponse(                 // Handle invalid response
+   invalid_response(                // Handle invalid response
      int               lineno,      // Calling line number
-     const char*       opCode,      // Failing operation name
-     int               opResp)      // The invalid response
-{
-   throwf("%4d ClientThread: Why did Server reply '%c' (%d) to %s?",
-          lineno, opResp, opResp, opCode);
+     const char*       op_name,     // Failing operation name
+     int               op_resp)     // The invalid response
+{  fprintf(stderr, "%4d ClientThread: Why did Server reply '%c' (%d) to %s?\n"
+                 , lineno, op_resp, op_resp, op_name);
+   ClientThread::stop();
 }
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       normalizeDirectory
-//
-// Function-
-//       Normalize a directory name.
-//
-//----------------------------------------------------------------------------
-static void
-   normalizeDirectory(              // Normalize a directory name
-     VersionInfo*      info,        // Associated version identifier
-     char*             path)        // Path to current directory (MODIFIED)
-{
-   switch(info->f[1])
-   {
-     case VersionInfo::VIF1_OBSD:   // (Normalization not required)
-       break;
-
-     case VersionInfo::VIF1_OCYG:   // Remove "/cygdrive/*" header
-       if( memcmp(path, "/cygdrive/", 10) == 0 )
-       {
-         if( path[10] != '\0' && path[11] == '/' )
-           strcpy(path, path+11);
-       }
-       break;
-
-     case VersionInfo::VIF1_OWIN:   // Remove "*:" header, convert '\\' to '/'
-       {{{{
-       if( path[0] != '\0' && path[1] == ':' )
-         strcpy(path, path+2);
-
-       int L= strlen(path);
-       for(int i= 0; i<L; i++)
-       {
-         if( path[i] == '\\' )
-           path[i]= '/';
-       }
-       }}}}
-       break;
-
-     default:
-       throwf("%4d ClientThread: VersionInfo %d", __LINE__, info->f[1]);
-       break;
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       printAction
+//       print_action
 //
 // Function-
 //       Print action taken for an item.
 //
 //----------------------------------------------------------------------------
 static void
-   printAction(                     // Action was taken
+   print_action(                    // Action was taken
      const char*       action,      // This action was taken
-     DirEntry*         ptrE,        // This file was acted upon
+     const RdFile*     file,        // This file was acted upon
      const char*       reason)      // This is the reason why
 {
-   if( sw_quiet )                   // If silent running
-     msglog("  %-10s %c %-32s %s\n",
-            action, getFileType(ptrE->fileInfo), ptrE->fileName, reason);
+   if( opt_quiet )                  // If silent running
+     msglog("  %-10s %c %-32s %s\n"
+           , action, get_file_type(file), s2c(file->file_name), reason);
    else
-     msgout("  %-10s %c %-32s %s\n",
-            action, getFileType(ptrE->fileInfo), ptrE->fileName, reason);
+     msgout("  %-10s %c %-32s %s\n"
+           , action, get_file_type(file), s2c(file->file_name), reason);
 }
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       printPath
+//       print_path
 //
 // Function-
-//       If firstTime parameter is TRUE, print path name.
+//       Print path name (once per path)
 //
 //----------------------------------------------------------------------------
-static int                          // constant FALSE
-   printPath(
-     int               firstTime,   // Is this the first time?
-     const char*       path)        // The path name to print
+static void
+   print_path(
+     int&              once,        // INP/OUT: Is this the first print_path?
+     const string&     path)        // The path name to print
 {
-   if( firstTime == TRUE            // If this is the first time
-       &&sw_quiet != TRUE )         // and we are not running silent
-     msgout("\n%s\n", path);        // Display the current directory
+   if( once == false                // Is the first print_path for this path?
+       && opt_quiet != true )       // and we are not running silent
+     msgout("\n%s\n", s2c(path));   // Display the current directory
 
-   return(FALSE);                   // Always return FALSE
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       ClientThread::~ClientThread
-//
-// Purpose-
-//       Destructor.
-//
-//----------------------------------------------------------------------------
-   ClientThread::~ClientThread( void ) // Destructor
-{
-   IFHCDM( debugf("%4d ClientThread(%p)::~ClientThread()\n", __LINE__, this); )
+   once= true;
 }
 
 //----------------------------------------------------------------------------
@@ -249,309 +202,300 @@ static int                          // constant FALSE
 //----------------------------------------------------------------------------
    ClientThread::ClientThread(      // Constructor
      Socket*           socket,      // Associated Socket
-     const char*       path)        // Initial directory
-:  CommonThread(socket)
-,  path(path)
-{
-   IFHCDM(
-     debugf("%4d ClientThread(%p)::ClientThread(%p,%s)\n", __LINE__, this,
-            socket, path);
-   )
+     const string&     path)        // Initial directory
+:  CommonThread(socket), init_path(path)
+{  if( hcdm() )
+     debugf("ClientThread(%p)::ClientThread(%p,%s)\n", this
+           , socket, s2c(init_path));
+
+   //-------------------------------------------------------------------------
+   // Set transfer size -- optimization attempt (has no noticable effect)
+   //-------------------------------------------------------------------------
+   if( USE_RCVBUF_SIZE > 0 ) {      // If transfer size optimization
+     int optval= USE_RCVBUF_SIZE;
+     socket->set_option(SOL_SOCKET, SO_RCVBUF, &optval, sizeof(optval));
+   }
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ClientThread::exchangeVersionID
+//       ClientThread::~ClientThread
+//
+// Purpose-
+//       Destructor.
+//
+//----------------------------------------------------------------------------
+   ClientThread::~ClientThread( void ) // Destructor
+{  if( hcdm() ) debugf("ClientThread(%p)~\n", this); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ClientThread::exchange_versionID
 //
 // Function-
-//       Exchange version identifiers.
+//       Exchange version identifiers and verify current directory.
 //
 //----------------------------------------------------------------------------
 int                                 // TRUE if version identifiers match
-   ClientThread::exchangeVersionID( void ) // Exchange version identifiers
-{
-   PeerRequest         query;       // RdServer request
-   PeerResponse        qresp;       // RdServer response
-   int                 L;           // Response length
+   ClientThread::exchange_versionID( void ) // Exchange version identifiers
+{  if( hcdm() )
+     debugf("ClientThread(%p)::exchange_versionID\n", this);
 
-   struct
-   {
-     VersionInfo       info;        // Input version info
-     char              pad[16];     // Pad
-   }                   inpVersion;  // Version info
+   set_localVersionInformation();   // Initialize local version information
 
-   //-------------------------------------------------------------------------
-   // Exchange version identifiers
-   //-------------------------------------------------------------------------
-   localVersionInformation();       // Initialize local version information
-   if( sw_verify )                  // If verify switch
-     lVersionInfo.f[7] |= VersionInfo::VIF7_KSUM; // Indicate checksum switch
-
+   PeerRequest query;
    query.oc= REQ_VERSION;
-   nSend(&query, sizeof(query));
-   nSendString(&lVersionInfo, sizeof(lVersionInfo));
-   memset(&inpVersion, 0, sizeof(inpVersion));
-   L= nRecvString(&inpVersion, sizeof(inpVersion));
-   nRecv(&qresp, sizeof(qresp));
-   if( strcmp(inpVersion.info.version, RD_VERSION) != 0 )
-   {
-     msgout("%4d ClientThread: Version mismatch: Here(%s) Peer(%s)\n",
-            __LINE__, RD_VERSION, inpVersion.info.version);
-     return FALSE;
-   }
+   wr_data(&query, sizeof(query));
 
-   if( L != sizeof(VersionInfo) )
-   {
-     msgout("%4d ClientThread: Version length: Got(%d) Expected(%ld)\n",
-            __LINE__, L, (long)sizeof(VersionInfo));
-     return FALSE;
+   HOST16_t host_size= (HOST16_t)sizeof(lVersionInfo);
+   wr_buff(host_size);
+   wr_buff(&lVersionInfo, host_size);
+   wr_buff();
+
+   HOST16_t peer_size= 0;
+   rd_buff(peer_size);
+   if( host_size != peer_size ) {
+     msgout("Client: exchange size mismatch: Here(%d) Peer(%d)\n"
+           , host_size, peer_size);
+     return false;
+   }
+   rd_buff(&rVersionInfo, peer_size);
+
+   PeerResponse qresp;
+   rd_data(&qresp, sizeof(qresp));
+
+   if( strcmp(RD_VERSION, rVersionInfo.version) != 0 ) {
+     msgout("Client: exchange version mismatch: Here(%s) Peer(%s)\n"
+           , RD_VERSION, rVersionInfo.version);
+     return false;
    }
 
    if( qresp.rc != RSP_YO )
-   {
-     invalidResponse(__LINE__, "VERSION", qresp.rc);
-     return FALSE;
-   }
+     invalid_response(__LINE__, "VERSION", qresp.rc);
 
-   memcpy(&rVersionInfo, &inpVersion.info, sizeof(rVersionInfo));
-   globalVersionInformation();
+   set_globalVersionInformation();
 
    //-------------------------------------------------------------------------
    // Verify the Current Working Directory and OS
    //-------------------------------------------------------------------------
-   if( sw_unsafe == FALSE )         // Verify CWD?
-   {
-     char clientCWD[4096];
-     if( getcwd(clientCWD, sizeof(clientCWD)) == NULL )
-     {
-       msgout("%4d ClientThread: system(getcwd) error\n", __LINE__);
-       return FALSE;
-     }
-
+   if( !opt_unsafe ) {              // Verify CWD?
      query.oc= REQ_CWD;
-     nSend(&query, sizeof(query));
-     nRecv(&qresp, sizeof(qresp));
+     wr_data(&query, sizeof(query));
+     rd_data(&qresp, sizeof(qresp));
      if( qresp.rc != RSP_YO )
-     {
-       invalidResponse(__LINE__, "GETCWD", qresp.rc);
-       return FALSE;
+       invalid_response(__LINE__, "GETCWD", qresp.rc);
+
+     string client_cwd= get_cwd();
+     string server_cwd;
+     rd_data(server_cwd);
+     string client_name= get_file_name(client_cwd);
+     string server_name= get_file_name(server_cwd);
+     if( client_name != server_name ) {
+       msgout("Error: CWD file name mismatch: Here(%s) Peer(%s)\n"
+              "Use -U for unsafe operation\n"
+             , s2c(client_name), s2c(server_name));
+       return false;
      }
-
-     char serverCWD[4096];
-     L= nRecvString(serverCWD, sizeof(serverCWD)-1);
-     serverCWD[L]= '\0';
-
-     normalizeDirectory(&lVersionInfo, clientCWD); // Normalize the names
-     normalizeDirectory(&rVersionInfo, serverCWD);
-     if( strcmp(getNamePart(clientCWD), getNamePart(serverCWD)) != 0 )
-     {
-       msgout("Error: CWD name mismatch: server(%s) client(%s)\n",
-              getNamePart(serverCWD), getNamePart(clientCWD));
-       msgout("Use -U for unsafe operation\n");
-       return FALSE;
-     }
-
-     if( gVersionInfo.f[1] == VersionInfo::VIF1_OMIX
-         && (lVersionInfo.f[1] == VersionInfo::VIF1_OWIN
-         ||  rVersionInfo.f[1] == VersionInfo::VIF1_OWIN) )
-       msgout("WARNING: OS mismatch: server(%s) client(%s)\n",
-              rVersionInfo.f[1] == VersionInfo::VIF1_OWIN ? "WIN" : "BSD",
-              lVersionInfo.f[1] == VersionInfo::VIF1_OWIN ? "WIN" : "BSD");
    }
 
-   return TRUE;
+   return true;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ClientThread::installItem
+//       ClientThread::install_attr
 //
 // Function-
-//       Install one file, link or directory.
+//       Install attributes (change last modification time and permissions)
 //
 //----------------------------------------------------------------------------
-int
-   ClientThread::installItem(       // Install something
-     const char*       path,        // Current Path
-     DirEntry*         serverE,     // -> Server DirEntry
-     DirEntry*         clientE)     // -> Target item descriptor
-{
-   PeerRequest         query;       // Order to server
-   PeerResponse        qresp;       // Reply to client
-   int                 result;      // Resultant
-
-   int                 outf;        // Output (new) file handle
-   off64_t             left;        // Bytes of file left to send
-   int                 rlen;        // Number of bytes read
-   int                 wlen;        // Number of bytes written
-   int                 rc;          // Called routine return code
+bool                                // TRUE iff attributes were updated
+   ClientThread::install_attr(      // Install attributes
+     RdFile*           client)      // -> Client RdFile
+{  if( hcdm() )
+     debugf("ClientThread(%p)::install_attr(%s)\n", this
+           , s2c(client->file_name));
 
    //-------------------------------------------------------------------------
-   // Get the fully qualified file name
+   // Verify update attributes allowed
    //-------------------------------------------------------------------------
-   string fullName= makeFileName(path, serverE->fileName);
+   if( BRINGUP_MODE || opt_keep )
+     return false;
+
+   //-------------------------------------------------------------------------
+   // Update the attributes, already copied into client
+   //-------------------------------------------------------------------------
+   client->set_attr();              // Update the item's attributes
+   return true;                     // Attributes updated
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ClientThread::install_item
+//
+// Function-
+//       Install one fifo, file, link, or path.
+//
+//----------------------------------------------------------------------------
+int                                 // Return code, 0 expected
+   ClientThread::install_item(      // Install something
+     RdFile*           client,      // -> Client RdFile
+     RdFile*           server)      // -> Server RdFile
+{  if( hcdm() )
+     debugf("ClientThread(%p)::install_item(%s)\n", this
+           , s2c(client->file_name));
+
+   //-------------------------------------------------------------------------
+   // Update the client info
+   //-------------------------------------------------------------------------
+   client->desc= server->desc;
+   client->file_name= server->file_name;
+   client->link_name= server->link_name;
+
+   string full_name= client->get_full_name();
 
    //-------------------------------------------------------------------------
    // Diagnostics
    //-------------------------------------------------------------------------
    msglog("\n");
-   msglog("installItem: %s\n-----------\n", serverE->fileName);
-   serverE->display("SERVER:");
-   clientE->display("CLIENT:");
+   msglog("install_item: %s\n-----------\n", s2c(server->file_name));
+   client->display("CLIENT:");
+   server->display("SERVER:");
 
-   #if( BRINGUP )
-     printAction("ignored", clientE, "[BRINGUP (won't install)]");
+   if( BRINGUP_MODE ) {
+     print_action("ignored", client, "[BRINGUP (won't install)]");
      return(RC_ERROR);
-   #endif
+   }
+
+   if( opt_keep ) {
+     print_action("skipped", client, "[Install disallowed: -K]");
+     return(RC_ERROR);
+   }
 
    //-------------------------------------------------------------------------
    // Install the item
    //-------------------------------------------------------------------------
-   result= RC_NORM;                 // Default, successful
-   switch(getFileType(serverE->fileInfo)) // Process by item type
-   {
-     case FT_PATH:                  // If it's a directory
+   int result= RC_NORM;             // Default, successful
+   switch(get_file_type(server)) {  // Process by item type
+     case FT_PATH: {{{{             // If it's a directory
        //---------------------------------------------------------------------
        // Install a directory
        //---------------------------------------------------------------------
-       if( mkdir(fullName.c_str(), S_IRWXU) != 0 ) // Create writeable
-       {
-         msgerr("%4d ClientThread: mkdir(%s) failure", __LINE__
-               , fullName.c_str());
+       if( mkpath(full_name, S_IRWXU) == 0 ) { // Initialize writeable
+         result= update_path(client);
+         if( result == RC_NORM )
+           install_attr(client);
+       } else {                     // If mkpath failure
+         msgioerr("%4d ClientThread: mkpath(%s) failure", __LINE__
+                 , s2c(full_name));
          result= RC_ERROR;
        }
-       return result;               // Attributes updated later
        break;
+     }}}}
 
      case FT_LINK:                  // If it's a link
        //---------------------------------------------------------------------
        // Install a soft link
        //---------------------------------------------------------------------
-       rc= symlink(serverE->linkName, fullName.c_str()); // Create new link
-       if( rc != 0 )                // If symlink failure
-       {
-         printAction("skipped", serverE, "[Cannot create link]");
+       if( mklink(server->link_name, full_name) != 0 ) { // If symlink failure
+         print_action("skipped", server, "[Cannot create link]");
          result= RC_ERROR;
          break;
        }
-       strcpy(clientE->linkName, serverE->linkName);
+       client->link_name= server->link_name;
        break;
 
-     case FT_FILE:                  // If it's a file
-       {{{{                         // (Backout object created)
+     case FT_FILE: {{{{             // If it's a file
        //---------------------------------------------------------------------
-       // Request the file
+       // Install a file
        //---------------------------------------------------------------------
+       PeerRequest  query;          // Server request
+       PeerResponse qresp;          // Server response
        query.oc= REQ_FILE;          // Request the file
-       nSend(&query, 1);            // Get the next entry
-       nSendString(serverE->fileName,
-                   strlen(serverE->fileName)); // Tell SERVER its name
-//                 strlen(serverE->fileName) + 1); // Tell SERVER its name
-
-       nRecv(&qresp, 1);            // Get the reply
-       if( qresp.rc != RSP_YO )     // If operation rejected
-       {
+       wr_data(&query, 1);
+       wr_data(server->file_name);
+       rd_data(&qresp, 1);          // Get the reply
+       if( qresp.rc != RSP_YO ) {   // If operation rejected
          if( qresp.rc != RSP_NO )   // If operation garbled
-           invalidResponse(__LINE__, "FILE", qresp.rc);
+           invalid_response(__LINE__, "FILE", qresp.rc);
 
-         printAction("skipped", clientE, "[Disallowed by SERVER]");
-         return RC_ERROR;
+         print_action("skipped", client, "[Disallowed by SERVER]");
+         result= RC_ERROR;
          break;
        }
 
        //---------------------------------------------------------------------
        // Open the file
        //---------------------------------------------------------------------
-       outf= open64(fullName.c_str(),
-                    O_WRONLY|O_BINARY|O_TRUNC|O_CREAT,
-                    S_IRUSR|S_IWUSR);
-       if( outf < 0 )               // Open failed
-       {
-         msgerr("%4d ClientThread: open64(%s) failure", __LINE__
-               , fullName.c_str());
-         printAction("aborted", clientE, "[Open failure]");
-         result= RC_ERROR;
+       fd_t fd= open(s2c(full_name), O_WRONLY|O_BINARY|O_TRUNC|O_CREAT
+                    , S_IRUSR|S_IWUSR);
+       if( fd < 0 ) {               // Open failed
+         msgioerr("%4d ClientThread: open(%s) failure", __LINE__
+                 , s2c(full_name));
+         print_action("cancelled", client, "[Open failure]");
+         stop();
+         break;
        }
-
-       //---------------------------------------------------------------------
-       // Install recovery handler
-       //---------------------------------------------------------------------
-       Backout backout(path, serverE, outf);
 
        //---------------------------------------------------------------------
        // Receive the file (using server attributes!)
        //---------------------------------------------------------------------
-       left= serverE->fileSize;     // Entire file left to be sent
-       while(left > 0 )             // More bytes need to be sent
-       {
-         rlen= (unsigned)min(left, MAX_TRANSFER);
-         nRecvStruct(buffer, rlen); // Read from SERVER
-         if( outf < 0 )
-           wlen= rlen;
-         else
-           wlen= write(outf,buffer,rlen); // Write some of the file
-         if( wlen != rlen )         // Wrong amount written
-           throwf("%4d ClientThread: %d=write(%s,%d) error",
-                  __LINE__, wlen, fullName.c_str(), rlen);
+       Backout backout(client, fd); //
+       size_t left= server->desc.file_size; // Entire file left to be sent
+       while(left > 0 ) {           // More bytes need to be received
+         size_t rd_size= min(left, MAX_TRANSFER);
+         rd_data(buffer, rd_size);  // Read from server
+         size_t wr_size= write(fd, buffer, rd_size); // Write some of the file
+         if( wr_size != rd_size )   // Wrong amount written
+           throwf("%4d ClientThread: %'zd=write(%s,%'zd) error",
+                  __LINE__, wr_size, s2c(full_name), rd_size);
 
-         left -= rlen;              // Those read aren't left to read
+         left -= rd_size;           // Those read aren't left to read
        }                            // Done reading more bytes
 
        //---------------------------------------------------------------------
        // Close the file
        //---------------------------------------------------------------------
-       backout.reset();             // Transfer complete, cancel backout
-       rc= 0;                       // Default, closed
-       if( outf >= 0 )
-         rc= close(outf);           // Close the file
-       if( rc != 0 )                // Close data file failed
-       {
-         removeItem(path, serverE);
-         msgerr("%4d ClientThread: close(%s) failure", __LINE__
-               , fullName.c_str());
-         printAction("aborted", serverE, "[I/O error]");
+       int rc= close(fd);           // Close the file
+       if( rc == 0 ) {              // If closed OK
+         backout.reset();           // Cancel backout
+         install_attr(client);      // Install attributes
+       } else {                     // If close failure
+         // Backout will remove the file
+         msgioerr("%4d ClientThread: close(%s) failure", __LINE__
+                 , s2c(full_name));
          result= RC_ERROR;
        }
-       }}}}
        break;
+     }}}}
 
-     case FT_FIFO:                  // If it's a pipe
+     case FT_FIFO: {{{{             // If it's a pipe
        //---------------------------------------------------------------------
        // Install a pipe
        //---------------------------------------------------------------------
-       #if defined(_OS_WIN) || defined(_OS_CYGWIN)
-         clientE->fileInfo= serverE->fileInfo; // Set updated stats
-         msgout("%4d ClientThread: mkfifo(%s) not supported\n", __LINE__
-               , fullName.c_str());
+       client->desc.file_info= server->desc.file_info;
+       int rc= mkfifo(full_name, client->get_chmod());
+       if( rc == RC_NORM ) {        // If pipe created
+         update_attr(client, server); // Update attributes
+       } else {
+         msgioerr("%4d ClientThread: mkfifo(%s) failure", __LINE__
+                 , s2c(full_name));
          result= RC_ERROR;
-
-       #elif defined(_OS_BSD)
-         clientE->fileInfo= serverE->fileInfo; // Set updated stats
-         rc=mkfifo(fullName.c_str(), clientE->fileInfo);
-         if( rc != 0 )              // Failed to make the pipe
-         {
-           msgerr("%4d ClientThread: mkfifo(%s) failure", __LINE__
-                 , fullName.c_str());
-           result= RC_ERROR;
-         }
-       #endif
+       }
        break;
+     }}}}
 
      default:                       // If it's of unknown type
        //---------------------------------------------------------------------
        // Install an item of unknown type
        //---------------------------------------------------------------------
-       printAction("ignored", clientE, "[What kind of thing is it?]");
+       print_action("ignored", client, "[What kind of thing is it?]");
        result= RC_ERROR;
    }
-
-   //-------------------------------------------------------------------------
-   // Update the item's attributes
-   //-------------------------------------------------------------------------
-   if( result == RC_NORM )
-     updateAttr(path, serverE, clientE); // Update attributes
 
    return result;
 }
@@ -559,137 +503,62 @@ int
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ClientThread::removeDirectory
+//       ClientThread::remove_item
 //
 // Function-
-//       Remove all files and directories from a subtree.
+//       Delete a Client file, link or path.
+//
+// Implementation notes-
+//       For a path, call remove_path first. (This also updates permissions.)
+//       (If done here, it would add an extra stack level per subdirectory.)
 //
 //----------------------------------------------------------------------------
-int                                 // Return code
-   ClientThread::removeDirectory(   // Remove a directory
-     const char*       path,        // The current path
-     DirEntry*         clientE)     // -> Client item descriptor
-{
-   int                 returncd= TRUE; // This routine's return code
-
-   DirList*            clientL;     // -> Client DirList
-   DirEntry*           ptrEntry;    // -> DirEntry (working)
-
-   int                 rc;
+int                                 // Return code (0 expected)
+   ClientThread::remove_item(       // Remove something
+     RdFile*           client)      // Current client RdFile
+{  if( hcdm() )
+     debugf("ClientThread(%p)::remove_item(%s)\n", this
+           , s2c(client->get_full_name()));
 
    //-------------------------------------------------------------------------
    // Get the fully qualified file name
    //-------------------------------------------------------------------------
-   string pathName= makeFileName(path, clientE->fileName);
+   string full_name= client->get_full_name();
 
-   //-------------------------------------------------------------------------
-   // Diagnostics
-   //-------------------------------------------------------------------------
-   msglog("\n");
-   msglog("removeDir: %s\n-----------\n", pathName.c_str());
-   clientE->display("CLIENT:");
-
-   #if( BRINGUP )
-     printAction("kept", clientE, "[BRINGUP (won't rmdir)]");
-     return(RC_ERROR);
-   #endif
-
-   //-------------------------------------------------------------------------
-   // Switch into new subdirectory
-   //-------------------------------------------------------------------------
-   if( (clientE->fileInfo&INFO_RUSR) == 0  // Don't have permission to read
-       ||(clientE->fileInfo&INFO_WUSR) == 0 //  or can't write in it
-       ||(clientE->fileInfo&INFO_XUSR) == 0 ) //  or can't change to it
-   {
-     rc= chmod(pathName.c_str(),
-               clientE->chmod()|(S_IRUSR|S_IWUSR|S_IXUSR));
-     if( rc != 0 )                  // Couldn't give self permissions
-       throwf("%4d ClientThread: chmod(%s) failure", __LINE__
-             , pathName.c_str());
-   }
-
-   //-------------------------------------------------------------------------
-   // Delete all items in the subdirectory, recursively
-   //-------------------------------------------------------------------------
-   clientL= new DirList(this, path, clientE); // Read/sort the delete directory
-   ptrEntry= clientL->head;         // Address the first element
-   while( ptrEntry != NULL )        // For each item in the directory
-   {
-     if( getFileType(ptrEntry->fileInfo) == FT_PATH ) // If a subdirectory
-       removeDirectory(pathName.c_str(), ptrEntry); // Remove it first
-
-     removeItem(pathName.c_str(), ptrEntry);
-     ptrEntry= ptrEntry->next;
-   }
-   delete clientL;
-
-   //-------------------------------------------------------------------------
-   // Restore permissions
-   //-------------------------------------------------------------------------
-   if( (clientE->fileInfo&INFO_RUSR) == 0 // Didn't have permission to read
-       ||(clientE->fileInfo&INFO_WUSR) == 0 //  or to write in it
-       ||(clientE->fileInfo&INFO_XUSR) == 0 ) //  or to change to it
-   {
-     rc= chmod(pathName.c_str(),    // Restore permissions
-               clientE->chmod());
-     if( rc != 0 )
-       throwf("%4d ClientThread: chmod(%s) restore failure", __LINE__
-             , pathName.c_str());
-   }
-
-   return(returncd);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       ClientThread::removeItem
-//
-// Function-
-//       Delete a file, link or directory.
-//
-//----------------------------------------------------------------------------
-int                                 // Return code
-   ClientThread::removeItem(        // Remove something
-     const char*       path,        // Current Path
-     DirEntry*         clientE)     // -> Client file descriptor
-{
    //-------------------------------------------------------------------------
    // Verify that we're not trying to remove a "!const" file
    //-------------------------------------------------------------------------
-   if( strcmp(constFile, clientE->fileName) == 0 )
-     constModify(path);
-
-   //-------------------------------------------------------------------------
-   // Get the fully qualified file name
-   //-------------------------------------------------------------------------
-   string fileName= makeFileName(path, clientE->fileName);
+   if( client->file_name == const_file_name )
+     attempted_const_modify(full_name);
 
    //-------------------------------------------------------------------------
    // Diagnostics
    //-------------------------------------------------------------------------
    msglog("\n");
-   msglog("removeItem: %s\n-----------\n", clientE->fileName);
-   clientE->display("CLIENT:");
+   msglog("remove_item: %s\n-----------\n", s2c(full_name));
+   client->display("CLIENT:");
 
-   #if( BRINGUP )
-     printAction("kept", clientE, "[BRINGUP (won't remove)]");
+   if( BRINGUP_MODE ) {
+     print_action("kept", client, "[BRINGUP (won't remove)]");
      return(RC_ERROR);
-   #endif
+   }
+
+   if( opt_keep ) {
+     print_action("kept", client, "[Remove disallowed: -K]");
+     return(RC_ERROR);
+   }
 
    //-------------------------------------------------------------------------
    // Remove the item
    //-------------------------------------------------------------------------
-   switch(getFileType(clientE->fileInfo)) // Process by item type
-   {
+   switch(get_file_type(client)) {  // Process by item type
      case FT_PATH:                  // If it's a directory
        //---------------------------------------------------------------------
-       // Remove a directory (Its content has already been removed)
+       // Remove a directory
        //---------------------------------------------------------------------
-       if( rmdir(fileName.c_str()) != 0 ) // Remove directory failed
-       {
-         msgerr("%4d ClientThread: rmdir(%s) failure", __LINE__
-               , fileName.c_str());
+       if( rmpath(full_name) != 0 ) { // If remove directory fails
+         msgioerr("%4d ClientThread: rmpath(%s) failure", __LINE__
+                 , s2c(full_name));
          return(RC_ERROR);
        }
        break;
@@ -698,10 +567,9 @@ int                                 // Return code
        //---------------------------------------------------------------------
        // Remove a soft link
        //---------------------------------------------------------------------
-       if( unlink(fileName.c_str()) != 0 ) // Remove link failed
-       {
-         msgerr("%4d ClientThread: unlink(%s) failure", __LINE__
-               , fileName.c_str());
+       if( rmlink(full_name) != 0 ) { // Remove link failed
+         msgioerr("%4d ClientThread: rmlink(%s) failure", __LINE__
+                 , s2c(full_name));
          return(RC_ERROR);
        }
        break;
@@ -711,14 +579,10 @@ int                                 // Return code
        //---------------------------------------------------------------------
        // Remove a file or pipe
        //---------------------------------------------------------------------
-       #if defined(_OS_WIN) || defined(_OS_CYGWIN)
-         chmod(fileName.c_str(), clientE->chmod()|S_IWUSR);
-       #endif
-
-       if( remove(fileName.c_str()) != 0 ) // Remove file failed
-       {
-         msgerr("%4d ClientThread: remove(%s) failure", __LINE__
-               , fileName.c_str());
+       chmod(full_name, client->get_chmod()|S_IWUSR); // Make writable
+       if( rmfile(full_name) != 0 ) { // Remove file failed
+         msgioerr("%4d ClientThread: rmfile(%s) failure", __LINE__
+                 , s2c(full_name));
          return(RC_ERROR);
        }
        break;
@@ -727,11 +591,78 @@ int                                 // Return code
        //---------------------------------------------------------------------
        // Remove an item of unknown type
        //---------------------------------------------------------------------
-       printAction("ignored", clientE, "[What kind of thing is it?]");
+       print_action("ignored", client, "[What kind of thing is it?]");
        return(RC_ERROR);
    }
 
    return(RC_NORM);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ClientThread::remove_path
+//
+// Function-
+//       Remove all subtree content
+//
+// Implementation notes-
+//       Always invoked *before* remove_item. (Restore permissions not needed)
+//
+//----------------------------------------------------------------------------
+void
+   ClientThread::remove_path(       // Remove all subtree content
+     RdFile*           client)      // -> Client Path RdFile descriptor
+{  if( hcdm() )
+     debugf("ClientThread(%p)::remove_path(%s)\n", this
+           , s2c(client->get_full_name()));
+
+   //-------------------------------------------------------------------------
+   // Get the fully qualified file name
+   //-------------------------------------------------------------------------
+   string full_name= client->get_full_name();
+   const char* full_char= s2c(full_name);
+
+   //-------------------------------------------------------------------------
+   // Diagnostics
+   //-------------------------------------------------------------------------
+   msglog("\n");
+   msglog("removePath: %s\n-----------\n", full_char);
+   client->display("CLIENT:");
+
+   if( BRINGUP_MODE ) {
+     print_action("kept", client, "[BRINGUP (won't rmpath)]");
+     return;
+   }
+
+   if( opt_keep ) {
+     print_action("kept", client, "[Remove path disallowed: -K]");
+     return;
+   }
+
+   //-------------------------------------------------------------------------
+   // Switch into new subdirectory
+   //-------------------------------------------------------------------------
+   if( (client->desc.file_info&INFO_RUSR) == 0 // Don't have permission to read
+       || (client->desc.file_info&INFO_WUSR) == 0 // or can't write in it
+       || (client->desc.file_info&INFO_XUSR) == 0 ) { // or can't change to it
+     int rc= chmod(full_char, client->get_chmod()|(S_IRUSR|S_IWUSR|S_IXUSR));
+     if( rc != 0 )                  // Couldn't give self permissions
+       throwf("%4d ClientThread: chmod(%s) failure", __LINE__, full_char);
+   }
+
+   //-------------------------------------------------------------------------
+   // Delete all items in the subdirectory, recursively
+   //-------------------------------------------------------------------------
+   RdPath  path= RdPath(this, full_name); // Read/sort the delete directory
+   RdFile* file= path.get_head();   // Address the first element
+   while( file != nullptr ) {       // For each item in the directory
+     if( get_file_type(file) == FT_PATH ) // If a subdirectory
+       remove_path(file);           // Remove it first
+
+     remove_item(file);
+     file= file->get_next();
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -743,358 +674,397 @@ int                                 // Return code
 //       Operate the ClientThread.
 //
 //----------------------------------------------------------------------------
-long                                // Return code (always 0)
+void
    ClientThread::run( void )        // Operate this ClientThread
-{
-   IFHCDM( debugf("%4d ClientThread(%p)::run()..\n", __LINE__, this); )
+{  if( hcdm() ) debugf("ClientThread(%p)::run...\n", this);
 
    // Thread initialization
-   msgout("Client: Started...\n");
+   msgout("Client: Connected...\n");
    fsm= FSM_READY;                  // Indicate operational
 
-   // Thread operation
+   // Pseudo-thread operation
    try {
-     char clientCWD[1024];
-     char* base= getcwd(clientCWD, sizeof(clientCWD));
-     if( base == NULL )
-       msgout("%4d Client: system(getcwd) error\n", __LINE__);
-     else if( exchangeVersionID() ) // If valid version
-     {
-       DirEntry dirEntry(this);
-       strcpy(dirEntry.fileName, path); // Set the initial path
-       dirEntry.list= new DirList(this, base, &dirEntry);
-       updateDirectory(base, NULL, &dirEntry); // Install initial directory
+     if( exchange_versionID() ) {   // If version and current path are valid
+       RdPath path(this);
+       path.path_name= ".";
+
+       RdFile file(&path, init_path);
+       update_path(&file);          // Update initial subdirectory
      }
 
      PeerRequest  query;            // RdServer request
      PeerResponse qresp;            // RdServer response
-
      query.oc= REQ_QUIT;
-     nSend(&query, sizeof(query));
-     nRecv(&qresp, sizeof(qresp));
+     wr_data(&query, sizeof(query));
+     rd_data(&qresp, sizeof(qresp));
 
      // Normal termination
-     msgout("Client: ...Complete\n");
+     msgout("Client: ...Completed\n");
      fsm= FSM_CLOSE;
-   } catch( const char* X ) {
-     fprintf(stderr, "Client: exception(%s)\n", X);
-              msglog("Client: exception(%s)\n", X);
    } catch( std::exception& X ) {
-     fprintf(stderr, "Client: exception(%s)\n", X.what());
-              msglog("Client: exception(%s)\n", X.what());
+     msgerr("Client: exception(%s)\n", X.what());
+   } catch( const char* X ) {
+     msgerr("Client: exception(%s)\n", X);
    } catch(...) {
-     fprintf(stderr, "Client: exception(%s)\n", "...");
-              msglog("Client: exception(%s)\n", "...");
-     ::exit(2);
+     msgerr("Client: exception(%s)\n", "...");
    }
 
    // Thread termination
-   term();                          // Indicate terminated
+   if( fsm == FSM_READY )           // If forced termination
+     msgout("Client: Terminated\n");
 
-   IFHCDM( debugf("%4d ..ClientThread(%p)::run()\n", __LINE__, this); )
-   return 0;
+   if( hcdm() ) debugf("...ClientThread(%p)::run()\n", this);
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ClientThread::term
+//       ClientThread::stop
 //
 // Purpose-
-//       Terminate this ClientThread.
+//       Stop the client (Early termination)
 //
 //----------------------------------------------------------------------------
+[[noreturn]]
 void
-   ClientThread::term( void )       // Terminate this ClientThread
-{
-   IFHCDM( debugf("%4d ClientThread(%p)::term()\n", __LINE__, this); )
+   ClientThread::stop( void )       // Stop the Client (Early termination)
+{  if( hcdm() ) debugf("ClientThread::stop\n");
 
-   if( fsm == FSM_READY )           // If forced termination
-   {
-     const char* peerName= socket->getPeerName();
-     if( peerName == NULL )
-       peerName= Socket::addrToChar(socket->getPeerAddr());
-     msgout("Client: ...Terminated\n");
-   }
-
-   CommonThread::term();
+   fprintf(stderr, "(Cannot continue)\n");
+   rdterm();                        // Terminate and
+   exit(1);                         // Exit
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ClientThread::updateAttr
+//       ClientThread::update_attr
 //
 // Function-
-//       Update item attributes.
+//       Update item attributes with server attributes.
+//
+// Implementation notes-
+//       An error message is written when attribute updating fails.
 //
 //----------------------------------------------------------------------------
-void
-   ClientThread::updateAttr(        // Update attributes
-     const char*       path,        // Current Path
-     DirEntry*         serverE,     // -> Source file descriptor
-     DirEntry*         clientE)     // -> Target file descriptor
-{
+bool                                // TRUE iff attributes were updated
+   ClientThread::update_attr(       // Update attributes
+     RdFile*           client,      // -> Client RdFile
+     RdFile*           server)      // -> Server RdFile
+{  if( hcdm() )
+     debugf("ClientThread(%p)::update_attr(%s,%s)\n", this
+           , s2c(client->file_name), s2c(server->file_name));
+
    //-------------------------------------------------------------------------
    // Diagnostics
    //-------------------------------------------------------------------------
    msglog("\n");
-   msglog("updateAttr: %s\n-----------\n", clientE->fileName);
+   msglog("update_attr: %s\n-----------\n", s2c(client->file_name));
 
-   serverE->display("SERVER:");
-   clientE->display("CLIENT:");
+   client->display("CLIENT:");
+   server->display("SERVER:");
 
-   if( getFileType(serverE->fileInfo) != getFileType(clientE->fileInfo) )
-     msglog("-----: Why do file types differ?\n");
+   int client_ft= get_file_type(client);
+   int server_ft= get_file_type(server);
+   if( client_ft != server_ft ) {      // (Occurs only if code logic error)
+     msgerr("-----: Why do file types differ? client(%c) server(%c)\n"
+           , client_ft, server_ft);
+     return false;
+   }
 
-   #if( BRINGUP )
-     printAction("ignored", clientE, "[BRINGUP]");
-     return;
-   #endif
+   if( BRINGUP_MODE ) {
+     print_action("ignored", client, "[BRINGUP]");
+     return false;
+   }
+
+   if( opt_keep ) {
+     print_action("skipped", client, "[Update attr disallowed: -K]");
+     return false;
+   }
 
    //-------------------------------------------------------------------------
-   // We don't update attributes for links!
+   // We don't update Link attributes!
    //-------------------------------------------------------------------------
-   if( getFileType(serverE->fileInfo) == FT_LINK )
-     return;
+   if( server_ft == FT_LINK )
+     return false;
 
    //-------------------------------------------------------------------------
    // Update the attributes
    //-------------------------------------------------------------------------
-   clientE->fileSize= serverE->fileSize;
-   clientE->fileTime= serverE->fileTime;
-   clientE->fileInfo= serverE->fileInfo;
-   clientE->fileKsum= serverE->fileKsum;
-   clientE->intoFile(path);
+   if( client->compare_info(server) ) { // If attributes changed
+     client->desc.file_size= server->desc.file_size;
+     client->desc.file_time= server->desc.file_time;
+     client->desc.file_info= server->desc.file_info;
+     client->desc.file_ksum= server->desc.file_ksum;
+     client->set_attr();
+     return true;
+   }
+
+   return false;                    // (Nothing to update)
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ClientThread::updateDirectory
+//       ClientThread::update_item
+//
+// Function-
+//       Update a file, link or directory.
+//
+//----------------------------------------------------------------------------
+int                                 // Return code (RC_NORM expected)
+   ClientThread::update_item(       // Update something
+     RdFile*           client,      // -> Client RdFile
+     RdFile*           server)      // -> Server RdFile
+{  if( hcdm() )
+     debugf("ClientThread(%p)::update_item(%s,%s)\n", this
+           , s2c(client->file_name), s2c(server->file_name));
+
+   //-------------------------------------------------------------------------
+   // Diagnostics
+   //-------------------------------------------------------------------------
+   msglog("\n");
+   msglog("update_item: %s\n-----------\n", s2c(server->file_name));
+   client->display("CLIENT:");
+   server->display("SERVER:");
+
+   if( BRINGUP_MODE ) {
+     print_action("kept", client, "[BRINGUP (won't update)]");
+     return(RC_ERROR);
+   }
+
+   if( opt_keep ) {
+     print_action("skipped", client, "[Update disallowed: -K]");
+     return(RC_ERROR);
+   }
+
+   //-------------------------------------------------------------------------
+   // Update the item
+   //-------------------------------------------------------------------------
+   int returncd= RC_NORM;           // Default, normal return code
+   switch(get_file_type(client)) {  // Process by item type
+     case FT_FIFO:                  // If pipe
+     case FT_PATH:                  // or directory
+       ;                            // No function required
+       break;
+
+     case FT_LINK:                  // If soft link
+       returncd= remove_item(client);
+       if( returncd == RC_NORM )
+         returncd= install_item(client, server);
+       break;
+
+     case FT_FILE:                  // If file
+       returncd= remove_item(client);
+       if( returncd == RC_NORM )
+         returncd= install_item(client, server);
+       break;
+
+     default:                       // If unknown type
+       returncd= RC_ERROR;          // Cannot update it
+       break;
+   }
+
+   return(returncd);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ClientThread::update_path
 //
 // Function-
 //       Update new and changed files, links and directories within a
 //       a directory subtree.
 //
 //----------------------------------------------------------------------------
-void
-   ClientThread::updateDirectory(   // Update directory subtree
-     const char*       base,        // Base path to directory
-     DirList*          dirList,     // The DirList containing dirEntry
-     DirEntry*         dirEntry)    // Path to directory
-{
-   PeerRequest         query;       // Order to server
-   PeerResponse        qresp;       // Reply from server
-   const char*         path= dirEntry->fileName; // File name part
-
-   DirList*            clientL;     // -> Client DirList
-   DirEntry*           clientE;     // -> Client DirEntry (active)
-   DirEntry*           clientP;     // -> Client DirEntry (previous)
-   DirEntry*           ptrEntry;    // -> DirEntry (working)
-
-   DirList*            serverL;     // -> Server DirList
-   DirEntry*           serverE;     // -> Server DirEntry
-
-   int                 firstTime= TRUE; // First time printPath called
-   int                 ac;          // Action code
-   int                 rc;          // Called routine return code
+int                                 // Return code (RC_NORM expected)
+   ClientThread::update_path(       // Update path
+     const RdFile*     client)      // The Client path RdFile
+{  if( hcdm() )
+     debugf("ClientThread(%p)::update_path(%s)\n", this
+           , s2c(client->get_full_name()));
 
    //-------------------------------------------------------------------------
    // Initialization
    //-------------------------------------------------------------------------
-   msglog("ClientThread: updateDirectory(%s,%s)\n", base, path);
-   string pathName= makeFileName(base, path);
+   int once= false;                 // Subroutine print_path once control
+   string file_name= client->get_file_name();
+   string full_name= client->get_full_name();
+   if( file_name == "." )
+     full_name= client->path->path_name;
 
-   query.oc= REQ_GOTO;          // Request the subdirectory
-   nSend(&query, 1);
-   nSendString(path, strlen(path));
-   nRecv(&qresp, 1);
-   if( qresp.rc != RSP_YO )
-   {
+   msglog("ClientThread: update_path(%s)\n", s2c(full_name));
+
+   RdPath* client_path= new RdPath(this, full_name);
+   std::unique_ptr<RdPath> unique_client(client_path);
+   RdFile* client_file= client_path->get_head();
+   push(client_path);
+
+   PeerRequest  query;              // Server request
+   PeerResponse qresp;              // Reply from server
+   query.oc= REQ_GOTO;              // Request the subdirectory
+   wr_data(&query, 1);
+   wr_data(file_name);
+   rd_data(&qresp, 1);
+   if( qresp.rc != RSP_YO ) {
      if( qresp.rc != RSP_NO )
-       invalidResponse(__LINE__, "GOTO", qresp.rc);
+       invalid_response(__LINE__, "GOTO", qresp.rc);
 
-     DirEntry dirEntry(this);       // (Temporary)
-     dirEntry.fileInfo= INFO_ISPATH;
-     strcpy(dirEntry.fileName, pathName.c_str());
-
-     firstTime= printPath(firstTime, pathName.c_str());
-     printAction("skipped", &dirEntry, "[Disallowed by SERVER]");
-     return;
+     print_path(once, full_name);
+     print_action("skipped", client, "[Disallowed by SERVER]");
+     return RC_ERROR;
    }
 
    //-------------------------------------------------------------------------
    // Load the remote directory contents
    //-------------------------------------------------------------------------
-   serverL= nRecvDirectory(pathName.c_str());
-   serverE= serverL->head;
+   RdPath* server_path= rd_path(client);
+   std::unique_ptr<RdPath> unique_server(server_path);
+   RdFile* server_file= server_path->get_head();
 
    //-------------------------------------------------------------------------
-   // Install/remove/update items in this directory
+   // Diagnostics
    //-------------------------------------------------------------------------
-   #ifdef USE_ASYNCHRONOUS_LOADER
-     if( dirList != NULL )          // If not the base DirEntry
-       dirList->wait();             // Wait for dirEntry->list to be set
-   #else
-     (void)dirList;                 // (Parameter unused in this path)
-   #endif
-   clientL= dirEntry->list;         // Get the sorted subdirectory list
-   clientP= NULL;                   // Indicate first entry
-   clientE= clientL->head;          // Address the first element
-   for(;;)                          // Process this directory
-   {
-     // Diagnostics
+   if( hcdm_verbose(2) ) {
+     debugf("\nupdate_path\n");
+     client_path->debug("client");
+     debugf("\n");
+     server_path->debug("server");
+   }
+
+   //-------------------------------------------------------------------------
+   // Install/remove/update items in this subdirectory
+   //-------------------------------------------------------------------------
+   for(;;) {                        // Process this directory
+     // Logging diagnostics
      msglog("\n");
-     if( serverE == NULL )
-       msglog("SERVER: NULL\n");
+     if( client_file == nullptr )
+       msglog("CLIENT: nullptr\n");
      else
-       serverE->display("SERVER:");
+       client_file->display("CLIENT:");
 
-     if( clientE == NULL )
-       msglog("CLIENT: NULL\n");
+     if( server_file == nullptr )
+       msglog("SERVER: nullptr\n");
      else
-       clientE->display("CLIENT:");
+       server_file->display("SERVER:");
 
-     //-----------------------------------------------------------------------
-     // See if directory processing is complete.
-     //-----------------------------------------------------------------------
-     if( clientE == NULL && serverE == NULL ) // If complete
+     if( client_file == nullptr && server_file == nullptr ) // If complete
        break;
 
      //-----------------------------------------------------------------------
      // Determine relative positions of items
      //-----------------------------------------------------------------------
-     ac= AC_NOP;                    // Default, no postprocessing
-     if( clientE == NULL )          // If target end of file
-       rc= (+1);                    // Target name > Source name
-
-     else if( serverE == NULL )     // If source end of file
-       rc= (-1);                    // Target name < Source name
-
+     int ac= AC_NOP;                // Default, no postprocessing
+     int cc= 0;                     // Name compare code
+     if( client_file == nullptr )   // If target end of file
+       cc= (+1);                    // Target name > Source name
+     else if( server_file == nullptr ) // If source end of file
+       cc= (-1);                    // Target name < Source name
      else                           // If within both directories
-       rc= strCompare(this, clientE->fileName, serverE->fileName); // Check position
+       cc= client_file->file_name.compare(server_file->file_name);
 
      //-----------------------------------------------------------------------
      // An item exists remotely but not locally.  Install it.
      //-----------------------------------------------------------------------
-     if( rc > 0 )                   // If we are missing an item
-     {
+     if( cc > 0 ) {                 // If we are missing an item
        msglog("ACTION: install\n");
-       ptrEntry= new DirEntry(this); // Allocate a new element
 
-       strcpy(ptrEntry->fileName, serverE->fileName);
-       strcpy(ptrEntry->linkName, serverE->linkName);
-       ptrEntry->fileInfo= serverE->fileInfo; // Set updated stats
-       ptrEntry->fileSize= serverE->fileSize;
-       ptrEntry->fileKsum= serverE->fileKsum;
-       ptrEntry->fileTime= 0;
-
-       firstTime= printPath(firstTime, pathName.c_str());
-       rc= installItem(pathName.c_str(), serverE, ptrEntry);
-       if( rc != RC_NORM )
-       {
-         ac= AC_GETSERVER;
-         delete ptrEntry;           // Discard allocated element
+       ac= AC_GETSERVER;
+       RdFile* insert_file= new RdFile(client_path, server_file->file_name);
+       print_path(once, full_name);
+       int rc= install_item(insert_file, server_file);
+       if( rc == RC_NORM ) {
+         print_action("installed", insert_file, "");
+         client_path->lifo(insert_file); // Insert BEFORE the client_file
+       } else {
+         delete insert_file;        // Discard allocated element
        }
-       else
-       {
-         ac= AC_BOTH;
-         printAction("installed", ptrEntry, "");
-
-         // Insert the installed item onto the client list
-         clientE= clientL->insert(ptrEntry, clientP);
-       }
-
        goto deferred_action;
      }
 
      //-----------------------------------------------------------------------
-     // Disallow possible constant file update attempt
+     // Disallow possible client "!const" file modification
      //-----------------------------------------------------------------------
-     if( strCompare(this, clientE->fileName, constFile) == 0 ) // If constant file
-     {
-       if( serverE == NULL )
-         constModify(pathName.c_str()); // Server does not contain file
+     if( compare(client_file->file_name, const_file_name) == 0 ) {
+       bool files_differ= false;    // Default: Files do not differ
 
-       if( getFileType(serverE->fileInfo) != getFileType(clientE->fileInfo)
-           || strcmp(serverE->fileName, clientE->fileName) != 0 )
-         constModify(pathName.c_str()); // Names or types differ
+       if( server_file == nullptr ) // (If Client file would be deleted)
+         files_differ= true;        // Server does not contain file
 
-       if( serverE->fileSize != clientE->fileSize
-           || serverE->fileKsum != clientE->fileKsum
-           || serverE->fileTime != clientE->fileTime )
-         constModify(pathName.c_str()); // Contents or times differ
+       if( get_file_type(server_file) != get_file_type(client_file)
+           || server_file->file_name != client_file->file_name )
+         files_differ= true;        // Types or exact names differ
 
-       if( clientE->compareInfo(serverE) != 0 )
-         constModify(pathName.c_str()); // Attributes differ
+       if(    client_file->desc.file_info != server_file->desc.file_info
+           || server_file->desc.file_ksum != client_file->desc.file_ksum
+           || server_file->desc.file_size != client_file->desc.file_size
+           || server_file->desc.file_time != client_file->desc.file_time )
+         files_differ= true;        // If attributes or contents differ
+
+       if( files_differ )
+         attempted_const_modify(full_name);
      }
 
      //-----------------------------------------------------------------------
-     // An item exists locally but not remotely.  Remove it.
+     // An item exists locally but not remotely. Remove it.
      //-----------------------------------------------------------------------
-     if( rc < 0 )
-     {
+     if( cc < 0 ) {
        msglog("ACTION: remove\n");
+       if( opt_erase ) {
+         print_path(once, full_name);
+         if( get_file_type(client_file) == FT_PATH ) // If a path
+           remove_path(client_file); // Remove the subtree
 
-       if( sw_erase )
-       {
-         firstTime= printPath(firstTime, pathName.c_str());
-         if( getFileType(clientE->fileInfo) == FT_PATH ) // If a path
-           removeDirectory(pathName.c_str(), clientE); // Remove the subtree
-
-         rc= removeItem(pathName.c_str(), clientE); // Remove the item itself
+         int rc= remove_item(client_file); // Remove the item itself
          if( rc == RC_NORM )
-           printAction("removed", clientE, "");
+           print_action("removed", client_file, "");
          else
-           printAction("kept", clientE, "[unable to remove]");
-       }
-       else                         // If removal not allowed
-       {
-         firstTime= printPath(firstTime, pathName.c_str()); // Informational
-         printAction("kept", clientE, "[-E parameter not specified]");
+           print_action("kept", client_file, "[unable to remove]");
+       } else {                     // If removal not allowed
+         print_path(once, full_name); // Informational
+         print_action("kept", client_file, "[-E parameter not specified]");
        }
 
-       // (Unconditionally) remove the entry from our list, then delete it
-       clientE= clientL->remove(clientE, clientP);
+       // Remove the entry from the list, then delete it
+       client_file= client_path->remove_and_delete(client_file);
        continue;
      }
 
      //-----------------------------------------------------------------------
      // Check for ambiguous update.
      //-----------------------------------------------------------------------
+     msglog("ACTION: equals\n");
      if( (gVersionInfo.f[0]&VersionInfo::VIF0_CASE) == 0 // If case insensitive
          && (lVersionInfo.f[0]&VersionInfo::VIF0_CASE) !=
-            (rVersionInfo.f[0]&VersionInfo::VIF0_CASE) ) // And different
-     {
-       if( strcmp(clientE->fileName, serverE->fileName) != 0 ) // If inexact
-       {
-         // If local machine is case sensitive (but remote is not)
-         if( (lVersionInfo.f[0]&VersionInfo::VIF0_CASE) != 0 )
-         {
-           if( clientE->next != NULL
-               && stricmp(clientE->fileName, clientE->next->fileName) == 0 )
-           {
-             firstTime= printPath(firstTime, pathName.c_str()); // Informational
-             printAction("skipped", clientE, "[ambiguous]");
+            (rVersionInfo.f[0]&VersionInfo::VIF0_CASE) ) { // And different
+       if( client_file->file_name != server_file->file_name ) { // If inexact
+         // Remove any duplicate ambiguous entries
+         if( (lVersionInfo.f[0]&VersionInfo::VIF0_CASE) != 0 ) {
+           // Local machine is case sensitive, remove duplicate entries
+           while( client_file->get_next() != nullptr
+                  && case_comp(client_file->file_name,
+                               client_file->get_next()->file_name) == 0 ) {
+             print_path(once, full_name); // Informational
+             print_action("skipped", client_file, "[ambiguous]");
+             msglog("Skipped ambiguous Client file(%s)\n"
+                   , s2c(client_file->file_name));
 
-             // Remove the entry from the list, then delete it
-             clientE= clientL->remove(clientE, clientP);
-             goto deferred_action;
+             // Remove case insensitive entry from the list and delete it
+             client_file= client_path->remove_and_delete(client_file);
            }
-         }
+         } else {
+           // Remote machine is case sensitive, remove duplicate entries
+           while( server_file->get_next() != nullptr
+                  && case_comp(server_file->file_name,
+                               server_file->get_next()->file_name) == 0 ) {
+             print_path(once, full_name); // Informational
+             print_action("skipped", server_file, "[ambiguous]");
 
-         // If remote machine is case sensitive (but local is not)
-         if( (rVersionInfo.f[0]&VersionInfo::VIF0_CASE) != 0 )
-         {
-           if( serverE->next != NULL
-               && stricmp(serverE->fileName, serverE->next->fileName) == 0 )
-           {
-             ac= AC_GETSERVER;
-             firstTime= printPath(firstTime, pathName.c_str());
-             printAction("skipped", serverE, "[ambiguous]");
-
-             goto deferred_action;
+             // Remove case insensitive entry from the list and delete it
+             server_file= server_path->remove_and_delete(server_file);
+             msglog("Skipped ambiguous Server file(%s)\n"
+                   , s2c(server_file->file_name));
            }
          }
        }
@@ -1106,47 +1076,36 @@ void
      //
      // The item must be removed before it can be installed.
      //-----------------------------------------------------------------------
-     if( getFileType(serverE->fileInfo) != getFileType(clientE->fileInfo)
-         || strcmp(serverE->fileName, clientE->fileName) != 0 )
-     {
-       msglog("ACTION: name or type mismatch\n");
+     if( get_file_type(server_file) != get_file_type(client_file)
+         || server_file->file_name != client_file->file_name ) {
+       msglog("UPDATE: type or exact name mismatch\n");
 
-       firstTime= printPath(firstTime, pathName.c_str()); // Informational
-       if( !sw_erase )              // If erasure not allowed
-       {
-         printAction("kept", clientE, "[-E parameter not specified]");
-         if( getFileType(serverE->fileInfo) != getFileType(clientE->fileInfo) )
-           printAction("remote", serverE, "[type differs]");
+       print_path(once, full_name); // Informational
+       if( !opt_erase ) {           // If erasure not allowed
+         print_action("kept", client_file, "[-E parameter not specified]");
+         if( get_file_type(server_file) != get_file_type(client_file) )
+           print_action("remote", server_file, "[type differs]");
          else
-           printAction("remote", serverE, "[name differs]");
+           print_action("remote", server_file, "[name differs]");
 
-         clientE->fileInfo &= ~(INFO_ISTYPE); // Prevent subdirectory scan
-       }
+         client_file->desc.file_info &= ~(INFO_ISTYPE); // Prevent subdirectory scan
+       } else {                     // If erasure allowed
+         if( get_file_type(client_file) == FT_PATH ) // If a path
+           remove_path(client_file); // Remove the subtree
 
-       else                         // If erasure allowed
-       {
-         if( getFileType(clientE->fileInfo) == FT_PATH ) // If a path
-           removeDirectory(pathName.c_str(), clientE); // Remove the subtree
-
-         rc= removeItem(pathName.c_str(), clientE); // Remove the item itself
+         int rc= remove_item(client_file); // Remove the item itself
          if( rc == RC_NORM )
-           printAction("removed", clientE, "");
+           print_action("removed", client_file, "");
 
          // Set updated attributes
-         clientE->fileInfo= serverE->fileInfo;
-         strcpy(clientE->fileName, serverE->fileName);
-         clientE->fileSize= serverE->fileSize;
-         clientE->fileTime= 0;
-
-         rc= installItem(pathName.c_str(), serverE, clientE);
-         if( rc != RC_NORM )
-         {
-           // Remove the entry from the list, then release it
-           clientE= clientL->remove(clientE, clientP);
+         rc= install_item(client_file, server_file);
+         if( rc == RC_NORM ) {
+           print_action("installed", server_file, "");
+         } else {
+           // Remove the entry from the list, then delete it
+           client_file= client_path->remove_and_delete(client_file);
            continue;
          }
-
-         printAction("installed", serverE, "");
        }
 
        ac= AC_BOTH;
@@ -1156,44 +1115,43 @@ void
      //-----------------------------------------------------------------------
      // An identically named and typed item exists.
      //-----------------------------------------------------------------------
-     msglog("ACTION: name and type identical\n");
-
+     msglog("UPDATE: name and type identical\n");
      ac= AC_BOTH;
-     switch(getFileType(clientE->fileInfo))
-     {
-       case FT_PATH:                // If directory
-         if( clientE->compareInfo(serverE) != 0 )
-         {
-           firstTime= printPath(firstTime, pathName.c_str());
-           updateAttr(pathName.c_str(), serverE, clientE);
-           printAction("attributes", clientE, "");
-           break;
+     switch(get_file_type(client_file)) {
+       case FT_PATH: {{{{           // If directory
+         int rc= update_path(client_file);
+         if( rc == RC_NORM ) {
+           bool cc= update_attr(client_file, server_file);
+           if( cc ) {
+             print_path(once, full_name);
+             print_action("attributes", client_file, "");
+           }
          }
          break;
+       }}}}
 
-       case FT_LINK:                // If soft link
-         if( strcmp(clientE->linkName, serverE->linkName) != 0 )
-         {
-           firstTime= printPath(firstTime, pathName.c_str());
-           rc= updateItem(pathName.c_str(), serverE, clientE);
+       case FT_LINK: {{{{           // If soft link
+         if( client_file->link_name != server_file->link_name ) {
+           print_path(once, full_name);
+           int rc= update_item(client_file, server_file);
            if( rc == RC_NORM )
-             printAction("updated", clientE, "");
+             print_action("updated", client_file, "");
          }
          break;
+       }}}}
 
-       case FT_FILE:                // If file
+       case FT_FILE: {{{{           // If file
          //-------------------------------------------------------------------
          // Identical file names exist at both sites
          //-------------------------------------------------------------------
-         if( serverE->fileSize == clientE->fileSize
-             && serverE->fileKsum == clientE->fileKsum
-             && serverE->compareTime(clientE) == 0 )
-         {
-           if( clientE->compareInfo(serverE) != 0 )
-           {
-             firstTime= printPath(firstTime, pathName.c_str());
-             updateAttr(pathName.c_str(), serverE, clientE);
-             printAction("attributes", clientE, "");
+         if( server_file->desc.file_size == client_file->desc.file_size
+             && server_file->desc.file_ksum == client_file->desc.file_ksum
+             && server_file->compare_time(client_file) == 0 ) {
+           if( client_file->compare_info(server_file) ) {
+             print_path(once, full_name);
+             update_attr(client_file, server_file);
+             if( !opt_keep )
+               print_action("attributes", client_file, "");
            }
            break;
          }
@@ -1201,29 +1159,29 @@ void
          //-------------------------------------------------------------------
          // Check whether the file is newer here (and we care)
          //-------------------------------------------------------------------
-         if( serverE->compareTime(clientE) < 0 && sw_older == FALSE )
-         {
-           firstTime= printPath(firstTime, pathName.c_str());
-           printAction("kept", clientE, "[-O parameter not specified]");
+         if( server_file->compare_time(client_file) < 0 && opt_older == false ) {
+           print_path(once, full_name);
+           print_action("kept", client_file, "[-O parameter not specified]");
            break;
          }
 
          //-------------------------------------------------------------------
          // The file needs to be replaced.
          //-------------------------------------------------------------------
-         firstTime= printPath(firstTime, pathName.c_str());
-         rc= updateItem(pathName.c_str(), serverE, clientE);
-         if( rc == RC_NORM )
-           printAction("updated", serverE, "");
+         print_path(once, full_name);
+         if( update_item(client_file, server_file) == RC_NORM )
+           print_action("updated", server_file, "");
          break;
+       }}}}
 
        case FT_FIFO:                // If pipe
-         if( (serverE->fileInfo&INFO_PERMITS) != (clientE->fileInfo&INFO_PERMITS)
-             ||serverE->fileTime != clientE->fileTime )
-         {
-           firstTime= printPath(firstTime, pathName.c_str());
-           updateAttr(pathName.c_str(), serverE, clientE);
-           printAction("attributes", clientE, "");
+         if( (server_file->desc.file_info&INFO_PERMITS)
+             != (client_file->desc.file_info&INFO_PERMITS)
+             ||server_file->desc.file_time != client_file->desc.file_time ) {
+           print_path(once, full_name);
+           update_attr(client_file, server_file);
+           if( !opt_keep )
+             print_action("attributes", client_file, "");
          }
          break;
 
@@ -1235,54 +1193,47 @@ void
      // Process deferred action code.
      //-----------------------------------------------------------------------
 deferred_action:
-     switch(ac)                     // Process action code
-     {
+     switch(ac) {                   // Process action code
        case AC_NOP:                 // No action
          break;
 
        case AC_GETSERVER:           // Get next SERVER item
-         serverE= serverE->next;
+         server_file= server_file->get_next();
          break;
 
        case AC_GETCLIENT:           // Get next CLIENT item
-         clientP= clientE;
-         clientE= clientE->next;
+         client_file= client_file->get_next();
          break;
 
        case AC_BOTH:                // Get next item
          // If the local machine is case sensitive and the remote is not,
          // we must skip duplicate local items
          if( (lVersionInfo.f[0]&VersionInfo::VIF0_CASE) != 0
-             && (rVersionInfo.f[0]&VersionInfo::VIF0_CASE) == 0 )
-         {
-           while( clientE->next != NULL
-               && stricmp(clientE->fileName, clientE->next->fileName) == 0 )
-           {
-             clientP= clientE;
-             clientE= clientE->next;
-             firstTime= printPath(firstTime, pathName.c_str());
-             printAction("skipped", clientE, "[ambiguous]");
+             && (rVersionInfo.f[0]&VersionInfo::VIF0_CASE) == 0 ) {
+           while( client_file->get_next() != nullptr
+               && case_comp(client_file->file_name,
+                            client_file->get_next()->file_name) == 0 ) {
+             client_file= client_file->get_next();
+             print_path(once, full_name);
+             print_action("skipped", client_file, "[ambiguous]");
            }
          }
 
          // If the remote machine is case sensitive and the local is not,
          // we must skip duplicate remote items
          if( (lVersionInfo.f[0]&VersionInfo::VIF0_CASE) == 0
-             && (rVersionInfo.f[0]&VersionInfo::VIF0_CASE) != 0 )
-         {
-           while( serverE->next != NULL
-               && stricmp(serverE->fileName, serverE->next->fileName) == 0 )
-           {
-             serverE= serverE->next;
-             firstTime= printPath(firstTime, pathName.c_str());
-             printAction("skipped", serverE, "[ambiguous]");
+             && (rVersionInfo.f[0]&VersionInfo::VIF0_CASE) != 0 ) {
+           while( server_file->get_next() != nullptr
+               && case_comp(server_file->file_name,
+                            server_file->get_next()->file_name) == 0 ) {
+             server_file= server_file->get_next();
+             print_path(once, full_name);
+             print_action("skipped", server_file, "[ambiguous]");
            }
          }
 
-         clientP= clientE;
-         clientE= clientE->next;
-
-         serverE= serverE->next;
+         client_file= client_file->get_next();
+         server_file= server_file->get_next();
          break;
 
        default:                     // If unknown code
@@ -1292,108 +1243,16 @@ deferred_action:
    }
 
    //-------------------------------------------------------------------------
-   // Process subdirectories
-   //-------------------------------------------------------------------------
-   #ifdef USE_ASYNCHRONOUS_LOADER
-     clientL->start();              // Start the asynchronous loader
-   #else
-     clientL->runLoader();          // Run the synchronous loader
-   #endif
-   clientE= clientL->head;          // Address the first element
-   while(clientE != NULL)           // Dive into each subdirectory
-   {
-     if( getFileType(clientE->fileInfo) == FT_PATH )
-     {
-       //---------------------------------------------------------------------
-       // Install a subdirectory
-       //---------------------------------------------------------------------
-       updateDirectory(pathName.c_str(), clientL, clientE);
-
-//     #if !defined(_OS_WIN) && !defined(_OS_CYGWIN)
-         updateAttr(pathName.c_str(), clientE, clientE); // Update attributes
-//     #endif
-     }
-
-     clientE= clientE->next;        // Process next element
-   }
-
-   //-------------------------------------------------------------------------
    // Complete current directory processing
    //-------------------------------------------------------------------------
-   delete serverL;                  // We are done with the server list
-   #ifdef USE_EARLY_CLEANUP         // If early cleanup
-     delete clientL;                // (Otherwise deleted by ~DirEntry)
-     dirEntry->list= NULL;
-   #endif
-
    query.oc= REQ_QUIT;
-   nSend(&query, 1);
-   nRecv(&qresp, 1);
+   wr_data(&query, 1);
+   rd_data(&qresp, 1);
    if( qresp.rc != RSP_YO )
-     invalidResponse(__LINE__, "QUIT", qresp.rc);
+     invalid_response(__LINE__, "QUIT", qresp.rc);
 
-   msglog("%4d ClientThread: updateDirectory(%s) complete\n", __LINE__
-         , pathName.c_str());
+   pop();
+   msglog("%4d ClientThread: update_path(%s) complete\n", __LINE__
+         , s2c(full_name));
+   return RC_NORM;
 }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       ClientThread::updateItem
-//
-// Function-
-//       Update a file, link or directory.
-//
-//----------------------------------------------------------------------------
-int                                 // Return code
-   ClientThread::updateItem(        // Update something
-     const char*       path,        // Current Path
-     DirEntry*         serverE,     // -> Source file descriptor
-     DirEntry*         clientE)     // -> Target file descriptor
-{
-   int                 returncd;    // This routine's return code
-
-   //-------------------------------------------------------------------------
-   // Diagnostics
-   //-------------------------------------------------------------------------
-   msglog("\n");
-   msglog("updateItem: %s\n-----------\n", serverE->fileName);
-   serverE->display("SERVER:");
-   clientE->display("CLIENT:");
-
-   #if( BRINGUP )
-     printAction("kept", clientE, "[BRINGUP (won't update)]");
-     return(RC_ERROR);
-   #endif
-
-   //-------------------------------------------------------------------------
-   // Update the item
-   //-------------------------------------------------------------------------
-   returncd= RC_NORM;               // Default, normal return code
-   switch(getFileType(clientE->fileInfo)) // Process by item type
-   {
-     case FT_FIFO:                  // If pipe
-     case FT_PATH:                  // If directory
-       ;                            // No function required
-       break;
-
-     case FT_LINK:                  // If soft link
-       returncd= removeItem(path, clientE);
-       if( returncd == RC_NORM )
-         returncd= installItem(path, serverE, clientE);
-       break;
-
-     case FT_FILE:                  // If file
-       returncd= removeItem(path, clientE);
-       if( returncd == RC_NORM )
-         returncd= installItem(path, serverE, clientE);
-       break;
-
-     default:                       // If unknown type
-       returncd= RC_ERROR;          // Cannot update it
-       break;
-   }
-
-   return(returncd);
-}
-

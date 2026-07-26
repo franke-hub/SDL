@@ -16,7 +16,7 @@
 ##       EDITOR README information file. (XCB version)
 ##
 ## Last change date-
-##       2026/01/08
+##       2026/07/14
 ##
 ## Implementation notes-
 ##       See ".USAGE.md" for usage and implementation information.
@@ -26,33 +26,37 @@
 
 ##############################################################################
 ## STATUS:
-2025/12/31 Fully operational, but with 2 open problems.
+2026/07/14 Operational, completed some TODOs.
          In production. Ongoing documentation update.
 
 ##############################################################################
 ## OPEN:
+
+##############################################################################
+## TODO:
+2025/12/31 Cursor position error when locating to different line w/ UTF.
+         Cursor position not calculated properly on lines that aren't properly
+         displayed.
+
 2025/04/16 xcbedit/xtmedit Don't handle some UTF characters correctly.
          We rely on XCB or NCURSES to handle the characters but some of them
          aren't handled properly.
 
 ##############################################################################
-## TODO:
-2025/12/31 Cursor position error when locating to different line w/ UTF.
-         Cursor position not calculated properly.
-
-2025/09/23 EdOuts.cpp (Xcb/Term)
-         When file is editable, use EDIT in title. When protected, use VIEW.
-
-2025/10/03 When cursor is on next to the bottom line, cursor down causes
-         scoll up 1 instead of going to the bottom line. (The cursor stays
-         on the next to the bottom line.) Also, you can't get the cursor to
-         the bottom line by clicking there. You can get the cursor to the
-         bottom line using op_line_to_bottom (F9.)
-
-         It works correctly when the cursor is on the bottom line.
-
-##############################################################################
 ## CHANGE LOG:
+2026/07/14 Fixed TODO: Xcb/EdOuts.cpp Term/EdOuts.cpp
+2026/07/14 Fixed TODO: EdData.cpp Xcb/EdInps.cpp Term/EdInps.cpp
+
+2026/07/08 Disallow Ctrl-S save for unchanged files.
+         (Can be overridden using "save file-name" command.)
+
+2026/07/04 Failure to properly detect protected files.
+         Erroneously allowed F6 (repeat change) from history line
+
+2026/07/04 LINUX: Initial file loading gets duplicate copies.
+         Improper expectation that a temporary Name string would be consistent
+         (It was consistent, but the GCC implementation changed.)
+
 2025/08/16 Write appears to fails if final '\n' is missing.
          No-delimiter line was not handled correctly.
 
@@ -339,6 +343,14 @@ Restructured modules, splitting some functions into .hpp files.
 
 ##############################################################################
 ## DONE:
+2026/07/14 Xcb/EdOuts.cpp Term/EdOuts.cpp
+2025/09/23 When file is editable, use EDIT in title. When protected, use VIEW.
+
+2026/07/14 EdData.cpp Xcb/EdInps.cpp Term/EdInps.cpp
+2025/10/03 When cursor is on next to the bottom line, cursor down causes
+         scoll up 1 instead of going to the bottom line. Also unable to left
+         click to last line or EOF line.
+
 2020/07/28 Background file loader. Synch with EdTerm
 ********** Not needed. Even big files load quickly.
 

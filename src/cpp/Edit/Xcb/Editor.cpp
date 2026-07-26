@@ -17,7 +17,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2026/01/08
+//       2026/07/13
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -484,26 +484,6 @@ const char*                         // The (immutable) text
 //----------------------------------------------------------------------------
 //
 // Method-
-//       editor::data_protected
-//
-// Purpose-
-//       Check for protected file and data view
-//
-//----------------------------------------------------------------------------
-int                                 // Return code, TRUE if error message
-   editor::data_protected( void )   // Error if protected file and data view
-{
-   if( file->protect && view == data ) {
-     editor::put_message("Read/only");
-     return true;
-   }
-
-   return false;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       editor::do_change
 //
 // Purpose-
@@ -516,7 +496,7 @@ int                                 // Return code, TRUE if error message
 const char*                         // Return message, nullptr if OK
    editor::do_change( void )        // Change next occurrence of string
 {
-   if( data_protected() )
+   if( file_protected() )
      return nullptr;
 
    const char* error= do_locate(0); // First, locate the string
@@ -593,7 +573,7 @@ const char*                         // Error message, nullptr expected
    editor::do_insert(               // Insert a new line
      const char*       text)        // The line text (default empty)
 {
-   if( data_protected() )
+   if( file_protected() )
      return nullptr;
 
    data->commit();
@@ -647,7 +627,7 @@ const char*                         // Return message, nullptr expected
 {
    if( view != data )
      return "Cursor view";
-   if( data_protected() )
+   if( file_protected() )
      return nullptr;
 
    data->commit();                  // Commit the active line (removes blanks)
@@ -796,7 +776,7 @@ const char*                         // Error message, nullptr expecte3d
 {
    if( view != data )
      return "Cursor view";
-   if( data_protected() )
+   if( file_protected() )
      return nullptr;
 
    data->commit();                  // Commit the active line
@@ -934,36 +914,42 @@ void
 
 void
    editor::file_loader(             // Load files, adding them to the file list
-     const char*       name_,       // The file name (file wildcards allowed)
+     const char*       wild_name,   // The file name (file wildcards allowed)
      int               protect)     // Protect file?
 {  if( opt_hcdm )
-     traceh("editor::file_loader(%s)\n", name_);
+     traceh("editor::file_loader(%s)\n", wild_name);
 
-   if( name_ == nullptr )           // If missing parameter
-     name_= "unnamed.txt";          // Use default name
+   if( wild_name == nullptr )       // If missing parameter
+     wild_name= "unnamed.txt";      // Use default name
 
    // Match existing file name(s)
    using namespace pub::data;       // Using pub::data objects
-   Name name(name_);
-   std::string error= name.resolve(); // Remove link qualifiers
+   Name wild(wild_name);
+   std::string error= wild.resolve(); // Remove link qualifiers
    if( error != "" ) {
-     Editor::put_message("File(%s) %s", name_, error.c_str());
+     Editor::put_message("File(%s) %s", wild_name, error.c_str());
      return;
    }
 
+   std::string wild_path= wild.get_path_name();
+   std::string wild_file= wild.get_file_name();
+   const char* cc_wild= wild_file.c_str();
+
    {{{{ // Search directory, handling all wildcard file name matches
      bool found= false;
-     Path path(name.path_name);     // (Temporary)
+     Path path(wild_path);          // (Temporary)
      for(File* file= path.list.get_head(); file; file= file->get_next() ) {
-       if( wildstrcmp(name.file_name.c_str(), file->name.c_str()) == 0 ) {
-         std::string fqn= name.path_name + "/" + file->name;
-         Name wild(fqn);            // The wildcard match name
+       std::string file_name= file->get_file_name();
+       const char* cc_file= file_name.c_str();
+       if( wildstrcmp(cc_wild, cc_file) == 0 ) {
+         std::string full= wild_path + "/" + file->get_file_name();
+         Name wild(full);           // The wildcard match name
          wild.resolve();            // (Resolve the name, which may be a link)
 
          found= true;
          bool is_dup= false;
          for(EdFile* dup= file_list.get_head(); dup; dup= dup->get_next()) {
-           if( dup->name == wild.name ) { // If file already in file_list
+           if( dup->name == wild.get_full_name() ) { // If duplicate
              last= dup;
              is_dup= true;
              break;
@@ -971,7 +957,7 @@ void
          }
 
          if( !is_dup ) {
-           EdFile* next= new EdFile(wild.name.c_str());
+           EdFile* next= new EdFile(wild.get_full_name().c_str());
            next->protect |= protect; // (May already be set)
            file_list.insert(last, next, next);
            last= next;
@@ -983,7 +969,7 @@ void
 
      // If the file hasn't been written yet, it still might be a duplicate
      for(EdFile* dup= file_list.get_head(); dup; dup= dup->get_next()) {
-       if( dup->name == name.name ) {
+       if( dup->name == wild.get_file_name() ) {
          last= dup;
          return;
        }
@@ -991,11 +977,31 @@ void
    }}}}
 
    // Non-existent file (Never protected)
-   EdFile* next= new EdFile(name.name.c_str());
+   EdFile* next= new EdFile(wild.get_full_name().c_str());
    file_list.insert(last, next, next);
    last= next;
 }
 #undef wildstrcmp
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::file_protected
+//
+// Purpose-
+//       Check for protected file
+//
+//----------------------------------------------------------------------------
+int                                 // Return code, TRUE if error message
+   editor::file_protected( void )   // Error if protected file
+{
+   if( file->protect ) {
+     editor::put_message("Read/only");
+     return true;
+   }
+
+   return false;
+}
 
 //----------------------------------------------------------------------------
 //

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014-2020 Frank Eskesen.
+//       Copyright (c) 2014-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,57 +17,71 @@
 //       The (multi-threaded) file server.
 //
 // Last change date-
-//       2020/10/03
+//       2026/07/23
 //
 // Usage-
 //       RdServer <-options>
 //
 // Options-
-//       -V (verify)
+//       --help Generate usage message and exit.
+//       --hcdm  Generate usage message and exit.
+//       --verbose{=n} Verbosity, higher is more verbose.
+//
+//       -P (Port)
+//          Use specified port number
+//
+//       -V (Verify)
 //          Use checksum difference verification.
 //          (Updates targets which have differing 64 bit checksums.)
-//
-//       -q (quiet)
-//          Do not write informative messages.
-//
-//       -help
-//          Generate usage message and exit.
 //
 // Environment variables-
 //       LOG_HCDM=n    Hard Core Debug Mode verbosity
 //       LOG_SCDM=n    Soft Core Debug Mode verbosity
 //       LOG_IODM=n    In/Output Debug Mode size
-//       LOG_FILE=name Log file name (rdist.log)
+//       LOG_FILE=name Log file name (debug.log)
 //
 // Implementation notes-
 //       Used in conjunction with RdClient for file distribution.
 //
 //----------------------------------------------------------------------------
-#include <cstdarg>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-
-#include <sys/types.h>
-
-#include <com/Debug.h>
-#include <com/FileInfo.h>
-#include <com/Software.h>
-
-#include "RdCommon.h"
-#include "ListenThread.h"
+#include "IoCommon.h"               // For I/O common objects and subroutines
+#include "ListenThread.h"           // The Listener thread
+#include "ServerThread.h"           // For ServerThread
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
-#endif
+enum                                // Generic enum
+{  HCDM= true                       // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
+}; // Generic enum
 
 //----------------------------------------------------------------------------
-// Dependent macros
+//
+// Subroutine-
+//       hcdm
+//       verbose
+//       hcdm_verbose
+//
+// Purpose-
+//       Is Hard Core Debug Mode active?
+//       Is Verbosity greater than N?
+//       Are hcdm() && verbose(N) both true?
+//
 //----------------------------------------------------------------------------
-#include <com/ifmacro.h>
+static inline bool                  // TRUE if Hard Core Debug Mode is active
+   hcdm( void )                     // Is Hard Core Debug Mode active?
+{  return HCDM || opt_hcdm; }
+
+static inline bool                  // TRUE if Verbosity is greater than N
+   verbose(                         // Is Verbosity greater than
+     int               N= 0)        // This value?
+{  return VERBOSE > N || opt_verbose > N; }
+
+static inline bool                  // TRUE if hcdm && verbose(N)
+   hcdm_verbose(                    // If hcdm() && verbose(N)
+     int               N= 0)
+{  return hcdm() && verbose(N); }
 
 //----------------------------------------------------------------------------
 //
@@ -81,28 +95,19 @@
 static void
    info( void )
 {
-   fprintf(stderr,"\n");
-   fprintf(stderr,"RdServer <-options>\n");
-   fprintf(stderr,"\n");
-   fprintf(stderr,"File transfer server\n");
-   fprintf(stderr,"\n");
-   fprintf(stderr,"-Options:\n");
-
-   fprintf(stderr,"\n");
-   fprintf(stderr,"-V (verify) Use checksum difference verification.\n");
-
-   fprintf(stderr,"\n");
-   fprintf(stderr,"-p port_number\n");
-   fprintf(stderr,"   Override the default port number\n");
-
-   fprintf(stderr,"\n");
-   fprintf(stderr,"-q (quiet mode) "
-                  "Suppresses informative messages.\n");
-
-   fprintf(stderr,"\n");
-   fprintf(stderr,"-help "
-                  "Print this message and exit.\n");
-
+   fprintf(stderr,"\n"
+                  "File transfer server\n"
+                  "\n"
+                  "rdserver {options}\n"
+                  "\n"
+                  "Options:\n"
+                  "  --help\tPrint this message and exit.\n"
+                  "  --hcdm\tEnable Hard Core Debug Mode.\n"
+                  "  --verbose{=n}\tVerbosity, default 1.\n"
+                  "\n"
+                  "  -P number\tOverride the default port number.\n"
+                  "  -V (Verify)\tUse checksum verification.\n"
+                 );
    exit(2);
 }
 
@@ -120,80 +125,62 @@ static void
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
-   int                 error;       // Error switch
-   int                 i, j;        // General index variables
-
-   //-------------------------------------------------------------------------
-   // Set defaults
-   //-------------------------------------------------------------------------
-   sw_erase= FALSE;                 // Default switch settings
-   sw_older= FALSE;
-   sw_quiet= FALSE;
-   sw_unsafe= FALSE;
-   sw_verify= FALSE;
-
-   port= SERVER_PORT;               // Default port number
-
-   //-------------------------------------------------------------------------
-   // Examine parameters
-   //-------------------------------------------------------------------------
-   error= FALSE;                    // Default, no error found
-   for(j=1; j<argc; j++)            // Examine the parameter list
-   {
-     if( argv[j][0] == '-' )        // If this is a switch list
-     {
-       if( strcmp("-help", argv[j]) == 0 )
-         error= TRUE;
-
-       else if( strcmp("-p", argv[j]) == 0 ) // If port number
-       {
-         j++;                       // Address the next parameter
-         if( j >= argc              // If no next parameter
-             ||argv[j][0] == '-' )  // or the next parameter is a switch, not a file name
-         {
-           error= TRUE;
-           msgout("-p but port_number is missing\n");
-         }
-         else
-           port= atol(argv[j]);
-       }
-       else                         // Switch list
-       {
-         for(i=1; argv[j][i] != '\0'; i++) // Examine the switch list
-         {
-           switch(argv[j][i])       // Examine the switch
-           {
-             case 'q':              // -q (quiet)
-               sw_quiet= TRUE;
-               break;
-
-             case 'V':              // -V (verify)
-               sw_verify= TRUE;
-               break;
-
-             default:               // If invalid switch
-               error= TRUE;
-               msgout("Invalid switch '%c'\n", (int)argv[j][i]);
-               break;
-           }
-         }
-       }
+   bool is_port= false;             // Last parameter -p?
+   for(int i=1; i<argc; ++i) {      // Examine the parameter list
+     const char* argp= argv[i];
+     if( is_port ) {                // If port number parameter
+       is_port= false;
+       port= atol(argp);
+       continue;
      }
-     else                           // If non-switch parameter
-     {
-       error= TRUE;
-       msgout("Invalid parameter '%s'\n", argv[j]);
+
+     if( strcmp("--help", argp) == 0 ) {
+       opt_help= true;
+     } else if( strcmp("--hcdm", argp) == 0 ) {
+       opt_hcdm= true;
+     } else if( strcmp(argp, "--verbose") == 0 ) {
+       opt_verbose= 1;
+     } else if( memcmp(argp, "--verbose=", 10) == 0 ) {
+       opt_verbose= atoi(argp+10);
+     } else if( argp[0] == '-' ) {  // If this is a control parameter
+       for(int j= 1; argp[j] != '\0' ; ++j) {
+         switch( argp[j] ) {
+           case 'p':                // Port number
+           case 'P':
+             if( argp[j+1] != '\0' ) { // if -pnumber format
+               port= atol(argp + j + 1);
+               break;
+             }
+             is_port= true;
+             break;
+
+           case 'v':                // Verify option
+           case 'V':
+             opt_verify= true;
+             break;
+
+           default:                 // If invalid switch
+             opt_help= true;
+             msgout("Invalid switch '%c'\n", (int)argp[j]);
+             break;
+         }
+
+         if( is_port )
+           break;
+       }
+     } else {                       // If non-switch parameter
+       opt_help= true;
+       msgout("Invalid parameter '%s'\n", argp);
      }
    }
 
-   //-------------------------------------------------------------------------
-   // Validate the parameters
-   //-------------------------------------------------------------------------
-   if( error )                      // If an error was detected
-   {
-     info();                        // Tell how this works
-     exit(2);                       // And exit, function aborted
+   if( is_port ) {                  // If port parameter missing
+     opt_help= true;
+     msgout("Missing port number\n");
    }
+
+   if( opt_help )
+     info();
 }
 
 //----------------------------------------------------------------------------
@@ -217,7 +204,7 @@ static void
    //-------------------------------------------------------------------------
    // Wait for Listener completion
    //-------------------------------------------------------------------------
-   thread->waiter();                // Wait for completion
+   thread->join();                  // Wait for Listener completion
 }
 
 //----------------------------------------------------------------------------
@@ -237,24 +224,29 @@ extern int                          // Return code
    //-------------------------------------------------------------------------
    // Initialize
    //-------------------------------------------------------------------------
-   IFHCDM(
-     Debug::set(new Debug("/tmp/Server.out"));
-     debugSetIntensiveMode();
-
-     debugf("%4d RdServer::main() TEST VERSION\n", __LINE__);
-   )
-   rdinit();                        // Initialize message services
+   set_app_name("RdServer");        // Set the application name
    parm(argc, argv);                // Parameter analysis
+   rdinit();                        // Initialize message services
+
+   if( hcdm_verbose() ) {
+     printf("--hcdm: %s\n",    opt_hcdm ? "true" : "false");
+     printf("--verbose: %d\n", opt_verbose);
+
+     printf("\n");
+     printf("-V: %s\n", opt_verify ? "true" : "false");
+   }
 
    //-------------------------------------------------------------------------
    // Run the server
    //-------------------------------------------------------------------------
    try {
      server();                      // Operate the server
+   } catch(std::exception& X) {
+     msgerr("RdServer exception(%s)\n", X.what());
    } catch( const char* X ) {
-     fprintf(stderr, "RdServer exception(%s)\n", X);
+     msgerr("RdServer const char*(%s)\n", X);
    } catch(...) {
-     fprintf(stderr, "RdServer exception(%s)\n", "...");
+     msgerr("RdServer catch(%s)\n", "...");
    }
 
    //-------------------------------------------------------------------------
@@ -262,7 +254,6 @@ extern int                          // Return code
    //-------------------------------------------------------------------------
    rdterm();
 
-   IFHCDM( debugf("%4d RdServer::main() COMPLETE\n", __LINE__); )
+   if( HCDM ) debugf("RdServer::main() COMPLETE\n");
    return(0);
 }
-

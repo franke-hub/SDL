@@ -1,1 +1,1 @@
-../inc/com
+../inc/pub

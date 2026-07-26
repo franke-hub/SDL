@@ -16,7 +16,7 @@
 ##       Scanner ignore path/file control
 ##
 ## Last change date-
-##       2026/05/04
+##       2026/05/28
 ##
 ##############################################################################
 
@@ -33,7 +33,6 @@
 .home/obj/mcs/Dirty/*
 .home/src/asm/x86/boot/*
 .home/src/cpp/Clone/test/*
-.home/src/cpp/Clone.pub/test/*
 .home/src/cpp/Dirty/*
 .home/src/cpp/Edit/Test/*
 .home/src/cpp/EiDB/data/*

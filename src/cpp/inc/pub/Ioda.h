@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       I/O Data Area.
 //
 // Last change date-
-//       2022/10/16
+//       2026/05/29
 //
 // Implementation notes-
 //       The I/O data area contains a scatter/gather I/O area used both as an
@@ -387,6 +387,9 @@ string
 
 int
    peek( void ) const;              // Examine the next character
+
+size_t                              // The length read
+   read(void*, size_t);             // Read into buffer
 
 void
    reset( void )                    // Reset the IodaReader for re-use

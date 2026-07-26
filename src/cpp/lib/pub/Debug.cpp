@@ -17,7 +17,7 @@
 //       Debug object methods.
 //
 // Last change date-
-//       2026/02/23
+//       2026/07/23
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard, ...
@@ -152,25 +152,14 @@ static bool                         // true iff STDIO
 // Purpose-
 //       Throw "should not occur" after another throw
 //
+// Implementation notes-
+//       Should never be invoked.
+//
 //----------------------------------------------------------------------------
 [[noreturn]]
 static void
    should_not_occur( void )         // (Should never be called)
 {  throw "should not occur"; }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Debug::~Debug
-//
-// Function-
-//       Destructor.
-//
-//----------------------------------------------------------------------------
-   Debug::~Debug( void )            // Destructor
-{  if( HCDM ) { fprintf(stderr, "Debug(%p)::~Debug()\n", this); }
-   term();
-}
 
 //----------------------------------------------------------------------------
 //
@@ -191,7 +180,25 @@ static void
    if( name != nullptr && name[0] != '\0' )
      this->file_name= name;
 
+   std::lock_guard<decltype(mutex)> lock(mutex);
+   if( common == nullptr )
+     common= this;
+
    if( HCDM ) mode= MODE_INTENSIVE;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Debug::~Debug
+//
+// Function-
+//       Destructor.
+//
+//----------------------------------------------------------------------------
+   Debug::~Debug( void )            // Destructor
+{  if( HCDM ) { fprintf(stderr, "Debug(%p)::~Debug()\n", this); }
+   term();
 }
 
 //----------------------------------------------------------------------------

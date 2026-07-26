@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (c) 2014-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,19 +17,22 @@
 //       Base object for ListenThread, ClientThread, and ServerThread.
 //
 // Last change date-
-//       2014/01/01
+//       2026/07/23
 //
 //----------------------------------------------------------------------------
 #ifndef COMMONTHREAD_H_INCLUDED
 #define COMMONTHREAD_H_INCLUDED
 
-#include <com/Semaphore.h>
-#include <com/Socket.h>
-#include <com/Thread.h>
+#include <pub/List.h>               // For pub::List
+#include <pub/Thread.h>             // For pub::Thread, base class
+#include <pub/Signals.h>            // For pub::signals::Signal
 
-#ifndef RDCOMMON_H_INCLUDED
-#include "RdCommon.h"
-#endif
+#include "IoCommon.h"               // For I/O common objects and subroutines
+
+//----------------------------------------------------------------------------
+// Forward references
+//----------------------------------------------------------------------------
+struct RdFile;
 
 //----------------------------------------------------------------------------
 //
@@ -40,300 +43,232 @@
 //       CommonThread descriptor.
 //
 //----------------------------------------------------------------------------
-class CommonThread : public Thread { // CommonThread descriptor
+class CommonThread : public pub::Thread {
 //----------------------------------------------------------------------------
 // CommonThread::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
-enum NFC                            // Notify Function Code
-{  NFC_CLOSE                        // Terminate the CommonThread
-,  NFC_FINAL                        // Program termination
-,  NFC_COUNT                        // Number of functions
-};
+typedef pub::List<RdPath> Path_stack; // The RdPath list (stack)
 
 enum FSM                            // Finite State Machine
 {  FSM_RESET                        // Reset, not started. Set in: constructor
 ,  FSM_READY                        // Ready, active       Set in: init
-,  FSM_CLOSE                        // Terminating         Set in: notify
+,  FSM_CLOSE                        // Terminating         Set in: ----
 ,  FSM_FINAL                        // Terminated          Set in: term
 };
 
-//----------------------------------------------------------------------------
-// CommonThread::Global attributes
-//----------------------------------------------------------------------------
-public:
-static Semaphore       semaphore;   // CommonThread completion semaphore
-static int             threadCount; // The number of threadArray elements
-static CommonThread**  threadArray; // The CommonThread array
+enum MODE                           // Buffer mode
+{  MODE_RESET                       // Reset, idle
+,  MODE_WR                          // WRITE mode
+,  MODE_RD                          // READ  mode
+};
+
+enum                                // Compile-time control: RdClient/RdServer
+{  USE_RCVBUF_SIZE= 8192            // SO_RCVBUF buffer size, 0 if unused
+};
 
 //----------------------------------------------------------------------------
 // CommonThread::Attributes
 //----------------------------------------------------------------------------
-protected:
-int                    fsm;         // Finite State
-Socket*                socket;      // Our working Socket
-char*                  buffer;      // Socket I/O buffer, size MAX_TRANSFER
+int                    fsm= FSM_RESET;   // Finite State Machine
+int                    mode= MODE_RESET; // Buffer mode
+
+char*                  buffer= nullptr; // Our working input/output bufferInput Ioda
+size_t                 buff_size= 0; // Number of bytes read or written
+size_t                 buff_used= 0; // Number of used (processed) bytes
+
+Socket*                socket= nullptr; // Our working Socket
+Path_stack             stack;       // The RdPath Stack
 
 VersionInfo            gVersionInfo; // Global version information
 VersionInfo            lVersionInfo; // Local  version information
 VersionInfo            rVersionInfo; // Remote version information
 
+pub::signals::Connector
+                       tree_check_handler; // The check_signal handler
+
 //----------------------------------------------------------------------------
-// CommonThread::Constructors
+// CommonThread::Constructors/destructor
 //----------------------------------------------------------------------------
-public:
-virtual
-   ~CommonThread( void );           // Destructor
    CommonThread(                    // Constructor
      Socket*           socket);     // Our working Socket
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+virtual
+   ~CommonThread( void );           // Destructor
 
 //----------------------------------------------------------------------------
 // CommonThread::Accessors
 //----------------------------------------------------------------------------
-public:
-inline char*                        // The buffer
-   getBuffer( void ) const          // Get buffer
-{  return buffer; }
-
-inline int                          // The current state
+int                                 // The current state
    getFSM( void ) const             // Get current state
 {  return fsm; }
 
-inline const VersionInfo&           // The global version info
+const VersionInfo&                  // The global version info
    getGVersionInfo( void ) const    // Get global version info
 {  return gVersionInfo; }
 
-inline const VersionInfo&           // The local  version info
+const VersionInfo&                  // The local  version info
    getLVersionInfo( void ) const    // Get local  version info
 {  return lVersionInfo; }
 
-inline const VersionInfo&           // The remote version info
+const VersionInfo&                  // The remote version info
    getRVersionInfo( void ) const    // Get remote version info
 {  return rVersionInfo; }
 
-virtual int                         // TRUE iff ListenThread
-   isListenThread( void ) const     // Is this the ListenThread?
-{  return FALSE; }
-
 //----------------------------------------------------------------------------
 //
 // Method-
-//       CommonThread::init
+//       CommonThread::compare
 //
 // Purpose-
-//       Initialize the CommonThread.
+//       Compare file name strings, accounting for case
 //
 //----------------------------------------------------------------------------
-virtual void
-   init( void );                    // Initialize the CommonThread
+int                                 // Result: <0, =0, >0
+   compare(                         // Compare strings
+     const string&     lhs,         // Left hand side
+     const string&     rhs);        // Right hand side
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       CommonThread::term
+//       CommonThread::pop
 //
 // Purpose-
-//       Terminate the CommonThread.
+//       Remove path from the Path_stack
 //
 //----------------------------------------------------------------------------
-virtual void
-   term( void );                    // Terminate the CommonThread
+RdPath*                             // The removed Path
+   pop( void )                      // Remove newest RdPath from the Path_stack
+{  return stack.remq(); }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       CommonThread::globallVersionInformation
+//       CommonThread::push
+//
+// Purpose-
+//       Add path to the Path_stack
+//
+//----------------------------------------------------------------------------
+void
+   push(                            // Add to the Path_stack
+     RdPath*           path)        // This path
+{  stack.lifo(path); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       CommonThread::set_globalVersionInformation
 //
 // Purpose-
 //       Set the global capability vector.
 //
 //----------------------------------------------------------------------------
-virtual void
-   globalVersionInformation( void ); // Initialize local version information
+void
+   set_globalVersionInformation( void ); // Initialize global version info
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       CommonThread::localVersionInformation
+//       CommonThread::set_localVersionInformation
 //
 // Purpose-
 //       Set the local capability vector.
 //
 //----------------------------------------------------------------------------
-virtual void
-   localVersionInformation( void ); // Initialize local version information
+void
+   set_localVersionInformation( void ); // Initialize local version info
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       CommonThread::notify()
+//       rd_buff
+//       rd_data
+//       rd_mode
+//       rd_path
+//       rd_recv
 //
 // Purpose-
-//       CommonThread event notification.
+//       Read from buffer
+//       Read data
+//       Go into read mode
+//       Read entire RdPath
+//       Read from Socket
 //
 //----------------------------------------------------------------------------
-virtual int                         // Return code (unused)
-   notify(                          // Notify this Thread
-     int               code);       // Using this enum NFC
+void
+   rd_buff(size_t size);            // Fill the read buffer (to minimum length)
+
+void
+   rd_buff(void*, size_t);          // Receive this data from the buffer
+
+HOST16_t                            // The converted PEER16_t
+   rd_buff(HOST16_t&);              // Read and convert a PEER16_t size
+
+string                              // The received string
+   rd_buff(string&);                // Receive this string from the buffer
+
+void
+   rd_data(void*, size_t);          // Unconditionally read this data
+
+string                              // The received string
+   rd_data(string&);                // Unconditionally read this string
+
+void
+   rd_mode( void );                 // Go into read mode
+
+RdPath*                             // The (new) RdPath
+   rd_path(const RdFile* file);     // Read path information (Path RdFile)
+
+// Socket receive
+size_t                              // Number of bytes read
+   rd_recv(void*, size_t);          // Receive this data
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       CommonThread::notifyAll()
+//       wr_buff
+//       wr_data
+//       wr_mode
+//       wr_path
+//       wr_send
 //
 // Purpose-
-//       Notify/terminate/wait for all CommonThreads.
+//       Write into buffer
+//       Write data, emptying buffer first
+//       Go into write mode
+//       Write entire RdPath
+//       Write into Socket
 //
 //----------------------------------------------------------------------------
-static void
-   notifyAll(                       // Notify all CommonThreads
-     int               code);       // Using this enum NFC
+void
+   wr_buff( void );                 // Empty the write buffer
 
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonThread::nRecv
-//
-// Purpose-
-//       Receive from network.
-//
-//----------------------------------------------------------------------------
-virtual unsigned                    // Number of bytes read
-   nRecv(                           // Read from network
-     void*             addr,        // Data address
-     unsigned          size);       // Data length
+void
+   wr_buff(const void*, size_t);    // Write into the write buffer
 
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonThread::nRecvDirectory
-//
-// Purpose-
-//       Receive a sorted directory.
-//
-//----------------------------------------------------------------------------
-virtual DirList*                    // -> DirList
-   nRecvDirectory(                  // Receive a sorted directory
-     const char*       path);       // With this relative path
+void
+   wr_buff(const HOST16_t&);        // Write this size into write buffer
 
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonThread::nRecvString
-//
-// Purpose-
-//       Receive string from network.
-//
-//----------------------------------------------------------------------------
-virtual int                         // Number of bytes read
-   nRecvString(                     // Read string from network
-     void*             addr,        // Data address
-     unsigned          size);       // Data length
+void
+   wr_buff(const string&);          // Write string into write buffer
 
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonThread::nRecvStruct
-//
-// Purpose-
-//       Receive structure from network.
-//
-//----------------------------------------------------------------------------
-virtual void
-   nRecvStruct(                     // Read structure from network
-     void*             addr,        // Data address
-     unsigned          size);       // Data length
+void
+   wr_data(const void*, size_t);    // Unconditionally write this data
 
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonThread::nSend
-//
-// Purpose-
-//       Send to network.
-//
-//----------------------------------------------------------------------------
-virtual unsigned                    // Number of bytes sent
-   nSend(                           // Send to network
-     const void*       addr,        // Data address
-     unsigned          size);       // Data length
+void
+   wr_data(const string&);          // Unconditionally write this string
 
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonThread::nSendDirectory
-//
-// Purpose-
-//       Send a sorted directory.
-//
-//----------------------------------------------------------------------------
-virtual void
-   nSendDirectory(                  // Send a sorted directory
-     DirList*          ptrA);       // -> DirList
+void
+   wr_mode( void );                 // Go into write mode
 
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonThread::nSendString
-//
-// Purpose-
-//       Send string to network
-//
-//----------------------------------------------------------------------------
-virtual void
-   nSendString(                     // Send string to network
-     const void*       addr,        // Data address
-     unsigned          size);       // Data length
+void
+   wr_path(const RdPath* path);     // Write path information
 
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonThread::nSendStruct
-//
-// Purpose-
-//       Send structure to network.
-//
-//----------------------------------------------------------------------------
-virtual void
-   nSendStruct(                     // Send structure to network
-     const void*       addr,        // Data address
-     unsigned          size);       // Data length
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonThread::status
-//
-// Purpose-
-//       Display the status of all active CommonThread objects.
-//
-//----------------------------------------------------------------------------
-static void
-   status( void );                  // Display CommonThread status
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonThread::wait
-//
-// Purpose-
-//       Thread::wait, possibly compiled to add a debugging message.
-//
-//----------------------------------------------------------------------------
-virtual long
-   wait( void );                    // Wait for termination
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonThread::waiter
-//
-// Purpose-
-//       Wait for interuption (called from control thread.)
-//
-//----------------------------------------------------------------------------
-virtual void
-   waiter( void );                  // Wait for interruption
+// Socket write
+size_t                              // The number of bytes written
+   wr_send(const void*, size_t);    // Send data
 }; // class CommonThread
-
 #endif // COMMONTHREAD_H_INCLUDED

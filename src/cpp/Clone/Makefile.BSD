@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2025 Frank Eskesen.
+##       Copyright (c) 2007-2026 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,22 +16,18 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2025/01/27
+##       2026/07/05
 ##
 ##############################################################################
 
 ##############################################################################
 ## Local module list
 MAKEXE :=
-MAKEXE += rdserver
 MAKEXE += rdclient
-MAKEXE += FSlist
-
-MAKLIB := RdCommon.o RdPatch.o CommonThread.o
+MAKEXE += rdserver
 
 ##############################################################################
 ## Set default target
-.PHONY: default
 ifeq "" "$(DEFAULT)"
 DEFAULT:= $(MAKEXE)
 endif
@@ -40,22 +36,19 @@ default: $(DEFAULT)
 
 ##############################################################################
 ## Controls
-include $(INCDIR)/com/Makefile.BSD
 include $(INCDIR)/pub/Makefile.BSD
 
 ##############################################################################
+## TARGET: rdclient, rdserver
+rdclient: RdClient.o IoCommon.o RdCommon.o CommonThread.o ClientThread.o
+	$(CC) -o $@ $^ $(CLIBS)
+
+rdserver: RdServer.o IoCommon.o RdCommon.o CommonThread.o ListenThread.o ServerThread.o
+	$(CC) -o $@ $^ $(CLIBS)
+
+##############################################################################
 ## TARGET: install
-.PHONY: install
 install: rdclient rdserver
-	strip $^
-	cp -idp $^ ~/bin
-
-##############################################################################
-## TARGET: RdClient
-rdclient: RdClient.o $(MAKLIB) ClientThread.o
-	$(CC) -o $@ $^ $(CLIBS)
-
-##############################################################################
-## TARGET: RdServer
-rdserver: RdServer.o $(MAKLIB) ListenThread.o ServerThread.o
-	$(CC) -o $@ $^ $(CLIBS)
+	strip rdclient rdserver
+	cp -idp rdclient ~/bin/rdclient
+	cp -idp rdserver ~/bin/rdserver

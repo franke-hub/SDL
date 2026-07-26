@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014-2020 Frank Eskesen.
+//       Copyright (c) 2014-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,189 +17,227 @@
 //       Implement CommonThread object methods
 //
 // Last change date-
-//       2020/10/03
+//       2026/07/23
 //
 //----------------------------------------------------------------------------
-#include <cstdlib>
-#include <cstring>
+#include <new>                      // For std::bad_alloc
 
-#include <com/Atomic.h>
-#include <com/Barrier.h>
-#include <com/Debug.h>
-#include <com/define.h>             // For NULL
-#include <com/Unconditional.h>
+#include <pub/Latch.h>              // For PUB::Latch
+#include <pub/Signals.h>            // For pub::signals::Signal
 
-#include "CommonThread.h"
+#include "CommonThread.h"           // For CommonThread, implemented
+#include "RdCommon.h"               // For common objects and subroutines
+
+using PUB::Latch;                   // For convenience
+using PUB::signals::Signal;         // For convenience
+using std::bad_alloc;               // For convenience
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
-#endif
-
-//----------------------------------------------------------------------------
-// Dependent macros
-//----------------------------------------------------------------------------
-#include <com/ifmacro.h>
-
-//----------------------------------------------------------------------------
-// CommonThread::Global attributes
-//----------------------------------------------------------------------------
-Semaphore              CommonThread::semaphore;      // Completion semaphore
-int                    CommonThread::threadCount= 0; // The number of threads
-CommonThread**         CommonThread::threadArray= NULL; // The thread array
+enum                                // Generic enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
+}; // Generic enum
 
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-static Barrier         barrier= BARRIER_INIT;
+static Latch           mutex;       // Exclusion mutex
 
 //----------------------------------------------------------------------------
 //
-// Method-
-//       CommonThread::~CommonThread
+// Subroutine-
+//       SNO (Should Not Occur)
 //
 // Purpose-
-//       Destructor.
+//       Handle "Should Not Occur" situation
 //
 //----------------------------------------------------------------------------
-   CommonThread::~CommonThread( void ) // Destructor
+[[noreturn]]
+static void
+   SNO(int line)                    // (Should Not Occur)
+{  throwf("%4d %s (Should Not Occur)\n", line, __FILE__); }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       hcdm
+//       verbose
+//       hcdm_verbose
+//
+// Purpose-
+//       Is Hard Core Debug Mode active?
+//       Is Verbosity greater than N?
+//       Are hcdm() && verbose(N) both true?
+//
+//----------------------------------------------------------------------------
+static inline bool                  // TRUE if Hard Core Debug Mode is active
+   hcdm( void )                     // Is Hard Core Debug Mode active?
+{  return HCDM || opt_hcdm; }
+
+static inline bool                  // TRUE if Verbosity is greater than N
+   verbose(                         // Is Verbosity greater than
+     int               N= 0)        // This value?
+{  return VERBOSE > N || opt_verbose > N; }
+
+static inline bool                  // TRUE if hcdm && verbose(N)
+   hcdm_verbose(                    // If hcdm() && verbose(N)
+     int               N= 0)
+{  return hcdm() && verbose(N); }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       mode_name
+//
+// Purpose-
+//       Get mode name from MODE type
+//
+//----------------------------------------------------------------------------
+static const char*                  // The mode name
+   mode_name(                       // Get mode name from
+     int               type)        // This mode type
 {
-   IFHCDM( debugf("%4d CommonThread(%p)::~CommonThread()\n", __LINE__, this); )
+   const char* MODE= "ERROR";
+   switch( type ) {
+     case CommonThread::MODE_RESET:
+       MODE= "RESET";
+       break;
 
-   if( socket != NULL )
-   {
-     socket->close();
-     socket= NULL;
+     case CommonThread::MODE_WR:
+       MODE= "WR";
+       break;
+
+     case CommonThread::MODE_RD:
+       MODE= "RD";
+       break;
+
+     default:
+       break;
    }
 
-   if( buffer != NULL )
-   {
-     mx_buffer->release(buffer);
-     buffer= NULL;
-   }
+   return MODE;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
 //       CommonThread::CommonThread
+//       CommonThread::~CommonThread
 //
 // Purpose-
-//       Constructor.
+//       Constructor
+//       Destructor
 //
 //----------------------------------------------------------------------------
    CommonThread::CommonThread(      // Constructor
      Socket*           socket)      // Associated Socket
-:  Thread()
-,  fsm(FSM_RESET)
-,  socket(socket)
-,  buffer(NULL)
+:  Thread(), fsm(FSM_RESET), socket(socket)
+{  if( hcdm() )
+     debugf("CommonThread(%p)::CommonThread(%p)\n", this, socket);
+
+   buffer= (char*)malloc(MAX_TRANSFER);
+   if( buffer == nullptr )
+     throw bad_alloc();
+
+tree_check_handler=                 // Connect the tree_check_handler
+   handle_check_signal([this](pub::signals::Event_t& E)
 {
-   IFHCDM( debugf("%4d CommonThread(%p)::CommonThread(%p)\n", __LINE__, this,
-                  socket); )
+   CheckEvent* event= dynamic_cast<CheckEvent*>(&E);
+   if( event ) {
+     debugf("RdPath::debug_stack(%s)\n", event->info);
 
-   buffer= (char*)mx_buffer->allocate(); // Allocate a transfer buffer
-   init();                          // Add this to CommonThread array
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonThread::init
-//
-// Purpose-
-//       Initialize this CommonThread.
-//
-//----------------------------------------------------------------------------
-void
-   CommonThread::init( void )       // Initialize this CommonThread
-{
-   IFHCDM( debugf("%4d CommonThread(%p)::init()\n", __LINE__, this); )
-
-   AutoBarrier lock(barrier);
-   {{{{
-     for(int i= 0; i<threadCount; i++)
-     {
-       if( threadArray[i] == NULL )
-       {
-         threadArray[i]= this;
-         return;
+     RdPath* path= stack.get_tail();
+     while( path ) {
+       debugf("\nRdPath(%p) '%s'\n", path, s2c(path->path_name));
+       const RdFile* file= path->get_head();
+       while( file ) {
+         file->debug(event->info);
+         file= file->get_next();
        }
+
+       path= path->get_prev();
      }
+   }
+});
+}
 
-     // Need more worker thread slots
-     int updatedThreadCount= threadCount + 8;
-     int updatedSize= updatedThreadCount * sizeof(CommonThread*);
-     CommonThread** updatedThreadArray= (CommonThread**)must_malloc(updatedSize);
-     memset(updatedThreadArray, 0, updatedSize);
-     for(int i= 0; i<threadCount; i++)
-       updatedThreadArray[i]= threadArray[i];
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   CommonThread::~CommonThread( void ) // Destructor
+{  if( hcdm() ) debugf("CommonThread(%p)::~CommonThread()\n", this);
 
-     updatedThreadArray[threadCount]= this;
+   tree_check_handler.disconnect(); // Disconnect the tree check handler
 
-     if( threadArray != NULL )
-       free(threadArray);
-     threadCount= updatedThreadCount;
-     threadArray= updatedThreadArray;
-   }}}}
+   if( socket ) {
+     socket->close();
+     socket= nullptr;
+   }
+
+   free(buffer);
+   buffer= nullptr;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       CommonThread::term
+//       CommonThread::compare
 //
 // Purpose-
-//       Terminate this CommonThread.
+//       Compare file name strings, accounting for case
 //
 //----------------------------------------------------------------------------
-void
-   CommonThread::term( void )       // Terminate this CommonThread
+int                                 // Result: <0, =0, >0
+   CommonThread::compare(           // Compare strings
+     const string&     lhs,         // Left hand side
+     const string&     rhs)         // Right hand side
 {
-   IFHCDM( debugf("%4d CommonThread(%p)::term()\n", __LINE__, this); )
+   if( gVersionInfo.f[0] & VersionInfo::VIF0_CASE ) // If case-sensitive
+     return lhs.compare(rhs);
 
-   fsm= FSM_FINAL;                  // Terminated
-   semaphore.post();
+   return strcasecmp(s2c(lhs), s2c(rhs));
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       CommonThread::globalVersionInformation
+//       CommonThread::set_globalVersionInformation
 //
 // Purpose-
 //       Combine the local and remote capabilities vectors.
 //
+// Implementation notes-
+//       global= (local[*] & remote[*]) | local[VIF7_KSUM] | remote[VIF7_KSUM]
+//
 //----------------------------------------------------------------------------
 void
-   CommonThread::globalVersionInformation( void ) // Initialize global info
+   CommonThread::set_globalVersionInformation( void ) // Initialize global info
 {
    gVersionInfo= lVersionInfo;
    for(size_t i=0; i<sizeof(gVersionInfo.f); i++)
      gVersionInfo.f[i]= lVersionInfo.f[i] & rVersionInfo.f[i];
+
+   // If either side uses checksums, both do
+   if( (lVersionInfo.f[7] & VersionInfo::VIF7_KSUM) != 0 ||
+       (rVersionInfo.f[7] & VersionInfo::VIF7_KSUM) != 0 )
+     gVersionInfo.f[7] |= VersionInfo::VIF7_KSUM;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       CommonThread::localVersionInformation
+//       CommonThread::set_localVersionInformation
 //
 // Purpose-
 //       Set the local capability vector.
 //
 //----------------------------------------------------------------------------
 void
-   CommonThread::localVersionInformation( void )  // Initialize local info
+   CommonThread::set_localVersionInformation( void ) // Initialize local info
 {
    memset(&lVersionInfo, 0, sizeof(lVersionInfo));
    strcpy(lVersionInfo.version, RD_VERSION);
-   #if defined(_OS_WIN)             // For Windows
-     lVersionInfo.f[0] |= VersionInfo::VIF0_AWIN; // Windows attributes
-     lVersionInfo.f[1] |= VersionInfo::VIF1_OWIN; // WIN operating system
-
-   #elif defined(_OS_CYGWIN)        // For Cygwin (BSD on Windows)
+   #if defined(_OS_CYGWIN)          // For Cygwin
      lVersionInfo.f[0] |= VersionInfo::VIF0_ABSD; // BSD attributes
      lVersionInfo.f[1] |= VersionInfo::VIF1_OCYG; // CYG operating system
 
@@ -207,303 +245,321 @@ void
      lVersionInfo.f[0] |= VersionInfo::VIF0_ABSD; // BSD attributes
      lVersionInfo.f[0] |= VersionInfo::VIF0_CASE; // Case sensitivity applies
      lVersionInfo.f[1] |= VersionInfo::VIF1_OBSD; // BSD operating system
+
+   #else
+     static_assert(false, "OS not supported");
    #endif
 
    // Operational controls
-   if( sw_verify )
+   if( opt_verify )
      lVersionInfo.f[7] |= VersionInfo::VIF7_KSUM; // Verify checksum
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       CommonThread::notify
+//       CommonThread::rd_buff(size_t)
 //
 // Purpose-
-//       Thread event notification.
+//       Fill the read buffer
 //
-//----------------------------------------------------------------------------
-int                                 // Return code (always 0)
-   CommonThread::notify(            // Notify this CommonThread
-     int               code)        // Using this enum NFC
-{
-   IFHCDM( debugf("%4d CommonThread(%p)::notify(%d)\n", __LINE__, this, code); )
-   ELHCDM( (void)code; )            // Parameter unused without HCDM
-
-   // If already terminated, ignore
-   if( fsm == FSM_FINAL )
-     return 0;
-
-   // Thread termination
-   fsm= FSM_CLOSE;                  // Indicate closing
-
-   // THIS IS DANGEROUS: The thread is immediately cancelled
-   cancel();                        // Terminate the Thread
-   term();                          // Indicate terminated
-
-   return 0;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonThread::notifyAll
-//
-// Purpose-
-//       Thread event notification.
+// Implementation notes-
+//       MAX_TRANSFER size enforced
 //
 //----------------------------------------------------------------------------
 void
-   CommonThread::notifyAll(         // Notity this CommonThread
-     int               code)        // Using this enum NFC
-{
-   IFHCDM( debugf("%4d CommonThread(*)::notifyAll(%d)\n", __LINE__, code); )
+   CommonThread::rd_buff(           // Fill the read buffer
+     size_t            size)        // To this minimum length
+{  if( hcdm() ) debugf("CommonThread(%p)::rd_buff(%'zd)\n", this, size);
 
-   AutoBarrier lock(barrier);
-   {{{{
-     for(int i= 0; i<threadCount; i++) // Signal all the CommonThreads
-     {
-       if( threadArray[i] != NULL )
-         threadArray[i]->notify(code);
-     }
+   if( size > MAX_TRANSFER ) SNO(__LINE__); // Disallow buffer overfill
 
-     for(int i= 0; i<threadCount; i++) // Insure thread termination
-     {
-       if( threadArray[i] != NULL )
-       {
-         if( threadArray[i]->getFSM() != FSM_FINAL )
-           fprintf(stderr, "Waiting for CommonThread(%p)\n", threadArray[i]);
+   rd_mode();                       // Set read mode
 
-         threadArray[i]->wait();
-         delete threadArray[i];
-         threadArray[i]= NULL;
-       }
-     }
-   }}}}
-}
+   size_t left= buff_size - buff_used;
+   if( left >= size )               // If buffer available
+     return;
 
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonThread::nRecv
-//
-// Purpose-
-//       Read from network.
-//
-//----------------------------------------------------------------------------
-unsigned                            // Number of bytes read
-   CommonThread::nRecv(             // Read from network
-     void*             addr,        // Data address
-     unsigned          size)        // Data length
-{
-   int                 L;           // Read length
-
-   L= socket->recv((char*)addr, size);
-   if( iodm )
-   {
-     msglog("\n");
-     msglog("%4d= nRecv(%p,%u)\n", L, addr, size);
-     if( L > 0 )
-       msgdump(addr, (unsigned)min(L,iodm));
+   // Normalize the buffer (setting buff_used == 0)
+   if( buff_used ) {
+     memmove(buffer, buffer + buff_used, left);
+     buff_size= left;
+     buff_used= 0;
    }
 
-   if( L < 1 )
-     throwf("%4d ERROR: %d=nRecv errno(%d) %s", __LINE__, L,
-            socket->getSocketEC(), socket->getSocketEI());
-
-   return L;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonThread::nRecvDirectory
-//
-// Purpose-
-//       Read a sorted directory from the network.
-//
-//----------------------------------------------------------------------------
-DirList*                            // -> DirList
-   CommonThread::nRecvDirectory(    // Receive a sorted directory
-     const char*       path)        // With this relative path
-{
-   const char*         ptrC;        // -> Generic character
-   DirEntry*           prvE;        // -> DirEntry
-   DirEntry*           ptrE;        // -> DirEntry
-   DirList*            ptrL;        // -> DirList (resultant)
-
-   HOST32              count;       // Number of directory elements
-   InputBuffer         iBuffer(this); // Input buffer
-   PeerDesc            peerDesc;    // File descriptor assembly area
-   PeerPath            peerPath;    // Path descriptor
-   PEER16              peerSize;    // String length (network format)
-   unsigned            L;           // Generic length
-
-   msglog("nRecvDirectory(%s)\n", path);
-
-   while( iBuffer.getDataSize() < sizeof(peerPath) )
-     iBuffer.fill();
-   ptrC= iBuffer.getDataAddr();
-   memcpy(&peerPath, ptrC, sizeof(peerPath));
-   iBuffer.use(sizeof(peerPath));
-   if( hcdm > 8 )
-   {
-     msglog("nRecvDirectory count\n");
-     msgdump(&peerPath, sizeof(peerPath));
+   // Fill the (normalized) buffer (at least) to the required size
+   while( buff_size < size ) {
+     left= MAX_TRANSFER - buff_size;
+     size_t L= rd_recv(buffer + buff_size, left);
+     buff_size += L;
    }
-   count= peerToHost(peerPath.count);
-   ptrL= new DirList(this, path);   // Allocate a DirList
-   prvE= NULL;
-   for(unsigned i=0; i<count; i++)  // Read the directory
-   {
-     ptrE= new DirEntry(this);      // Allocate a DirEntry
-     if( prvE == NULL )
-       ptrL->head= ptrE;
-     else
-       prvE->next= ptrE;
-     prvE= ptrE;
-
-     while( iBuffer.getDataSize() < sizeof(peerDesc) )
-       iBuffer.fill();
-     ptrC= iBuffer.getDataAddr();
-     memcpy(&peerDesc, ptrC, sizeof(peerDesc));
-     ptrE->fileInfo= peerToHost(peerDesc.fileInfo);
-     ptrE->fileTime= peerToHost(peerDesc.fileTime);
-     ptrE->fileSize= peerToHost(peerDesc.fileSize);
-     ptrE->fileKsum= peerToHost(peerDesc.fileKsum);
-     iBuffer.use(sizeof(peerDesc));
-
-     while( iBuffer.getDataSize() < sizeof(peerSize) )
-       iBuffer.fill();
-     ptrC= iBuffer.getDataAddr();
-     memcpy(&peerSize, ptrC, sizeof(peerSize));
-     iBuffer.use(sizeof(peerSize));
-     L= peerToHost(peerSize);
-     if( L >= MAX_DIRNAME )
-       throwf("%4d nRecvDirectory error: String overflow Length(%d)",
-              __LINE__, L);
-
-     while( iBuffer.getDataSize() < L )
-       iBuffer.fill();
-     ptrC= iBuffer.getDataAddr();
-     memcpy(ptrE->fileName, ptrC, L);
-     iBuffer.use(L);
-     ptrE->fileName[L]= '\0';       // Set string delimiter
-
-     if( getFileType(ptrE->fileInfo) == FT_LINK ) // If this is a link
-     {
-       while( iBuffer.getDataSize() < sizeof(peerSize) )
-         iBuffer.fill();
-       ptrC= iBuffer.getDataAddr();
-       memcpy(&peerSize, ptrC, sizeof(peerSize));
-       iBuffer.use(sizeof(peerSize));
-       L= peerToHost(peerSize);
-       if( L >= MAX_DIRNAME )
-         throwf("%4d nRecvDirectory error: String overflow Length(%d)",
-                __LINE__, L);
-
-       while( iBuffer.getDataSize() < L )
-         iBuffer.fill();
-       ptrC= iBuffer.getDataAddr();
-       memcpy(ptrE->linkName, ptrC, L);
-       iBuffer.use(L);
-       ptrE->linkName[L]= '\0';     // Set string delimiter
-     }
-   }
-
-   ptrL->count= count;              // Set the count
-   if( hcdm > 8 )
-     ptrL->display("nRecvDirectory");
-
-   return ptrL;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       CommonThread::nRecvString
+//       CommonThread::rd_buff(void*, size_t)
 //
 // Purpose-
-//       Read string from network.
+//       Read buffer data area
 //
-//----------------------------------------------------------------------------
-int                                 // Number of bytes read
-   CommonThread::nRecvString(       // Read string from network
-     void*             addr,        // Data address
-     unsigned          size)        // Data length
-{
-   PEER16              peerSize;    // String length (network format)
-   HOST16              hostSize;    // String length (host format)
-
-   peerSize= 0;                     // In case of abort
-   nRecvStruct(&peerSize, sizeof(peerSize));
-   hostSize= peerToHost(peerSize);
-   if( hostSize > (size-1) )
-     throwf("%4d nRecvString error: String overflow:\n"
-            ">>Length(%d), Size(%d)",
-            __LINE__, hostSize, size);
-
-   nRecvStruct(addr, hostSize);
-   ((char*)addr)[hostSize]= '\0';
-
-   return hostSize;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonThread::nRecvStruct
-//
-// Purpose-
-//       Read structure from network.
+// Implementation notes-
+//       MAX_TRANSFER does not apply. Any size may be used.
+//       (The buffer is only used for the initial transfer)
 //
 //----------------------------------------------------------------------------
 void
-   CommonThread::nRecvStruct(       // Read from network
-     void*             addr,        // Data address
-     unsigned          size)        // Data length
-{
-   char* ccp= (char*)addr;          // Current character position
-   unsigned L= 0;                   // Read length
-   while( L < size )
-   {
-     ccp  += L;
+   CommonThread::rd_buff(           // Read buffer data area
+     void*             v_addr,      // Input data buffer address
+     size_t            i_size)      // Input data buffer length
+{  if( hcdm() )
+     debugf("CommonThread(%p)::rd_buff(%p,%'zd)\n", this, v_addr, i_size);
+
+   rd_mode();                       // Set read mode
+
+   char*  addr= (char*)v_addr;
+   size_t size= i_size;
+   size_t left= buff_size - buff_used;
+   if( left == 0 && size < MAX_TRANSFER ) {
+     buff_used= 0;
+     buff_size= rd_recv(buffer, MAX_TRANSFER);
+     left= buff_size - buff_used;
+   }
+
+   if( left >= size ) {             // If sufficient fill available
+     memcpy(addr, buffer + buff_used, size);
+     buff_used += size;
+     if( env_iodm ) {
+       msglog("\n");
+       msglog("rd_buff(%p,%'zd)\n", addr, size);
+       msgdump(addr, min(size, env_iodm));
+     }
+     return;
+   }
+
+   // If there's any fill remaining, use it
+   if( left ) {                     // If any fill remains
+     memcpy(addr, buffer + buff_used, left);
+     addr += left;
+     size -= left;
+     buff_size= buff_used= 0;       // (Normalize the buffer)
+   }
+
+   // Read any remainder directly into the input data area
+   while( size ) {
+     size_t L= rd_recv(addr, size);
+     addr += L;
      size -= L;
+   }
 
-     L= nRecv(ccp, size);
+   if( env_iodm ) {
+     msglog("\n");
+     msglog("rd_buff(%p,%'zd)\n", v_addr, i_size);
+     msgdump(v_addr, min(i_size, env_iodm));
    }
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       CommonThread::nSend
+//       CommonThread::rd_buff(HOST16_t)
 //
 // Purpose-
-//       Send to network.
+//       Read and convert a (PEER16_t) size
 //
 //----------------------------------------------------------------------------
-unsigned                            // Number of bytes sent
-   CommonThread::nSend(             // Send to network
-     const void*       addr,        // Data address
-     unsigned          size)        // Data length
-{
-   int                 L;           // Send length
+HOST16_t                            // The resultant HOST16_t
+   CommonThread::rd_buff(           // Read (PEER16_t) size; convert it into
+     HOST16_t&         host)        // (OUT) This HOST16_t size
+{  if( hcdm() ) debugf("CommonThread(%p)::rd_buff(HOST16_t))\n", this);
 
-   if( MAX_SENDSIZE > 0 && size > MAX_SENDSIZE )
-     size= MAX_SENDSIZE;
+   PEER16_t peer;
 
-   L= socket->send((const char*)addr, size); // Send message
-   if( iodm )
-   {
-     msglog("\n");
-     msglog("%4d= nSend(%p,%u)\n", L, addr, size);
-     msgdump(addr, (unsigned)min(size,iodm));
+   rd_buff(sizeof(peer));           // Fill the buffer
+   rd_buff(&peer, sizeof(peer));    // Read the peer data
+   host= peer_to_host(peer);
+   if( env_iodm ) {
+     msglog("rd_buff(HOST16_t(%'d))\n", host);
    }
 
-   if( L < 1 )
-     throwf("%4d ERROR: %d=nSend errno(%d) %s", __LINE__, L,
-            socket->getSocketEC(), socket->getSocketEI());
+   return host;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       CommonThread::rd_buff(string&)
+//
+// Purpose-
+//       Read and convert a {(PEER16_t) size, char[size]}
+//
+// Implementation notes-
+//       Intended for file name strings, maximum length: NAME_MAX
+//
+//----------------------------------------------------------------------------
+string                              // The resultant string
+   CommonThread::rd_buff(           // Read {(PEER16_t) size, char[size]}
+     string&           name)        // (OUT) This (file name) string
+{
+   HOST16_t name_size;              // The (file name) string length
+   char name_buff[NAME_MAX + 1];    // The (file name) string buffer
+
+   rd_buff(sizeof(name_size));      // Prepare the buffer
+   rd_buff(name_size);              // Read the name size
+   if( name_size > NAME_MAX ) {
+     debugf("Name too large(%d > %d)\n", name_size, NAME_MAX);
+     SNO(__LINE__);
+   }
+
+   rd_buff(name_buff, name_size);   // Read into name buffer
+   name= string(name_buff, name_size); // The (OUTPUT) name string
+   if( env_iodm ) {
+     msglog("rd_buff(string(%s))\n", s2c(name));
+   }
+
+   return name;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       CommonThread::rd_data(void*, size_t)
+//
+// Purpose-
+//       Read data area
+//
+//----------------------------------------------------------------------------
+void
+   CommonThread::rd_data(           // Read data area
+     void*             addr,        // Input data buffer address
+     size_t            size)        // Input data buffer length
+{  if( hcdm_verbose(2) )
+     debugf("CommonThread(%p)::rd_data(%p,%'zd)\n", this, addr, size);
+
+   rd_buff(addr, size);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       CommonThread::rd_data(string&)
+//
+// Purpose-
+//       Read and convert a {(PEER16_t) size, char[size]}
+//
+//----------------------------------------------------------------------------
+string
+   CommonThread::rd_data(           // Read {(PEER16_t) size, char[size]}
+     string&           name)        // (OUT) This (file name) string
+{
+   rd_buff(name);
+
+   if( hcdm_verbose(1) )
+     debugf("CommonThread(%p)::rd_data(string(%s))\n", this, s2c(name));
+
+   return name;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       CommonThread::rd_mode
+//
+// Purpose-
+//       Go into READ mode
+//
+// Implementation notes-
+//       Automatic conversion from MODE_WR into MODE_RD allowed and expected.
+//
+//----------------------------------------------------------------------------
+void
+   CommonThread::rd_mode( void )    // Go into input mode
+{  if( hcdm() ) debugf("rd_mode(%s)\n", mode_name(mode));
+
+   if( mode == MODE_RD )            // If already in READ mode
+     return;
+
+   wr_buff();                       // Empty the write buffer, allowing change
+   mode= MODE_RD;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       CommonThread::rd_path
+//
+// Purpose-
+//       Read server path
+//
+//----------------------------------------------------------------------------
+RdPath*                             // The new RdPath
+   CommonThread::rd_path(           // Get server RdPath
+     const RdFile*     file)        // The client path file
+{  if( hcdm() )
+     debugf("CommonThread(%p)::rd_path(RdFile({%s,%s}))\n", this
+           , s2c(file->path->path_name), s2c(file->file_name));
+
+   RdPath* path= new RdPath(file->path->thread);
+
+   // Read server path count
+   PEER32_t peer_count;             // The (32 bit) file count
+   rd_buff(sizeof(peer_count));
+   rd_buff(&peer_count, sizeof(peer_count));
+   HOST32_t host_count= peer_to_host(peer_count);
+
+   for(HOST32_t X= 0; X < host_count; ++X) { // Load the Files
+     PeerDesc desc;                 // The Peer descriptor
+     rd_buff(&desc, sizeof(desc));
+
+     string name;                   // The Peer file name
+     rd_buff(name);                 // Read the file name
+
+     RdFile* file= new RdFile(path, desc, name);
+     if( file->get_file_type() == FT_LINK ) {
+       rd_buff(file->link_name);
+     }
+
+     path->fifo(file);
+   }
+   path->list.sort();
+
+   return path;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       CommonThread::rd_recv(void*, size_t)
+//
+// Purpose-
+//       Socket receive from network.
+//
+//----------------------------------------------------------------------------
+size_t                              // Number of bytes received
+   CommonThread::rd_recv(           // Socket receive operation
+     void*             addr,        // Data address
+     size_t            size)        // Data length
+{
+   ssize_t L= socket->recv(addr, size); // Socket receive
+   if( env_iodm ) {
+     msglog("\n");
+     msglog("%'zd= rd_recv(%p,%'zd)\n", L, addr, size);
+     msgdump(addr, min(size_t(L), env_iodm));
+     if( hcdm() ) {
+       debugf("\n");
+       debugf("%'zd= rd_recv(%p,%'zd)\n", L, addr, size);
+       dump(addr, min(size_t(L), env_iodm));
+     }
+   } else if( hcdm_verbose(1) ) {
+     debugf("%'zd= rd_recv(%p,%'zd)\n", L, addr, size);
+     dump(addr, min(size_t(L), 32));
+   }
+
+   if( L < 1 ) {
+     fprintf(stderr, "%4d ERROR: %'zd= rd_recv %d:%s\nConnection aborted\n"
+                   , __LINE__, L, errno, strerror(errno));
+     throw "disconnected";
+   }
 
    return L;
 }
@@ -511,289 +567,295 @@ unsigned                            // Number of bytes sent
 //----------------------------------------------------------------------------
 //
 // Method-
-//       CommonThread::nSendDirectory
+//       CommonThread::wr_buff( void )
+//
+// Purpose-
+//       Empty the write buffer
+//
+// Implementation notes-
+//       Normalizes the buffer, making it convertible to MODE_RD
+//
+//----------------------------------------------------------------------------
+void
+   CommonThread::wr_buff( void )    // Empty the write buffer
+{  if( hcdm() ) debugf("wr_buff()\n");
+
+   wr_mode();                       // Go into WRITE mode
+
+   const char* addr= buffer + buff_used;
+   size_t size= buff_size - buff_used;
+   while( size ) {                  // While data remains
+     size_t L= wr_send(addr, size); // Transmit what we can
+     addr += L;
+     size -= L;
+   }
+
+   buff_used= buff_size= 0;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       CommonThread::wr_buff(const void*,size_t)
+//
+// Purpose-
+//       Write into write buffer
+//
+// Implementation notes-
+//       MAX_TRANSFER does not apply. Any size may be used.
+//
+//----------------------------------------------------------------------------
+void
+   CommonThread::wr_buff(           // Append into buffer
+     const void*       v_addr,      // Data address
+     size_t            size)        // Data length
+{  if( env_iodm ) {
+     msglog("\n");
+     msglog("wr_buff(%p,%'zd)\n", v_addr, size);
+     msgdump(v_addr, min(size, env_iodm));
+     if( hcdm() ) {
+       debugf("\n");
+       debugf("wr_buff(%p,%'zd)\n", v_addr, size);
+       dump(v_addr, min(size, env_iodm));
+     }
+   } else if( hcdm_verbose(1) ) {
+     debugf("wr_buff(%p,%'zd)\n", v_addr, size);
+     dump(v_addr, min(size, 32));
+   }
+
+   if( size == 0 ) SNO(__LINE__);   // MUST NOT have zero length write
+
+   wr_mode();
+
+   size_t left= MAX_TRANSFER - buff_size;
+   if( left >= size ) {             // If buffer space available
+     memcpy(buffer + buff_size, v_addr, size);
+     buff_size += size;
+     return;
+   }
+
+   wr_buff();                       // Empty the write  buffer
+   const char* addr= (const char*)v_addr; // Data address
+   while( size ) {                  // Write the data
+     size_t L= wr_send(addr, size);
+     addr += L;
+     size -= L;
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       CommonThread::wr_buff(const HOST16_t&)
+//
+// Purpose-
+//       Append string size into write buffer
+//
+//----------------------------------------------------------------------------
+void
+   CommonThread::wr_buff(           // Append into buffer
+     const HOST16_t&   host)        // This file size string
+{  if( hcdm() ) debugf("wr_buff(HOST16_t(%d))\n", host);
+
+   PEER16_t peer= host_to_peer(host);
+   wr_buff(&peer, sizeof(peer));
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       CommonThread::wr_buff(const string&)
+//
+// Purpose-
+//       Append string into write buffer
+//
+//----------------------------------------------------------------------------
+void
+   CommonThread::wr_buff(           // Append into buffer
+     const string&     name)        // This file name string
+{  if( hcdm() )
+     debugf("wr_buff(string(%s)) size(%zd)\n", s2c(name), name.size());
+
+   if( name.size() > NAME_MAX ) SNO(__LINE__);
+
+   HOST16_t host_size= (HOST16_t)name.size();
+   wr_buff(host_size);
+   wr_buff(s2c(name), host_size);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       CommonThread::wr_data(const void*,size_t)
+//
+// Purpose-
+//       Unconditionally write data
+//
+// Implementation notes-
+//       Empties the write buffer first (resetting the mode)
+//
+//----------------------------------------------------------------------------
+void
+   CommonThread::wr_data(           // Transmit data
+     const void*       v_addr,      // Data address
+     size_t            size)        // Data length
+{  if( env_iodm ) {
+     msglog("\n");
+     msglog("wr_data(%p,%'zd)\n", v_addr, size);
+     msgdump(v_addr, min(size, env_iodm));
+     if( hcdm() ) {
+       debugf("\n");
+       debugf("wr_data(%p,%'zd)\n", v_addr, size);
+       dump(v_addr, min(size, env_iodm));
+     }
+   } else if( hcdm_verbose(1) ) {
+     debugf("wr_buff(%p,%'zd)\n", v_addr, size);
+     dump(v_addr, min(size, 32));
+   }
+
+   if( size <= 256 && buff_used != buff_size ) { // If small buffer append
+     wr_buff(v_addr, size);
+     wr_buff();
+   } else {
+     wr_buff();                     // Empty the buffer
+     const char* addr= (const char*)v_addr;
+     while( size ) {                // While data remains
+       size_t L= wr_send(addr, size); // Transmit what we can
+       addr += L;
+       size -= L;
+     }
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       CommonThread::wr_data(const string&)
+//
+// Purpose-
+//       Write string
+//
+//----------------------------------------------------------------------------
+void
+   CommonThread::wr_data(           // Append into buffer
+     const string&     name)        // This file name string
+{  if( hcdm() )
+     debugf("wr_data(string(%s)) size(%zd)\n", s2c(name), name.size());
+
+   wr_buff(name);                   // Add the string to the buffer, then
+   wr_buff();                       // Empty the buffer
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       CommonThread::wr_mode
+//
+// Purpose-
+//       Go into WRITE mode (i.e. using buffer in WRITE mode)
+//
+// Implementation notes-
+//       Cannot convert an active MODE_RD into MODE_WR.
+//
+//----------------------------------------------------------------------------
+void
+   CommonThread::wr_mode( void )    // Go into WRITE mode
+{  if( hcdm() )
+     debugf("wr_mode(%s) {%zd,%zd}\n", mode_name(mode), buff_used, buff_size);
+
+   if( mode == MODE_WR )            // If already in WRITE mode
+     return;
+
+   if( buff_used == buff_size ) {
+     buff_used= buff_size= 0;
+     mode= MODE_WR;
+     return;
+   }
+
+   // SHOULD NOT OCCUR: Now in MODE_RD.
+   debugf("mode(%s) buffer(%p) buff_used(%'zd) buff_size(%'zd)\n"
+         , mode_name(mode), buffer, buff_used, buff_size);
+   dump(buffer, buff_size);
+   dump(buffer + buff_used, buff_size - buff_used);
+   SNO(__LINE__);                   // Debugging required if you hit this
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       CommonThread::wr_path
 //
 // Purpose-
 //       Send a sorted directory on network.
 //
 //----------------------------------------------------------------------------
 void
-   CommonThread::nSendDirectory(    // Send a sorted directory
-     DirList*          ptrL)        // -> DirList
-{
-   char*               ptrC;        // -> Generic character
-   DirEntry*           ptrE;        // -> DirEntry
+   CommonThread::wr_path(           // Send a sorted directory
+     const RdPath*     path)        // -> RdPath
+{  if( hcdm() ) debugf("wr_path\n");
 
-   OutputBuffer        oBuffer(this); // Output buffer
-   PeerDesc            peerDesc;    // File descriptor assembly area
-   PeerPath            peerPath;    // Path descriptor
-   PEER16              peerSize;    // String length (network format)
-   unsigned            L;           // Generic length
+   msglog("wr_path\n");
 
-   msglog("nSendDirectory\n");
+   size_t count= path->list.size(); // Count the files
+   if( count > UINT32_MAX ) SNO(__LINE__); // (New version needed if occurs)
+   HOST32_t host_count= (HOST32_t)count;
+   PEER32_t peer_count= host_to_peer(host_count);
+   wr_buff(&peer_count, sizeof(peer_count));
 
-   peerPath.count= hostToPeer(ptrL->count);
-   ptrC= (char*)&peerPath;
-   for(size_t i=0; i<sizeof(peerPath); i++)
-     oBuffer.putChar(ptrC[i]);
-   if( hcdm > 8 )
-   {
-     msglog("nSendDirectory count:\n");
-     msgdump(&peerPath, sizeof(peerPath));
+   // Write the path information
+   const RdFile* file= const_cast<RdPath*>(path)->get_head();
+   while( file ) {
+     --count;                       // (For consistency check)
+     PeerDesc peerDesc(file->desc);
+     wr_buff(&peerDesc, sizeof(peerDesc));
+
+     wr_buff(file->file_name);
+
+     // For Links, write the link name string
+     if( file->get_file_type() == FT_LINK )
+       wr_buff(file->link_name);
+
+     file= const_cast<const RdFile*>(file->get_next());
    }
+   if( count ) SNO(__LINE__);       // File count inconsistent (assert)
 
-   ptrE= ptrL->head;                // Begin at the beginning
-   while( ptrE != NULL )            // Write the directory
-   {
-     peerDesc.fileInfo= hostToPeer(ptrE->fileInfo);
-     peerDesc.fileSize= hostToPeer(ptrE->fileSize);
-     peerDesc.fileTime= hostToPeer(ptrE->fileTime);
-     peerDesc.fileKsum= hostToPeer(ptrE->fileKsum);
-
-     while( oBuffer.getDataSize() < sizeof(peerDesc) )
-       oBuffer.empty();
-     ptrC= oBuffer.getDataAddr();
-
-     memcpy(ptrC, &peerDesc, sizeof(peerDesc));
-     oBuffer.use(sizeof(peerDesc));
-
-     L= strlen(ptrE->fileName);
-     peerSize= hostToPeer((HOST16)L);
-     while( oBuffer.getDataSize() < sizeof(peerSize) )
-       oBuffer.empty();
-     ptrC= oBuffer.getDataAddr();
-     memcpy(ptrC, &peerSize, sizeof(peerSize));
-     oBuffer.use(sizeof(peerSize));
-
-     while( oBuffer.getDataSize() < L )
-       oBuffer.empty();
-     ptrC= oBuffer.getDataAddr();
-     memcpy(ptrC, ptrE->fileName, L);
-     oBuffer.use(L);
-
-     if( getFileType(ptrE->fileInfo) == FT_LINK ) // If this is a link
-     {
-       L= strlen(ptrE->linkName);
-       peerSize= hostToPeer((HOST16)L);
-       while( oBuffer.getDataSize() < sizeof(peerSize) )
-         oBuffer.empty();
-       ptrC= oBuffer.getDataAddr();
-       memcpy(ptrC, &peerSize, sizeof(peerSize));
-       oBuffer.use(sizeof(peerSize));
-
-       while( oBuffer.getDataSize() < L )
-         oBuffer.empty();
-       ptrC= oBuffer.getDataAddr();
-       memcpy(ptrC, ptrE->linkName, L);
-       oBuffer.use(L);
-     }
-
-     ptrE= ptrE->next;
-   }
-
-   oBuffer.empty();                 // Empty the buffer
+   wr_buff();                       // Empty the write buffer
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       CommonThread::nSendString
+//       CommonThread::wr_send(const void*, size_t)
 //
 // Purpose-
-//       Send name on network.
+//       Socket send to peer.
 //
 //----------------------------------------------------------------------------
-void
-   CommonThread::nSendString(       // Send name to network
+size_t                              // Number of bytes sent
+   CommonThread::wr_send(           // Socket send operation
      const void*       addr,        // Data address
-     unsigned          size)        // Data length
+     size_t            size)        // Data length
 {
-   PEER16              peerSize;    // String length (network format)
-
-   peerSize= hostToPeer((PEER16)size);
-   nSendStruct(&peerSize, sizeof(peerSize));
-   nSendStruct(addr, size);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonThread::nSendStruct
-//
-// Purpose-
-//       Send structure to network.
-//
-//----------------------------------------------------------------------------
-void
-   CommonThread::nSendStruct(       // Send to network
-     const void*       addr,        // Data address
-     unsigned          size)        // Data length
-{
-   const char*         ccp;         // Current character position
-   unsigned            L;           // Send length
-
-   ccp= (const char*)addr;
-   L= 0;
-   while( L < size )
-   {
-     ccp  += L;
-     size -= L;
-
-     L= nSend(ccp, size);
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonThread::status
-//
-// Purpose-
-//       Display the status of all CommonThread objects.
-//
-//----------------------------------------------------------------------------
-void
-   CommonThread::status( void )     // Display status
-{
-   AutoBarrier lock(barrier);
-
-   for(int i= 0; i<threadCount; i++)
-   {
-     if( threadArray[i] != NULL )
-     {
-       //---------------------------------------------------------------------
-       // Display the status
-       //---------------------------------------------------------------------
-       CommonThread* thread= threadArray[i];
-
-       const char* state= "FSM_ERROR";
-       switch( thread->getFSM() )
-       {
-         case FSM_READY:
-           state= "FSM_READY";
-           break;
-
-         case FSM_CLOSE:
-           state= "FSM_CLOSE";
-           break;
-
-         case FSM_RESET:
-           state= "FSM_RESET";
-           break;
-
-         case FSM_FINAL:
-           state= "FSM_FINAL";
-           break;
-
-         default:
-           break;
-       }
-
-       //---------------------------------------------------------------------
-       // Implementation note-
-       //   Dynamic cast cannot be used here (in Linux) because ListenThread.o
-       //   is not included in RdClient. This causes the error message:
-       //   undefined reference to `typeinfo for ListenThread' when linking.
-       //---------------------------------------------------------------------
-       Socket* socket= thread->socket; // Get associated
-       if( socket == NULL )
-         fprintf(stderr, "Status: %s Host(UNKNOWN)%s\n", state,
-                         thread->isListenThread() ? " [LISTEN]" : "");
-       else if( thread->isListenThread() )
-       {
-         const char* name= socket->getHostName();
-         int port= socket->getHostPort();
-         fprintf(stderr, "Status: %s Host(%s:%d) [LISTEN]\n",
-                         state, name, port);
-       }
-       else
-       {
-         const char* name= socket->getPeerName();
-         int port= socket->getPeerPort();
-         fprintf(stderr, "Status: %s Host(%s:%d)\n", state, name, port);
-       }
+   ssize_t L= socket->send(addr, size); // Socket send
+   if( env_iodm ) {
+     msglog("\n");
+     msglog("%'zd= wr_send(%p,%'zd)\n", L, addr, size);
+     msgdump(addr, min(size_t(L), env_iodm));
+     if( hcdm() ) {
+       debugf("\n");
+       debugf("%'zd= wr_send(%p,%'zd)\n", L, addr, size);
+       dump(addr, min(size_t(L), env_iodm));
      }
+   } else if( hcdm_verbose(1) ) {
+     debugf("%'zd= wr_send(%p,%'zd)\n", L, addr, size);
+     dump(addr, min(size_t(L), 32));
    }
-}
 
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonThread::wait
-//
-// Purpose-
-//       Thread::wait with debugging information
-//
-//----------------------------------------------------------------------------
-long
-   CommonThread::wait( void )       // Wait with debugging message
-{
-   IFHCDM( debugf("%4d CommonThread(%p)::wait()\n", __LINE__, this); )
-   return Thread::wait();
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonThread::waiter
-//
-// Purpose-
-//       Wait for interrupt
-//
-//----------------------------------------------------------------------------
-void
-   CommonThread::waiter( void )     // Wait for termination interrupt
-{
-   for(;;)
-   {
-     semaphore.wait();
-
-     AutoBarrier lock(barrier);
-     {{{{
-       for(int i= 0; i<threadCount; i++)
-       {
-         if( threadArray[i] != NULL )
-         {
-           int fsm= threadArray[i]->getFSM();
-           switch( fsm )
-           {
-             case FSM_READY:
-               break;
-
-             case FSM_CLOSE:
-             case FSM_RESET:
-               IFHCDM(
-                 debugf("%4d CommonThread [%d] fsm(%d)\n", __LINE__, i, fsm);
-               )
-               break;
-
-             case FSM_FINAL:
-               threadArray[i]->wait();
-               delete threadArray[i];
-               threadArray[i]= NULL;
-               break;
-
-             default:
-               throwf("%4d CommonThread [%d] fsm(%d) INVALID", __LINE__,
-                      i, fsm);
-               break;
-           }
-         }
-       }
-
-       int operational= FALSE;
-       for(int i= 0; i<threadCount; i++)
-       {
-         if( this == threadArray[i] )
-         {
-           operational= TRUE;
-           break;
-         }
-       }
-
-       if( operational == FALSE )
-         return;
-     }}}}
+   if( L < 1 ) {
+     fprintf(stderr, "%4d ERROR: %'zd= wr_send %d:%s\nConnection aborted\n"
+                   , __LINE__, L, errno, strerror(errno));
+     throw "disconnected";
    }
-}
 
+   return L;
+}

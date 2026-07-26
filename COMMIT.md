@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2026/05/21
+//       2026/07/26
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -1056,7 +1056,79 @@ no reason for the restriction.
 Now compiles an alternate version if __GNUC__ == 16
     - See: https://gcc.gnu.org/pipermail/gcc-bugs/2025-May/914942.html
 
-### <a id="last-change">2026/05/21 maint/trunk</a>
+### 2026/05/21 maint/trunk
 - Added ~/src/cpp/inc/pub/IO.h and ~/src/cpp/lib/pub/IO.cpp
   - Includes open, close, read, write and some utility functions
   - (Expected to be useful in rewrite of ~/src/cpp/Clone.)
+
+### 2026/05/30 maint
+- More changes expected to be useful in ~/src/cpp/Clone rewrite
+- Updated Data.h to provide an easier way to override functions
+  - ~/src/cpp/inc/pub/Data.h
+    - Virtual destructor for pub::data::Path
+    - New virtual method: pub::data::Path::new_file:
+      - Override this method to create a derived pub::data::File object
+  - ~/src/cpp/lib/pub/Data.cpp: Uses the new_file virtual method.
+- Added a read into buffer {addr,size} method to the IodaReader object
+  - ~/src/cpp/inc/pub/Ioda.h: Defines the read buffer method
+  - ~/src/cpp/lib/pub/Ioda.cpp: Implements the read buffer method
+  - ~/src/cpp/lib/pub/Test/TestIoda.cpp: Tests the read buffer method
+
+### 2026/06/25 maint
+- Coding changes allowing string to be used instead of std::string
+  - IO.h: typedef std::string string; // Applies to all of namespace io
+  - Data.h: All classes and structs use typedef std::string string;
+    - Changed name of file name attribute from "name" to "file_name"
+    - Changed name of path name attribute from "name" to "path_name"
+- For attribute name changes in Data.h
+  - Updated ~/src/cpp/lib/pub/Test/TestData.cpp
+  - Updated ~/src/cpp/Edit/Xcb/Config.cpp
+  - Updated ~/src/cpp/Edit/Xcb/Editor.cpp
+  - Updated ~/src/cpp/Fileman/Fileman.cpp
+  - Updated ~/src/cpp/Scanner/Scanner.cpp
+  - Updated ~/src/cpp/lib/pub/Dictionary.cpp
+- ~/src/cpp/inc/pub/Socket.h and ~/src/cpp/lib/pub/Socket.cpp
+  - Defaulted flag parameter to 0 (where possible)
+  - Added get_peer_name function
+- ~/src/cpp/Scanner/Scanner.cpp
+  - Added function to correct "//" column position. This currenty doesn't
+handle enough situations to make it usable, so it's disabled.
+
+### 2026/07/06 maint
+- Open xcbedit and xtmedit problems
+  - Opening multiple files on Linux creates duplicate independent editor files
+  - Using F6 (repeat change) after using "v" to open a protected file causes
+the file to appear changed. (The history/command background color changes)
+- Created PUB library version of ~/src/cpp/Clone rdclient/rdserver
+  - While tested, this is an ALPHA level release
+  - Compatible with COM library version
+    - COM library version moved from ~/src/cpp/Clone to ~/src/cpp/com-Clone
+    - COM library version creates com-rdclient/com-rdserver executables
+- Minor PUB library changes:
+  - ~/src/cpp/inc/pub/Data.h: Added const attribute to function
+  - ~/src/cpp/inc/pub/Socket.h: Removed get_addr_string function
+    - Use get_host_addr().to_string() or get_peer_addr().to_string() instead
+
+### 2026/07/08 maint
+- Updated ~/src/cpp/Edit/Xcb and ~/src/cpp/Edit/Term
+  - Fixed open problems
+  - Added feature: File save does not save an unchanged file.
+    - However: "save file-name" saves (the same) file even if unchanged.
+
+### <a id="last-change">2026/07/26 maint/trunk</a>
+- Updated ~/src/cpp/Clone
+  - Rewritten to use PUB library (compatible with prior version)
+    - Prior version: ~/src/cpp/com-Clone
+  - Multiple commits to fix problems found during testing
+  - New rdclient option: -K (keep) Doesn't update; displays required actions
+- Updated ~/src/cpp/Scanner
+  - New option: --format (Checks code comment alignment)
+    - Not included with --all; Currently overly aggressive
+- Updated ~/src/cpp/Edit/Xcb, ~/src/cpp/Edit/Term
+  - Fixed coding errors exposed by later GCC version (Use of character strings
+derived from temporary std::string objects)
+  - Fixed annoyance problems regarding accessing last line of screen.
+  - Protected files display "View" rather than "Edit" in title.
+    - Fixed command sequence that allowed modification of proteced files.
+- ~/src/cpp/lib/pub/Debug.cpp
+  - Constructor initializes Debug::common if required

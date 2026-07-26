@@ -135,6 +135,7 @@ const Function         function;    // The Event_t handler function
 public:
    Slot(const Function&);           // Constructor
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    ~Slot( void );                   // Destructor
 
 //----------------------------------------------------------------------------
@@ -175,6 +176,7 @@ List<Slot_t>           list;        // The actual List of Slots
 public:
    SlotList( void );                // Default constructor
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    ~SlotList( void );               // Destructor
 
 //----------------------------------------------------------------------------
@@ -222,7 +224,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Class-
-//       signals::Connector
+//       pub::signals::Connector
 //
 // Purpose-
 //       Signal/Slot connection control.
@@ -253,7 +255,7 @@ Weak_t                 list;        // The SlotList (weak_ptr)
 Slot_t*                slot;        // The Slot (raw pointer)
 
 //----------------------------------------------------------------------------
-// pub::signals::Connector::Constructors
+// pub::signals::Connector::Constructors/destructor
 //----------------------------------------------------------------------------
 public:
    Connector( void );               // Default constructor
@@ -267,9 +269,7 @@ public:
    Connector(                       // MOVE constructor (resets source)
      Connector&&       that);
 
-//----------------------------------------------------------------------------
-// pub::signals::Connector::Destructor
-//----------------------------------------------------------------------------
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    ~Connector( void );              // Destructor
 
 //----------------------------------------------------------------------------
@@ -347,13 +347,14 @@ protected:
                        list;        // The SlotList List
 
 //----------------------------------------------------------------------------
-// pub::signals::Signal::constructors/destructor
+// pub::signals::Signal::Constructors/destructor
 //----------------------------------------------------------------------------
 public:
    Signal( void );                  // Constructor
 
    Signal(const Signal&) = delete;  // *NO* copy constructor
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 virtual
    ~Signal( void );                 // Destructor
 

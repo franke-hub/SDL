@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2019-2025 Frank Eskesen.
+//       Copyright (C) 2019-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2025/01/25
+//       2026/06/28
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -127,7 +127,7 @@ static int                          // Return code, 0 OK
      debugf("Socket::etc_addr(%s,%p,%d)\n", s2c(host), sock, *size);
 
    using namespace PUB::data;
-   Data file("/etc/", "hosts");
+   Data file("/etc", "hosts");
    pub::DHDL_list<Line>& list= file.line();
 
    for(Line* line= list.get_head(); line; line= line->get_next() ) {
@@ -329,6 +329,7 @@ std::string
        result= std::string(un->sun_path); // (Trailing '\0' always present)
        break;
      }}}}
+
      default:                       // If invalid address family
        result= utility::to_string("<sa_family_t(%d)>", su_af);
        errno= EINVAL;
@@ -495,6 +496,32 @@ int                                 // Return code
      void*             optval,      // Option value
      socklen_t*        optlen)      // Option length (IN/OUT)
 {  return ::getsockopt(handle, optlevel, optname, optval, optlen); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Socket::get_peer_name
+//
+// Purpose-
+//       Get peer host name or address string
+//
+//----------------------------------------------------------------------------
+std::string                         // The peer host name or address string
+   Socket::get_peer_name( void ) const // Get peer host name or address string
+{
+   char peer_name[64];              // Peer name buffer
+   std::string result;              // Peer name string
+
+   int rc= ::getnameinfo((sockaddr*)&peer_addr, peer_size
+                        , peer_name, sizeof(peer_name)
+                        , nullptr, 0, NI_NOFQDN);
+   if( rc == 0 )
+     result= peer_name;
+   else
+     result= peer_addr.to_string();
+
+   return result;
+}
 
 //----------------------------------------------------------------------------
 //

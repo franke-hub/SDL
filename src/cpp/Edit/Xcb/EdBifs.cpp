@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2025 Frank Eskesen.
+//       Copyright (C) 2020-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2025/09/19
+//       2026/07/08
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -152,57 +152,57 @@ static const char* command_view(char*);
 static const char* number_error(char*);
 
 static const Command_desc  command_desc[]= // The Command descriptor list
-{  {command_bot,      "BOT",      "Bottom of file"}
-,  {command_change,   "C",        "Change"}
-,  {command_deblank,  "DEBLANK",  "Remove all trailing blanks"}
-,  {command_debug,    "DEBUG",    nullptr}
-,  {command_detab,    "DETAB",    "Convert tabs to spaces"}
-,  {command_edit,     "E",        "Alias for EDIT"}
-,  {command_edit,     "EDIT",     "Edit file(s)"}
-,  {command_exit,     "EXIT",     "(Safe) Exit" }
-,  {command_find,     "FI",       "Find (starting in column 1)"} // (Alias)
-,  {command_file,     "FILE",     "(Unconditionally) save and close file"}
-,  {command_find,     "FIND",     "Find (starting in column 1)"}
+{  {command_bot,       "BOT",       "Bottom of file"}
+,  {command_change,    "C",         "Change"}
+,  {command_deblank,   "DEBLANK",   "Remove all trailing blanks"}
+,  {command_debug,     "DEBUG",     nullptr}
+,  {command_detab,     "DETAB",     "Convert tabs to spaces"}
+,  {command_edit,      "E",         "Alias for EDIT"}
+,  {command_edit,      "EDIT",      "Edit file(s)"}
+,  {command_exit,      "EXIT",      "(Safe) Exit" }
+,  {command_find,      "FI",        "Find (starting in column 1)"} // (Alias)
+,  {command_file,      "FILE",      "(Unconditionally) save and close file"}
+,  {command_find,      "FIND",      "Find (starting in column 1)"}
 ,  {editor::command_help,
-                      "HELP",     "Help command"}
-,  {command_insert,   "INSERT",   "Insert file"}
-,  {command_locate,   "L",        "Locate"}
-,  {command_margins,  "MARGINS",  "Set margins"}
-,  {command_mode,     "MODE",     "Set mode"}
-,  {command_quit,     "QUIT",     "(Unconditionally) close file"}
-// {command_redo,     "REDO",     "REDO an UNDO"}
-,  {command_save,     "SAVE",     "Write file"}
-,  {command_set,      "SET",      "Set option value"}
-,  {command_sort,     "SORT",     "Sort file list using file name"}
-,  {nullptr,          "SORT -f",  "Sort using fully-qualified name"}
-,  {command_tabs,     "TABS",     "Set tabs"}
-,  {command_top,      "TOP",      "Top of File"}
-// {command_undo,     "UNDO",     "UNDO a change"}
-,  {command_view,     "V",        "Alias for VIEW"}
-,  {command_view,     "VIEW",     "Edit file(s) in read/only mode"}
-,  {nullptr,          "<",        "Locate (reverse search)"}
-,  {nullptr,          ">",        "Locate (forward search)"}
-,  {nullptr,          "#",        "(Comment)"}
-,  {number_error,     "number",   "Set current line to 'number'"}
+                       "HELP",      "Help command"}
+,  {command_insert,    "INSERT",    "Insert file"}
+,  {command_locate,    "L",         "Locate"}
+,  {command_margins,   "MARGINS",   "Set margins"}
+,  {command_mode,      "MODE",      "Set mode"}
+,  {command_quit,      "QUIT",      "(Unconditionally) close file"}
+// {command_redo,      "REDO",      "REDO an UNDO"}
+,  {command_save,      "SAVE",      "Write file"}
+,  {command_set,       "SET",       "Set option value"}
+,  {command_sort,      "SORT",      "Sort file list using file name"}
+,  {nullptr,           "SORT -f",   "Sort using fully-qualified name"}
+,  {command_tabs,      "TABS",      "Set tabs"}
+,  {command_top,       "TOP",       "Top of File"}
+// {command_undo,      "UNDO",      "UNDO a change"}
+,  {command_view,      "V",         "Alias for VIEW"}
+,  {command_view,      "VIEW",      "Edit file(s) in read/only mode"}
+,  {nullptr,           "<",         "Locate (reverse search)"}
+,  {nullptr,           ">",         "Locate (forward search)"}
+,  {nullptr,           "#",         "(Comment)"}
+,  {number_error,      "number",    "Set current line to 'number'"}
 
 // Spelling errors/typos
-,  {nullptr,         "",          nullptr} // Command aliases follow
-,  {command_bot,     "BPT",       nullptr} // (BOT)
-,  {command_file,    "FO;E",      nullptr} // (FILE)
-,  {command_insert,  "INCLUDE",   nullptr} // (INSERT)
-,  {command_margins, "MARGIN",    nullptr} // (MARGINS)
-,  {command_save,    "SAFE",      nullptr} // (SAVE)
-,  {command_save,    "SAE",       nullptr} // (SAVE)
-,  {command_save,    "SAV",       nullptr} // (SAVE)
-,  {command_save,    "SAVAE",     nullptr} // (SAVE)
-,  {command_save,    "SAVCE",     nullptr} // (SAVE)
-,  {command_save,    "SAVVE",     nullptr} // (SAVE)
-,  {command_save,    "SVAE",      nullptr} // (SAVE)
-,  {command_save,    "SVE",       nullptr} // (SAVE)
-,  {command_tabs,    "TAB",       nullptr} // (TABS)
-,  {command_top,     "TIO",       nullptr} // (TOP)
-,  {command_top,     "TP[",       nullptr} // (TOP)
-,  {nullptr,         nullptr,     nullptr} // End of list delimiter
+,  {nullptr,           "",          nullptr} // Command aliases follow
+,  {command_bot,       "BPT",       nullptr} // (BOT)
+,  {command_file,      "FO;E",      nullptr} // (FILE)
+,  {command_insert,    "INCLUDE",   nullptr} // (INSERT)
+,  {command_margins,   "MARGIN",    nullptr} // (MARGINS)
+,  {command_save,      "SAFE",      nullptr} // (SAVE)
+,  {command_save,      "SAE",       nullptr} // (SAVE)
+,  {command_save,      "SAV",       nullptr} // (SAVE)
+,  {command_save,      "SAVAE",     nullptr} // (SAVE)
+,  {command_save,      "SAVCE",     nullptr} // (SAVE)
+,  {command_save,      "SAVVE",     nullptr} // (SAVE)
+,  {command_save,      "SVAE",      nullptr} // (SAVE)
+,  {command_save,      "SVE",       nullptr} // (SAVE)
+,  {command_tabs,      "TAB",       nullptr} // (TABS)
+,  {command_top,       "TIO",       nullptr} // (TOP)
+,  {command_top,       "TP[",       nullptr} // (TOP)
+,  {nullptr,           nullptr,     nullptr} // End of list delimiter
 };
 
 #if !USE_SUSPEND // TODO: REMOVE
@@ -926,17 +926,30 @@ const char*                         // Error message, nullptr if none
 // Purpose-
 //       Write file (with error checking)
 //
+// Implementation notes-
+//       Use "save file-name" to save the file unconditionally.
+//
 //----------------------------------------------------------------------------
 const char*                         // Error message, nullptr expected
    editor::write_file(              // Write file
      char*             parm)        // (Mutable) parameter string
 {
+   using pub::data::Name;           // For Name::get_file_name
    EdFile* file= editor::file;
 
    if( parm ) {                     // If filename specified
+     if( strcmp(parm, Name::get_file_name(file->name).c_str()) == 0 ) {
+       int rc= file->write();
+       if( rc )
+         return "Write failure";
+
+       file->reset();
+       return nullptr;
+     }
+
      struct stat info;
-     int rc= stat(parm, &info);     // Get file information
-     if( rc == 0 )                  // If file exists
+     int rc= stat(parm, &info);   // Get file information
+     if( rc == 0 )                // If file exists
        return "File exists";
 
      rc= file->write(parm);         // Write the file
@@ -947,10 +960,12 @@ const char*                         // Error message, nullptr expected
 
    if( file->protect )
      return "Read-only";
+   if( !file->changed )
+     return "Unchanged";
    if( file->damaged )
      return "Damaged file";
 
-   // Replace the file (even if unchanged)
+   // Replace the file
    int rc= file->write();
    if( rc )
      return "Write failure";

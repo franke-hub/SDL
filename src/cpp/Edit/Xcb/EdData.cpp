@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2025 Frank Eskesen.
+//       Copyright (C) 2020-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Editor: Implement EdData.h, EdView.h
 //
 // Last change date-
-//       2025/08/16
+//       2026/07/14
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -225,7 +225,7 @@ void
    int rc= 1;                       // Default, no draw
    if( n > 0 ) {                    // Move down
      while( n-- ) {
-       if( unit->row_used > row )
+       if( unit->row_used >= row )
          row++;
        else {
          EdLine* line= (EdLine*)unit->head->get_next();

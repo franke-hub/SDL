@@ -17,7 +17,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2026/01/17
+//       2026/06/11
 //
 //----------------------------------------------------------------------------
 #include <cctype>                   // For isspace
@@ -709,8 +709,9 @@ static void
    pub::data::Path  path(AUTO);
    pub::data::File* file= path.list.get_head();
    while( file ) {
-     if( file->name.find(AUTOFILE) == 0 )
-       Config::failure("File exists: %s/%s", AUTO.c_str(), file->name.c_str());
+     if( file->get_file_name().find(AUTOFILE) == 0 )
+       Config::failure("File exists: %s/%s", AUTO.c_str()
+                      , file->get_file_name().c_str());
 
      file= file->get_next();
    }

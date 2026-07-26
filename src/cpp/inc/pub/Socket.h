@@ -17,7 +17,7 @@
 //       Standard socket (including openssl sockets) wrapper.
 //
 // Last change date-
-//       2026/03/23
+//       2026/06/28
 //
 // Implementation notes-
 //       Error recovery is the user's responsibility.
@@ -233,6 +233,9 @@ const sockaddr_u&                   // The peer internet address
    get_peer_addr( void ) const      // Get peer internet address
 {  return peer_addr; }
 
+std::string                         // The peer host name (or address string)
+   get_peer_name( void ) const;     // Get peer host name (or address string)
+
 Port                                // The peer Port number
    get_peer_port( void ) const      // Get peer Port number
 {
@@ -415,31 +418,31 @@ virtual ssize_t                     // The number of bytes read
    recv(                            // Receive from the peer socket
      void*             addr,        // Data address
      size_t            size,        // Maximum data length
-     int               flag);       // Receive options
+     int               flag= 0);    // Receive options
 
 virtual ssize_t                     // The number of bytes read
    recvfrom(                        // Read from some socket
      void*             addr,        // Data address
      size_t            size,        // Data length
-     int               flag,        // Send options
+     int               flag,        // Receive options
      sockaddr*         peeraddr,    // Source peer address
      socklen_t*        peersize);   // Source peer address length
 
 virtual ssize_t                     // The number of bytes written
    recvmsg(                         // Receive message from some socket
      msghdr*           msg,         // Message header
-     int               flag);       // Recv options
+     int               flag= 0);    // Receive options
 
 virtual ssize_t                     // The number of bytes written
    send(                            // Write to the peer socket
      const void*       addr,        // Data address
      size_t            size,        // Data length
-     int               flag);       // Send options
+     int               flag= 0);    // Send options
 
 virtual ssize_t                     // The number of bytes written
    sendmsg(                         // Write to some socket
      const msghdr*     msg,         // Message header
-     int               flag);       // Send options
+     int               flag= 0);    // Send options
 
 virtual ssize_t                     // The number of bytes written
    sendto(                          // Write to some socket
@@ -453,7 +456,7 @@ virtual ssize_t                     // The number of bytes written
    sendto(                          // Write to the peer socket
      const void*       addr,        // Data address
      size_t            size,        // Data length
-     int               flag)        // Send options
+     int               flag= 0)     // Send options
 {  return sendto(addr, size, flag, (sockaddr*)&peer_addr, peer_size); }
 }; // class Socket
 
@@ -553,31 +556,31 @@ virtual ssize_t                     // The number of bytes read
    recv(                            // Receive from the peer socket
      void*             addr,        // Data address
      size_t            size,        // Maximum data length
-     int               flag);       // Receive options
+     int               flag= 0);    // Receive options
 
 virtual ssize_t                     // The number of bytes read
    recvfrom(                        // Read from some socket
      void*             addr,        // Data address
      size_t            size,        // Data length
-     int               flag,        // Send options
+     int               flag,        // Receive options
      sockaddr*         peeraddr,    // Source peer address
      socklen_t*        peersize);   // Source peer address length
 
 virtual ssize_t                     // The number of bytes written
    recvmsg(                         // Receive message from some socket
      msghdr*           msg,         // Message header
-     int               flag);       // Recv options
+     int               flag= 0);    // Receive options
 
 virtual ssize_t                     // The number of bytes written
    send(                            // Write to the peer socket
      const void*       addr,        // Data address
      size_t            size,        // Data length
-     int               flag);       // Send options
+     int               flag= 0);    // Send options
 
 virtual ssize_t                     // The number of bytes written
    sendmsg(                         // Write to some socket
      const msghdr*     msg,         // Message header
-     int               flag);       // Send options
+     int               flag= 0);    // Send options
 
 virtual ssize_t                     // The number of bytes written
    sendto(                          // Write to some socket
@@ -591,7 +594,7 @@ virtual ssize_t                     // The number of bytes written
    sendto(                          // Write to the peer socket
      const void*       addr,        // Data address
      size_t            size,        // Data length
-     int               flag);       // Send options
+     int               flag= 0);    // Send options
 }; // class SSL_socket
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_SOCKET_H_INCLUDED
