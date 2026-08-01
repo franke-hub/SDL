@@ -17,7 +17,7 @@
 //       Common routines used by RdClient and RdServer.
 //
 // Last change date-
-//       2026/07/23
+//       2026/07/27
 //
 // Environment variables-
 //       LOG_HCDM=n    Hard Core Debug Mode verbosity
@@ -318,26 +318,34 @@ void
    int ERRNO= errno;                // Preserve errno
 
    lock_guard<decltype(mutex)> lock(mutex); // Single thread mode
-   char string[512];                // Message assembly area
-   va_list argptr;                  // Argument list pointer
-   va_start(argptr, fmt);           // Initialize va_ functions
-   vsprintf(string, fmt, argptr);   // Print the message
-   va_end(argptr);                  // Close va_ functions
-
    char prefix[32];                 // Date/time prefix
-   prefix[0]='\0';                  // Empty prefix
+   prefix[0]='\0';                  // Empty prefix (in case it's not included)
    if( true ) {                     // Date/time included?
      time_t tod= time(nullptr);
-     strcpy(prefix, ctime(&tod));
+     strcpy(prefix, ctime(&tod));   // "Www Mmm dd hh:mm:ss yyyy\n" (26 bytes)
      if( prefix[strlen(prefix) - 1] == '\n' )
        prefix[strlen(prefix) - 1]= ' ';
    }
 
-   fprintf(stderr, "%s%s %d:%s\n", prefix, string, ERRNO, strerror(ERRNO));
+   fprintf(stderr, "%s", prefix);
+
+   va_list errptr;                    // Argument list pointer
+   va_start(errptr, fmt);             // Initialize va_ functions
+   vfprintf(stderr, fmt, errptr);     // Print the message
+   va_end(errptr);                    // Close va_ functions
+
+   fprintf(stderr, " %d:%s\n", ERRNO, strerror(ERRNO));
    fflush(stderr);
 
-   if( stdlog ) {                   // If stdlog active
-     fprintf(stdlog, "%s%s %d:%s\n", prefix, string, ERRNO, strerror(ERRNO));
+   if( stdlog ) {
+     fprintf(stdlog, "%s", prefix);
+
+     va_list logptr;                  // Argument list pointer
+     va_start(logptr, fmt);           // Initialize va_ functions
+     vfprintf(stdlog, fmt, logptr);   // Write the message
+     va_end(logptr);                  // Close va_ functions
+
+     fprintf(stdlog, " %d:%s\n", ERRNO, strerror(ERRNO));
      fflush(stdlog);
    }
 

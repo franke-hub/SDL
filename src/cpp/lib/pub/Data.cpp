@@ -17,7 +17,7 @@
 //       Data.h object methods
 //
 // Last change date-
-//       2026/07/13
+//       2026/08/01
 //
 // Implementation note-
 //       Derived from Fileman.cpp
@@ -661,6 +661,7 @@ string                              // The invalid path ("" if none)
      }
    }
 
+   this->full_name= full_name;      // Update the (resolved) full name
    file_name= get_file_name(full_name);
    path_name= get_path_name(full_name);
 

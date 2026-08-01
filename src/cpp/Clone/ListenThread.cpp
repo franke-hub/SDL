@@ -17,7 +17,7 @@
 //       Implement ListenThread object methods
 //
 // Last change date-
-//       2026/07/23
+//       2026/08/01
 //
 //----------------------------------------------------------------------------
 #include "IoCommon.h"               // For I/O common objects and subroutines
@@ -48,9 +48,7 @@ enum                                // Generic enum
    if( HCDM )
      debugf("ListenThread(%p)::ListenThread(%p)\n", this, socket);
 
-   init_path= getcwd(nullptr, 0);   // Get current directory
-   if( init_path == nullptr )
-     throwf("Listen:%d getcwd", __LINE__);
+   init_path= get_cwd();            // Get current directory (fully qualified)
 }
 
 //----------------------------------------------------------------------------
@@ -69,11 +67,6 @@ enum                                // Generic enum
 
    delete socket;
    socket= nullptr;
-
-   if( init_path ) {
-     free(init_path);
-     init_path= nullptr;
-   }
 }
 
 //----------------------------------------------------------------------------
@@ -125,7 +118,7 @@ void
 
    msgout("Server: Host(%s:%d) %s %s\n"
          , s2c(socket->gethostname()), port
-         , s2c(socket->get_host_addr().to_string()), init_path);
+         , s2c(socket->get_host_addr().to_string()), s2c(init_path));
 
    // Operate the thread
    for(;;) {                        // Wait for connections
