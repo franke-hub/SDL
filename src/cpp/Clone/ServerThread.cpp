@@ -509,11 +509,8 @@ void
          string file_name;          // The directory name
          rd_data(file_name);        // Get directory name
          RdFile* file= this_path.locate(file_name);
-         if( file == nullptr || file->get_file_type() != FT_PATH )  {
+         if( file->get_file_type() != FT_PATH )
            SNO(__LINE__);           // Ask to install path, but it's not a path
-           say_no();                // Reject, not a directory
-           break;
-         }
 
          // Verify that we have permission to read into this directory
          if( (file->desc.file_info&INFO_RUSR) == 0
