@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2021-2024 Frank Eskesen.
+//       Copyright (C) 2021-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Implement Buffer.h
 //
 // Last change date-
-//       2024/03/31
+//       2026/08/02
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -101,10 +101,9 @@ void
 {
    if( buffer ) {
      for(unsigned h= 0; h<height; h++) {
-//     unsigned X0= width * h;
-       for(unsigned w= 0; w<width; w++) {
-//       buffer[X0 + w]= p;
-         put_xy(w, h, p);
+       unsigned X0= width * h;      // (Direct write: bounds correct by
+       for(unsigned w= 0; w<width; w++) { // construction. Hot loop: does
+         buffer[X0 + w]= p;         // NOT use the checked put_xy.)
        }
      }
    }
@@ -179,16 +178,15 @@ void
 //       Set Pixel at location
 //
 //----------------------------------------------------------------------------
-#if 0  // Inline in Buffer.h
 Pixel_t                             // The Pixel
    Buffer::get_xy(                  // Get Pixel at location
      unsigned          x,           // X (Width) index  (from left)
      unsigned          y)           // Y (Height) index (from top)
 {
-   if( x > width || y > height )
+   if( x >= width || y >= height )
      throw std::range_error("Buffer::get_xy");
 
-   return buffer[y*height + x];
+   return buffer[y*width + x];
 }
 
 void
@@ -197,12 +195,11 @@ void
      unsigned          y,           // Y (Height) index (from top)
      Pixel_t           p)           // The Pixel to set
 {
-   if( x > width || y > height )
+   if( x >= width || y >= height )
      throw std::range_error("Buffer::put_xy");
 
-   buffer[y*height + x]= p;
+   buffer[y*width + x]= p;
 }
-#endif // Inline in Buffer.h
 
 //----------------------------------------------------------------------------
 //
@@ -248,19 +245,19 @@ void
 
      Pixel_t* pixel= (Pixel_t*)image.base; // The new buffer
      for(unsigned h= 0; h<hmax; h++) {
-       unsigned P0= h * y;
-       unsigned B0= h * height;
+       unsigned P0= h * x;
+       unsigned B0= h * width;
        for(unsigned w= 0; w<wmax; w++) {
          pixel[P0 + w]= buffer[B0 + w];
        }
-       for(unsigned w= wmax; w<y; w++) {
+       for(unsigned w= wmax; w<x; w++) {
          pixel[P0 + w]= p;
        }
      }
 
      for(unsigned h= hmax; h<y; h++) {
-       unsigned P0= h * y;
-       for(unsigned w= 0; w<y; w++) {
+       unsigned P0= h * x;
+       for(unsigned w= 0; w<x; w++) {
          pixel[P0 + w]= p;
        }
      }

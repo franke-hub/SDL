@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2024 Frank Eskesen.
+//       Copyright (C) 2020-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Implement gui/Window.h and gui/Pixmap.h
 //
 // Last change date-
-//       2024/06/07
+//       2026/08/01
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -249,9 +249,9 @@ void
      ENQUEUE("xcb_free_pixmap", xcb_free_pixmap_checked(c, widget_id));
 
    // Create the (new) Pixmap
-   const xcb_window_t widget_id= xcb_generate_id(c);
+   widget_id= xcb_generate_id(c);   // (Updates the member, not a local shadow)
    ENQUEUE("xcb_create_pixmap", xcb_create_pixmap_checked
-          ( c, s->root_depth, parent_id, widget_id, rect.width, rect.height ) );
+          ( c, s->root_depth, widget_id, parent_id, rect.width, rect.height ) );
 
    flush();
 }
@@ -433,6 +433,9 @@ xcb_atom_t                          // The associated xcb_atom_t
        cookie= xcb_intern_atom(c, bool(only), uint16_t(strlen(name)), name);
    xcb_intern_atom_reply_t*
        reply= xcb_intern_atom_reply(c, cookie, nullptr);
+   if( reply == nullptr )
+     return XCB_ATOM_NONE;
+
    xcb_atom_t result= reply->atom;
    free(reply);
 

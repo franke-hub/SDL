@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2021-2023 Frank Eskesen.
+//       Copyright (C) 2021-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Testcase: Test ~/src/cpp/inc/gui/Buffer.h
 //
 // Last change date-
-//       2023/05/01
+//       2026/08/02
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -373,21 +373,25 @@ extern int                          // Return code
      gui::Buffer buffer;            // The test Buffer
      gui::Device device;            // The base Device
      Tester window(&device);        // The Window
-     unsigned size= 800;
-     window.use_size.width=  size;
-     window.use_size.height= size;
+     unsigned width= 400;
+     unsigned height= 800;
+     window.use_size.width=  width;
+     window.use_size.height= height;
      window.min_size= window.use_size;
-     buffer.resize(size,size);
+     buffer.resize(width,height);
 
      // Initial buffer
      buffer.clear(0x00ffffE0);
      for(unsigned y= 0; y<buffer.height; y++) {
-       buffer.put_xy(y, y, 0x007fbfff);
+       // Diagonal line, corner to corner (scaled: width and height differ)
+       unsigned dx= height > 1
+                  ? unsigned((uint64_t(y) * (width-1)) / (height-1)) : 0;
+       buffer.put_xy(dx, y, 0x007fbfff);
        for(unsigned x= 0; x<buffer.width; x++) {
-         buffer.put_xy(x, size-1, 0x007fbfff);
-         buffer.put_xy(size-1, y, 0x007fbfff);
-         buffer.put_xy(x,      0, 0x007fbfff);
-         buffer.put_xy(0,      y, 0x007fbfff);
+         buffer.put_xy(x, height-1, 0x007fbfff); // Bottom edge
+         buffer.put_xy(width-1,  y, 0x007fbfff); // Right edge
+         buffer.put_xy(x,      0, 0x007fbfff);   // Top edge
+         buffer.put_xy(0,      y, 0x007fbfff);   // Left edge
        }
      }
 
@@ -403,15 +407,15 @@ extern int                          // Return code
      xcb_expose_event_t event= {};
      event.x= 0;
      event.y= 0;
-     event.width= size;
-     event.height= size;
+     event.width= width;
+     event.height= height;
      buffer.expose(&window, window.drawGC, &event);
 //   wait(window);
 
      // Black box across image (V1)
      buffer.expose(&window, window.drawGC, &event);
      gui::Buffer box(10, 10, 0);    // A black box
-     for(unsigned x= 0; x<(size-10); x+=20) {
+     for(unsigned x= 0; x<(width-10); x+=20) {
        xcb_image_put(window.c, window.widget_id, window.drawGC
                     , &box.image, x, 40, 0);
        window.flush();
@@ -423,9 +427,9 @@ extern int                          // Return code
      buffer.expose(&window, window.drawGC, &event);
      window.flush();
      event.y= 60;
-     event.width= 10;
+     event.width= 5;
      event.height= 10;
-     for(unsigned x= 0; x<(size-10); x+=20) {
+     for(unsigned x= 0; x<(width-10); x+=20) {
        event.x= x;
        for(unsigned xx= x; xx<x+10; xx++) {
          for(unsigned yy= event.y; int(yy)<event.y+10; yy++) {
