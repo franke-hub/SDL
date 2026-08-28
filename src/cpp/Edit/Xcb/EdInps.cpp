@@ -17,7 +17,7 @@
 //       Editor: Implement EdInps.h: Keyboard and mouse handlers.
 //
 // Last change date-
-//       2026/07/14
+//       2026/08/04
 //
 //----------------------------------------------------------------------------
 #include <cstdio>                   // For sprintf
@@ -702,7 +702,7 @@ void
 {
    if( opt_hcdm )
      debugh("property_notify: window(%x) atom(%x,%s) state(%d)\n"
-           , E->window, E->atom, atom_to_name(E->atom).c_str(), state);
+           , E->window, E->atom, atom_to_name(E->atom).c_str(), E->state);
 }
 
 //----------------------------------------------------------------------------

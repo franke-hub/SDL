@@ -17,7 +17,7 @@
 //       Editor: Implement EdOuts.h: Terminal output services
 //
 // Last change date-
-//       2026/07/14
+//       2026/08/05
 //
 //----------------------------------------------------------------------------
 #include <cstdio>                   // For sprintf
@@ -503,9 +503,9 @@ void
      const char* buffer= active.get_buffer();
      decoder.reset(buffer, strlen(buffer));
 
-     decoder.set_symbol_index(lh_mark);
+     decoder.set_column_index(lh_mark);
      Offset lh_off= decoder.get_offset();
-     decoder.set_symbol_index(rh_mark);
+     decoder.set_column_index(rh_mark);
      Offset rh_off= decoder.get_offset();
      Offset off_last= decoder.get_length();
 
@@ -1038,26 +1038,31 @@ void
    col_size= (width - 2) / font->length.width;
    row_size= (height - 2) / font->length.height;
 
-   // Some window managers don't an expose event when the window shrinks,
-   // we redraw to remove partial characters.
-   if( col_size > prior_col || row_size > prior_row ) // If bigger
+   // Some window managers don't send an expose event when the window
+   // shrinks, so redraw here to remove partial characters whenever either
+   // dimension got smaller. (The two axes are checked independently: one
+   // can grow while the other shrinks in the same event.)
+   if( col_size >= prior_col && row_size >= prior_row ) // If not smaller
      return;                        // (An expose event will be generated)
-   if( col_size < prior_col || row_size < prior_row ) { // If smaller
-     EdView* data= editor::data;
-     if( row_size < prior_row ) {
-       while( (data->row + 1)*font->length.height >= unsigned(rect.height-2) )
-         --data->row;
-       synch_cursor();
-     }
 
-     if( col_size <= data->col ) {
-       while( (data->col + 1)*font->length.width >= unsigned(rect.width-2) )
-         --data->col;
-       move_cursor_H(data->col);
-     }
+   // Note whether the cursor was visible before synching, since
+   // synch_cursor() unconditionally clamps row/column back into range.
+   // synch_cursor() also re-syncs data->cursor and re-shows the cursor,
+   // so swapping back to the data view (ESC) doesn't leave a stale,
+   // invisible cursor position.
+   EdView* const data= editor::data;
+   bool row_visible= data->row + USER_BOT < row_size;
+   bool col_visible= data->col < col_size;
 
-     draw();                        // Redraw, removing partial characters
+   synch_cursor();                  // Clamp row/column; re-sync data->cursor
+
+   if( !row_visible && !col_visible && editor::view != editor::hist ) {
+     hide_cursor();                 // Neither visible: switch to history
+     editor::hist->col_zero= editor::hist->col= 0;
+     editor::hist->activate();
    }
+
+   draw();                          // Redraw, removing partial characters
 }
 
 //----------------------------------------------------------------------------

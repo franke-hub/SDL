@@ -17,7 +17,7 @@
 //       Editor: Implement EdInps.h: Keyboard and mouse handlers.
 //
 // Last change date-
-//       2026/07/14
+//       2026/08/28
 //
 //----------------------------------------------------------------------------
 #define _XOPEN_SOURCE_EXTENDED 1
@@ -850,14 +850,7 @@ void
      //-----------------------------------------------------------------------
      // Resize event
      case KEY_RESIZE: {
-       if( IO_TRACE && opt_hcdm )
-         traceh("KEY_RESIZE: col_size(%d=>%d) row_size(%d=>%d)\n"
-               , col_size, COLS, row_size, LINES);
-
-       col_size= COLS;
-       row_size= LINES;
-       clear();
-       draw();
+       resized(COLS, LINES);
        break;
      }
 
@@ -893,7 +886,13 @@ bool                                // TRUE if a  character is available
    if( poll_char <= 0 ) {
 //   Trace::trace(".INP", "move", (void*)(uint64_t(view->col)<<32|view->row) );
      wtimeout(win, delay);
-     poll_char= mvwgetch(win, view->row, view->col);
+
+     // In order to keep the Editor active, we use wgetch when a screen
+     // dimension == 0
+     if( view->row < row_size && view->col < col_size )
+       poll_char= mvwgetch(win, view->row, view->col);
+     else
+       poll_char= wgetch(win);
      if( poll_char <= 0 ) {
        poll_char= 0;
        return false;

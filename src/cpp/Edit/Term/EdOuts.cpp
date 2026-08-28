@@ -17,7 +17,7 @@
 //       Editor: Implement EdOuts.h: Terminal output services
 //
 // Last change date-
-//       2026/07/14
+//       2026/08/28
 //
 //----------------------------------------------------------------------------
 #define _XOPEN_SOURCE_EXTENDED 1
@@ -968,11 +968,25 @@ void
    EdOuts::resized(                 // Handle Window resized event
      uint32_t          width,       // New width  (In columns)
      uint32_t          height)      // New height (In rows)
-{  if( opt_hcdm )
-     traceh("EdOuts(%p)::resized(%u,%u)\n", this, width, height);
+{  if( opt_hcdm && IO_TRACE )
+     traceh("EdOuts(%p)::resized(%d=>%d,%d=>%d)\n", this
+           , col_size, width, row_size, height);
 
    col_size= width;
    row_size= height;
-   if( operational )
-     draw();
+
+   EdView* const data= editor::data;
+   bool row_visible= data->row + USER_TOP + USER_BOT < row_size;
+   bool col_visible= data->col < col_size;
+
+   synch_cursor();                  // Clamp row/column; re-sync data->cursor
+
+   if( !row_visible && !col_visible ) {
+     hide_cursor();                 // Lost visibility: switch to history
+     editor::hist->col_zero= editor::hist->col= 0;
+     editor::hist->activate();
+   }
+
+   clear();
+   draw();
 }
