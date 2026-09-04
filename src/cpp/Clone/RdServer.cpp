@@ -17,7 +17,7 @@
 //       The (multi-threaded) file server.
 //
 // Last change date-
-//       2026/07/23
+//       2026/08/01
 //
 // Usage-
 //       RdServer <-options>
@@ -148,7 +148,14 @@ static void
            case 'p':                // Port number
            case 'P':
              if( argp[j+1] != '\0' ) { // if -pnumber format
-               port= atol(argp + j + 1);
+               const char* numb= argp + j + 1; // The number, or garbage
+               port= atol(numb);    // (Never used when it's invalid)
+               if( strspn(numb, "0123456789") != strlen(numb) ) {
+                 opt_help= true;    // Not all digits: invalid switch
+                 msgout("Invalid switch '-%s'\n", argp + j);
+               }
+
+               j= strlen(argp) - 1; // Consume the rest of the switch
                break;
              }
              is_port= true;

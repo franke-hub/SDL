@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2024 Frank Eskesen.
+//       Copyright (C) 2020-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Implement gui/Device.h
 //
 // Last change date-
-//       2024/04/06
+//       2026/08/03
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::mutex, std::lock_guard
@@ -602,7 +602,9 @@ void
            if( run_hcdm )
              debugh("DEV.GRAPHICS_EXPOSURE %d [%d,%d,%u,%u]\n", et->drawable
                    , et->x, et->y, et->width, et->height);
-           locate_pixmap(et->drawable, this)->graphics_exposure(et);
+           Pixmap* pixmap= locate_pixmap(et->drawable, this);
+           if( pixmap )
+             pixmap->graphics_exposure(et);
            break;
          }
          case XCB_GRAVITY_NOTIFY: {
@@ -670,7 +672,9 @@ void
            xcb_no_exposure_event_t* et= (xcb_no_exposure_event_t*)e;
            if( run_hcdm ) debugh("DEV.NO_EXPOSURE(%d,%d) DEV\n"
                                 , et->major_opcode, et->minor_opcode);
-           locate_pixmap(et->drawable, this)->no_exposure(et);
+           Pixmap* pixmap= locate_pixmap(et->drawable, this);
+           if( pixmap )
+             pixmap->no_exposure(et);
            break;
          }
          case XCB_PROPERTY_NOTIFY: {

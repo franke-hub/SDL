@@ -17,7 +17,7 @@
 //       The RdServer's client.
 //
 // Last change date-
-//       2026/07/23
+//       2026/07/27
 //
 // Usage-
 //       RdClient <-options> <server_host<:server_port> <client_path>>
@@ -215,8 +215,8 @@ static void
            host_name= argp;
            size_t X= host_name.find(":");
            if( X != string::npos ) {
-             host_name= host_name.substr(0, X-1);
              port= std::stoi(host_name.substr(X+1));
+             host_name= host_name.substr(0, X);
            }
 
            argi= 1;
@@ -285,8 +285,8 @@ static void
    //-------------------------------------------------------------------------
    // Create and directly invoke the client worker pseudo-Thread
    //-------------------------------------------------------------------------
-   ClientThread* thread= new ClientThread(socket, path_name);
-   thread->run();
+   ClientThread thread(socket, path_name);
+   thread.run();
 }
 
 //----------------------------------------------------------------------------

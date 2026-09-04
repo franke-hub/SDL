@@ -17,7 +17,7 @@
 //       Editor: Implement EdOuts.h: Terminal output services
 //
 // Last change date-
-//       2026/07/14
+//       2026/08/29
 //
 //----------------------------------------------------------------------------
 #define _XOPEN_SOURCE_EXTENDED 1
@@ -638,7 +638,9 @@ void
    size_t draw_col= data->get_column() + 1;
    format6(draw_col, number);
    memcpy(buffer+2, number, 7);
-   size_t draw_row= data->get_row() - USER_TOP;
+   // Row number, relative to the first data row. (data->get_row() can be
+   // less than USER_TOP when the screen is too small to hold a data row.)
+   size_t draw_row= data->get_row() > USER_TOP ? data->get_row() - USER_TOP : 0;
    format8(draw_row, number);
    memcpy(buffer+13, number, 9);
    format8(file->rows,     number);
@@ -968,11 +970,26 @@ void
    EdOuts::resized(                 // Handle Window resized event
      uint32_t          width,       // New width  (In columns)
      uint32_t          height)      // New height (In rows)
-{  if( opt_hcdm )
-     traceh("EdOuts(%p)::resized(%u,%u)\n", this, width, height);
+{  if( opt_hcdm && IO_TRACE )
+     traceh("EdOuts(%p)::resized(%d=>%d,%d=>%d)\n", this
+           , col_size, width, row_size, height);
 
    col_size= width;
    row_size= height;
-   if( operational )
-     draw();
+
+   EdView* const data= editor::data;
+   bool row_visible= data->row + USER_BOT < row_size; // Cursor row on-screen
+   bool col_visible= data->col < col_size; // Cursor col on-screen
+   bool has_data_row= row_size > USER_TOP; // Any data row exists
+
+   synch_cursor();                  // Clamp row/column; re-sync data->cursor
+
+   if( !has_data_row || (!row_visible && !col_visible) ) {
+     hide_cursor();                 // Lost visibility: switch to history
+     editor::hist->col_zero= editor::hist->col= 0;
+     editor::hist->activate();
+   }
+
+   clear();
+   draw();
 }

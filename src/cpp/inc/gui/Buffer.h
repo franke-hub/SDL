@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2021 Frank Eskesen.
+//       Copyright (C) 2021-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Container for pixel data.
 //
 // Last change date-
-//       2021/02/01
+//       2026/08/02
 //
 //----------------------------------------------------------------------------
 #ifndef BUFFER_H_INCLUDED
@@ -100,22 +100,23 @@ void
 //       gui::Buffer::put_xy
 //
 // Purpose-
-//       Get Pixel at location      (unchecked)
-//       Set Pixel at location      (unchecked)
+//       Get Pixel at location      (range checked)
+//       Set Pixel at location      (range checked)
+//
+// Implementation notes-
+//       Throws std::range_error if x >= width or y >= height.
 //
 //----------------------------------------------------------------------------
 Pixel_t                             // The Pixel
    get_xy(                          // Get Pixel at location
      unsigned          x,           // X (Width) index  (from left)
-     unsigned          y)           // Y (Height) index (from top)
-{  return buffer[y*height + x]; }
+     unsigned          y);          // Y (Height) index (from top)
 
 void
    put_xy(                          // Set Pixel at location
      unsigned          x,           // X (Width) index  (from left)
      unsigned          y,           // Y (Height) index (from top)
-     Pixel_t           p)           // The Pixel to set
-{  buffer[y*height + x]= p; }
+     Pixel_t           p);          // The Pixel to set
 
 //----------------------------------------------------------------------------
 //

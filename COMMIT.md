@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2026/07/26
+//       2026/09/04
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -1115,7 +1115,7 @@ the file to appear changed. (The history/command background color changes)
   - Added feature: File save does not save an unchanged file.
     - However: "save file-name" saves (the same) file even if unchanged.
 
-### <a id="last-change">2026/07/26 maint/trunk</a>
+### 2026/07/26 maint/trunk
 - Updated ~/src/cpp/Clone
   - Rewritten to use PUB library (compatible with prior version)
     - Prior version: ~/src/cpp/com-Clone
@@ -1132,3 +1132,19 @@ derived from temporary std::string objects)
     - Fixed command sequence that allowed modification of proteced files.
 - ~/src/cpp/lib/pub/Debug.cpp
   - Constructor initializes Debug::common if required
+
+### <a id="last-change">2026/09/04 maint/trunk</a>
+- Updated ~/src/cpp/Clone
+  - Fixed problems found by Claude AI inspection
+- Updated ~/src/cpp/Edit/Term, ~/src/cpp/Edit/Xcb
+  - Fixed problems found by Claude AI inspection
+    (Mostly in edge case screen size contraction)
+- ~/src/cpp/lib/pub/Data.cpp
+  - Method resolve did not update the internal name
+- ~/src/cpp/lib/gui ~/src/cpp/inc/gui (found by Claude AI inspection)
+  - Converted Buffer.h get_xy/put_xy to outline methods; Added range checking
+  - Fixed Buffer.cpp resize method x/y mixup (method is now used)
+  - Added locate_pixmap method result checking in Device.cpp
+  - Window.cpp fixed method Pixmap::set_size inverted widgit/parent parameters
+- ~/src/cpp/lib/gui/Test/TestBuff.cpp
+  - Changed window size test to expose an error condition

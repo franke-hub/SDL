@@ -17,7 +17,7 @@
 //       The listener thread
 //
 // Last change date-
-//       2026/07/23
+//       2026/08/01
 //
 //----------------------------------------------------------------------------
 #ifndef LISTENTHREAD_H_INCLUDED
@@ -43,7 +43,7 @@ class ListenThread : public pub::Thread { // ListenThread descriptor
 //----------------------------------------------------------------------------
 protected:
 pub::Socket*           socket= nullptr; // Listener Socket
-char*                  init_path= nullptr; // Initial path
+string                 init_path;   // Initial path (fully qualified)
 int                    port;        // Server port
 
 //----------------------------------------------------------------------------

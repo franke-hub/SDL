@@ -17,7 +17,7 @@
 //       Implement ServerThread object methods
 //
 // Last change date-
-//       2026/07/23
+//       2026/08/01
 //
 // Implementation notes-
 //       This multi-threaded server DOES NOT change path or file permissions
@@ -108,6 +108,20 @@ static inline bool                  // TRUE if hcdm && verbose(N)
 {  if( hcdm() )
      debugf("ServerThread(%p)::ServerThread(%p,%s)\n", this
            , socket, s2c(init_path));
+
+   //-------------------------------------------------------------------------
+   // Resolve the initial directory to its canonical (symlink-free) form.
+   // Every later GOTO request is validated against this real_path so a
+   // client cannot use "..", ".", or a symbolic link to escape the served
+   // directory tree.
+   //-------------------------------------------------------------------------
+   pub::data::Name name(init_path);
+   string invalid= name.resolve();
+   if( invalid != "" )
+     throwf("%4d ServerThread: init_path(%s) invalid: %s", __LINE__
+           , s2c(init_path), s2c(invalid));
+   real_path= pub::data::Name::get_full_name(name.get_path_name()
+                                            , name.get_file_name());
 
    //-------------------------------------------------------------------------
    // Set transfer size -- optimization attempt (has no noticable effect)
@@ -201,9 +215,7 @@ void
      bool validated= false;         // Default, not validated
      while( fsm == FSM_READY ) {    // Process initial server requests
        PeerRequest  query;          // Client command
-       PeerResponse qresp;          // Reply to query
        rd_data(&query, 1);          // Read client command
-       qresp.rc= RSP_YO;            // Default, operation accepted
 
        switch(query.oc) {           // Process request
          case REQ_GOTO: {{{{        // Goto subdirectory
@@ -226,26 +238,26 @@ void
              break;
            }
 
-           wr_data(&qresp, 1);      // Command accepted
-           serve_path(&file);
+           serve_path(&file);       // (Also sends the accept/reject response)
            validated= false;
            break;
          }}}}
 
          case REQ_VERSION:          // Exchange version identifiers
            validated= exchange_versionID();
-           if( !validated )
-             qresp.rc= RSP_NO;
-           wr_data(&qresp, 1);
+           if( validated )
+             say_yo();
+           else
+             say_no();
            break;
 
          case REQ_CWD:              // Retrieve CWD
-           wr_data(&qresp, 1);
+           say_yo();
            wr_data(init_path);
            break;
 
          case REQ_QUIT:             // Exit
-           wr_data(&qresp, 1);      // The operation is accepted
+           say_yo();                // The operation is accepted
            fsm= FSM_CLOSE;          // Normal termination
            sleep(0.5);              // Allow time for send completion
            break;
@@ -298,6 +310,62 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       ServerThread::say_yo
+//
+// Purpose-
+//       Send positive response
+//
+//----------------------------------------------------------------------------
+void
+   ServerThread::say_yo( void )     // Send positive response
+{  if( hcdm() ) debugf("ServerThread(%p)::say_yo\n", this);
+
+   PeerResponse qresp;              // Reply data block
+   qresp.rc= RSP_YO;
+   wr_data(&qresp, 1);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ServerThread::path_is_valid
+//
+// Function-
+//       Verify that a (client-influenced) path name resolves to somewhere
+//       within the served directory tree (real_path), rejecting attempts
+//       to escape it using "..", a leading "..", or a symbolic link.
+//
+//----------------------------------------------------------------------------
+bool                                // TRUE iff path_name is within real_path
+   ServerThread::path_is_valid(     // Is this path within the served tree?
+     const string&     path_name)   // The (possibly relative) path name
+{
+   pub::data::Name name(path_name);
+   string invalid= name.resolve();
+   if( invalid != "" ) {
+     msgout("Server: invalid path(%s): %s\n", s2c(path_name), s2c(invalid));
+     return false;
+   }
+
+   string resolved= pub::data::Name::get_full_name(name.get_path_name()
+                                                  , name.get_file_name());
+
+   if( resolved == real_path )      // If exactly the served directory
+     return true;
+
+   if( resolved.size() > real_path.size()
+       && resolved.compare(0, real_path.size(), real_path) == 0
+       && resolved[real_path.size()] == '/' )
+     return true;                   // Is a subdirectory of real_path
+
+   msgout("Server: rejected path(%s): outside served directory(%s)\n"
+         , s2c(resolved), s2c(real_path));
+   return false;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       ServerThread::serve_file
 //
 // Function-
@@ -325,13 +393,7 @@ void
      say_no();
      return;
    }
-
-   //-------------------------------------------------------------------------
-   // Accept the request
-   //-------------------------------------------------------------------------
-   PeerResponse qresp;              // Reply to client
-   qresp.rc= RSP_YO;                // Default, request accepted
-   wr_data(&qresp, 1);              // Accept the request
+   say_yo();                        // Accept the request
 
    //-------------------------------------------------------------------------
    // Send the file
@@ -392,6 +454,17 @@ void
    if( path_file->file_name == "." )
      this_name=path_file->path->path_name;
 
+   //-------------------------------------------------------------------------
+   // Verify that this_name remains within the served directory tree.
+   // The caller has not yet sent a response for this request; we send it
+   // here instead, accepting only once containment is verified.
+   //-------------------------------------------------------------------------
+   if( !path_is_valid(this_name) ) {
+     say_no();
+     return;
+   }
+   say_yo();                        // Command accepted
+
    RdPath this_path(this, this_name);
    push(&this_path);
 
@@ -405,10 +478,8 @@ void
    //-------------------------------------------------------------------------
    while( fsm == FSM_READY ) {      // Process this directory
      PeerRequest  query;            // Question from client
-     PeerResponse qresp;            // Reply to client
 
      rd_data(&query, 1);            // Read client command
-     qresp.rc= RSP_YO;              // Default, operation accepted
 
      switch(query.oc) {             // Process request
        case REQ_FILE: {{{{          // Install file
@@ -438,11 +509,8 @@ void
          string file_name;          // The directory name
          rd_data(file_name);        // Get directory name
          RdFile* file= this_path.locate(file_name);
-         if( file == nullptr || file->get_file_type() != FT_PATH )  {
+         if( file->get_file_type() != FT_PATH )
            SNO(__LINE__);           // Ask to install path, but it's not a path
-           say_no();                // Reject, not a directory
-           break;
-         }
 
          // Verify that we have permission to read into this directory
          if( (file->desc.file_info&INFO_RUSR) == 0
@@ -452,8 +520,7 @@ void
          }
 
          // Install the new subdirectory
-         wr_data(&qresp, 1);        // The operation is accepted
-         serve_path(file);
+         serve_path(file);          // (Also sends the accept/reject response)
          break;
        }}}}
 
@@ -461,7 +528,7 @@ void
          //-------------------------------------------------------------------
          // Exit (back to previous directory)
          //-------------------------------------------------------------------
-         wr_data(&qresp, 1);        // The operation is accepted
+         say_yo();                  // The operation is accepted
          msglog("..serve_path(%s)\n", s2c(this_name));
          pop();
          return;

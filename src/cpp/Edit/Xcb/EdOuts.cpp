@@ -17,7 +17,7 @@
 //       Editor: Implement EdOuts.h: Terminal output services
 //
 // Last change date-
-//       2026/07/14
+//       2026/08/29
 //
 //----------------------------------------------------------------------------
 #include <cstdio>                   // For sprintf
@@ -503,9 +503,9 @@ void
      const char* buffer= active.get_buffer();
      decoder.reset(buffer, strlen(buffer));
 
-     decoder.set_symbol_index(lh_mark);
+     decoder.set_column_index(lh_mark);
      Offset lh_off= decoder.get_offset();
-     decoder.set_symbol_index(rh_mark);
+     decoder.set_column_index(rh_mark);
      Offset rh_off= decoder.get_offset();
      Offset off_last= decoder.get_length();
 
@@ -638,10 +638,12 @@ void
    size_t draw_col= data->get_column() + 1;
    format6(draw_col, number);
    memcpy(buffer+2, number, 7);
-   size_t draw_row= data->get_row() - USER_TOP;
+   // Row number, relative to the first data row. (data->get_row() can be
+   // less than USER_TOP when the screen is too small to hold a data row.)
+   size_t draw_row= data->get_row() > USER_TOP ? data->get_row() - USER_TOP : 0;
    format8(draw_row, number);
    memcpy(buffer+13, number, 9);
-   format8(file->rows,     number);
+   format8(file->rows, number);
    memcpy(buffer+23, number, 9);
    std::string S= pub::data::Name::get_file_name(file->name);
    size_t L= S.length();
@@ -1033,31 +1035,23 @@ void
    rect.height= (decltype(rect.height))height;
 
    // We adjust the column and row count so we only draw complete characters.
-   unsigned prior_col= col_size;
-   unsigned prior_row= row_size;
-   col_size= (width - 2) / font->length.width;
+   col_size= (width  - 2) / font->length.width;
    row_size= (height - 2) / font->length.height;
 
-   // Some window managers don't an expose event when the window shrinks,
-   // we redraw to remove partial characters.
-   if( col_size > prior_col || row_size > prior_row ) // If bigger
-     return;                        // (An expose event will be generated)
-   if( col_size < prior_col || row_size < prior_row ) { // If smaller
-     EdView* data= editor::data;
-     if( row_size < prior_row ) {
-       while( (data->row + 1)*font->length.height >= unsigned(rect.height-2) )
-         --data->row;
-       synch_cursor();
-     }
+   EdView* const data= editor::data;
+   bool row_visible= data->row + USER_BOT < row_size; // Cursor row on-screen
+   bool col_visible= data->col < col_size;             // Cursor col on-screen
+   bool has_data_row= row_size > USER_TOP;             // Any data row exists
 
-     if( col_size <= data->col ) {
-       while( (data->col + 1)*font->length.width >= unsigned(rect.width-2) )
-         --data->col;
-       move_cursor_H(data->col);
-     }
+   synch_cursor();                  // Clamp row/column; re-sync data->cursor
 
-     draw();                        // Redraw, removing partial characters
+   if( !has_data_row || (!row_visible && !col_visible) ) {
+     hide_cursor();                 // Neither visible: switch to history
+     editor::hist->col_zero= editor::hist->col= 0;
+     editor::hist->activate();
    }
+
+   draw();                          // Redraw, removing partial characters
 }
 
 //----------------------------------------------------------------------------

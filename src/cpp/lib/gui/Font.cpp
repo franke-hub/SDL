@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2024 Frank Eskesen.
+//       Copyright (C) 2020-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Implement gui/Font.h
 //
 // Last change date-
-//       2024/04/22
+//       2026/08/01
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::runtime_error
@@ -207,9 +207,12 @@ int                                 // Return code, 0 OK
    font_info= xcb_query_font_reply(conn, font_cookie, &error);
    if( font_info == nullptr || error ) {
      fprintf(stderr, "Font::open(%s) failure\n", name);
-     xcberror(error);
-     int rc= error->error_code;
-     free(error);
+     int rc= -1;                    // Default: failure, no error detail
+     if( error ) {                  // (font_info may be nullptr without error)
+       xcberror(error);
+       rc= error->error_code;
+       free(error);
+     }
      return rc;
    }
 

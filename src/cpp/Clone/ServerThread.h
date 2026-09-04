@@ -17,7 +17,7 @@
 //       The server thread
 //
 // Last change date-
-//       2026/07/05
+//       2026/08/01
 //
 //----------------------------------------------------------------------------
 #ifndef SERVERTHREAD_H_INCLUDED
@@ -46,6 +46,9 @@ class ServerThread : public CommonThread { // ServerThread descriptor
 //----------------------------------------------------------------------------
 protected:
 string                 init_path;   // The initial path name
+string                 real_path;   // The initial path name, fully resolved
+                                    // (canonical, symlink-free). All GOTO
+                                    // requests are validated against this.
 
 //----------------------------------------------------------------------------
 // ServerThread::Constructors
@@ -98,6 +101,18 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       ServerThread::say_yo
+//
+// Purpose-
+//       Send positive response
+//
+//----------------------------------------------------------------------------
+void
+   say_yo( void );                  // Send positive response
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       ServerThread::serve_file
 //
 // Function-
@@ -121,5 +136,21 @@ void
 void
    serve_path(                      // Serve subdirectory tree
      RdFile*           file);       // The subdirectory's RdFile
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ServerThread::path_is_valid
+//
+// Function-
+//       Verify that a (client-influenced) path name resolves to somewhere
+//       within the served directory tree (real_path), rejecting attempts
+//       to escape it using "..", a leading "..", or a symbolic link.
+//
+//----------------------------------------------------------------------------
+protected:
+bool                                // TRUE iff path_name is within real_path
+   path_is_valid(                   // Is this path within the served tree?
+     const string&     path_name);  // The (possibly relative) path name
 }; // class ServerThread
 #endif // SERVERTHREAD_H_INCLUDED

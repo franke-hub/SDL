@@ -17,7 +17,7 @@
 //       Editor: Input/output interface; Handle editor operations.
 //
 // Last change date-
-//       2026/07/08
+//       2026/08/28
 //
 //----------------------------------------------------------------------------
 #include <cstdio>                   // For sprintf
@@ -499,18 +499,43 @@ void
 //       EdUnit::synch_cursor
 //
 // Purpose-
-//       Insure the cursor line is in the current screen.
+//       Insure the cursor line, row, and column are validly positioned
+//       on-screen.
+//
+// Implementation notes-
+//       Row and column are each clamped independently and unconditionally;
+//       clamping a value that's already valid is a no-op. Callers that
+//       need to know whether the cursor was visible *before* synching
+//       (for example, to decide whether to switch to the history view)
+//       must check data->row/data->col against row_size/col_size
+//       themselves before calling this method.
+//
+//       It's possible to shrink the screen so that no column and/or no row
+//       can be displayed. For the TERM Editor, this could cause a busy loop
+//       to occur because mvwgetch would have an invalid (-1) offset.
+//       (This condition is now checked in EdInps::poll, where wgetch is used
+//       instead of mvwgetch to avoid the busy loop.)
+//
+//       The XCB Editor uses asynchronous events rather than polling, and does
+//       not have a busy loop in this situation.
 //
 //----------------------------------------------------------------------------
 void
-   EdUnit::synch_cursor( void )     // Insure the cursor line is on-screen
+   EdUnit::synch_cursor( void )     // Insure the cursor is on-screen
 {
-   if( data->row < USER_TOP )       // (File initial row == 0)
-     data->row= USER_TOP;
+   // Row: keep data->row within [top, row_size-1-USER_BOT]
+   unsigned top= USER_TOP;
+   if( row_size == 0 )              // (Defensive: no screen at all)
+     top= 0;
+   else if( top >= row_size )       // If no room for the reserved top rows
+     top= row_size - 1;             // (Last on-screen row is the best we can do)
+
+   if( data->row < top )            // (File initial row == 0)
+     data->row= top;
 
    EdLine* line= head;              // Get the top line
    const char* match_type= " ???";  // Default, NO match
-   for(unsigned r= USER_TOP; ; r++) { // Set the Active line
+   for(unsigned r= top; ; r++) {    // Set the Active line
      if( r == data->row ) {
        match_type= " row";          // Row match
        break;
@@ -523,7 +548,7 @@ void
        break;
      }
 
-     if( (r + 1) >= row_size ) {    // (Can occur if window shrinks)
+     if( row_size == 0 || (r + 1 + USER_BOT) >= row_size ) { // (Window shrinks)
        match_type= "size";          // Window shrink
        data->row= r;
        break;
@@ -531,6 +556,10 @@ void
 
      line= next;
    }
+
+   // Column: keep data->col within [0, col_size-1]
+   if( data->col >= col_size )
+     data->col= col_size ? col_size - 1 : 0;
 
    // Set the cursor/active line (with trace)
    Trace::trace(".CSR", match_type, data->cursor, line); // (Old, new)
