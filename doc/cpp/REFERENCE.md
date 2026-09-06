@@ -17,7 +17,7 @@
 //       SDL Distribution reference manual
 //
 // Last change date-
-//       2026/04/26
+//       2026/09/05
 //
 -------------------------------------------------------------------------- -->
 # Software Development Lab (SDL) C++ Library Reference Manual
@@ -89,6 +89,9 @@ While a smattering of Doxygen source documentation exists, it will be removed
 after completing this documentation.
 
 This library is regression tested for every trunk release.
+
+This library has also been reviewed by the Claude AI for errors.
+See [Claude Correctness Review](./pub_correctness_review.md) for details.
 
 __TODO__ Update in progress.
 

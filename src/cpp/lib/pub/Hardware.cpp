@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2023 Frank Eskesen.
+//       Copyright (c) 2023-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       System hardware interfaces implementation.
 //
 // Last change date-
-//       2023/05/02
+//       2026/09/05
 //
 // Implementation notes-
 //       Hardware is a struct rather than a namespace so that Hardware::getLR
@@ -56,7 +56,7 @@ void*                               // The stack pointer
 //----------------------------------------------------------------------------
 #if !defined(__GNUC__) || !defined(_HW_X86) // GNU compiler, x86 required
 uint64_t Hardware::getTSC( void )
-{  static atomic_uint64_t tsc= 0; return ++tsc; }
+{  static std::atomic_uint64_t tsc= 0; return ++tsc; }
 #else
 uint64_t                            // The time stamp counter
    Hardware::getTSC( void )         // Get time stamp counter

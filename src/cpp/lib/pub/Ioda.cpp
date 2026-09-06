@@ -17,7 +17,7 @@
 //       Implement http/Ioda.h
 //
 // Last change date-
-//       2026/05/29
+//       2026/09/05
 //
 //----------------------------------------------------------------------------
 // #define NDEBUG                   // TODO: USE (to disable asserts)
@@ -785,7 +785,7 @@ void
          int page_used= int(slen - lead); // The used byte count
          int page_left= page->used - page_used; // The remaining byte count
 
-         memcpy(page->data, page->data+page_used, page_left); // Move remainder
+         memmove(page->data, page->data+page_used, page_left); // Move remainder
          page->used= page_left;
          if( head != page ) {       // If pages need to be removed
            page= page->get_prev();

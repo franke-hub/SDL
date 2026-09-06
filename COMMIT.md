@@ -17,7 +17,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2026/09/04
+//       2026/09/05
 //
 //------------------------------------------------------------------------ -->
 <!-- --------------------------------------------------------------------- -->
@@ -1133,7 +1133,7 @@ derived from temporary std::string objects)
 - ~/src/cpp/lib/pub/Debug.cpp
   - Constructor initializes Debug::common if required
 
-### <a id="last-change">2026/09/04 maint/trunk</a>
+### 2026/09/04 maint/trunk
 - Updated ~/src/cpp/Clone
   - Fixed problems found by Claude AI inspection
 - Updated ~/src/cpp/Edit/Term, ~/src/cpp/Edit/Xcb
@@ -1148,3 +1148,12 @@ derived from temporary std::string objects)
   - Window.cpp fixed method Pixmap::set_size inverted widgit/parent parameters
 - ~/src/cpp/lib/gui/Test/TestBuff.cpp
   - Changed window size test to expose an error condition
+
+### <a id="last-change">2026/09/05 maint/trunk</a>
+PUB Library: Claude AI inspection report changes
+- ~/doc/cpp/pub_correctness_review.md: Claude's inspection report.
+- ~/doc/cpp/REFERENCE.md: Added link to Claude's inspection report.
+- ~/src/cpp/lib/pub/Ioda.cpp: Changed memcpy to memmove for correctness.
+- ~/src/cpp/lib/pub/Hardware.cpp: Fixed fallback version of getTSC method.
+- ~/src/cpp/lib/pub/Test/Test_num.cpp: Fixed include for pub/Random.h.
+- ~/doc/cpp/pub_correctness_review.md: Claude's inspection report
