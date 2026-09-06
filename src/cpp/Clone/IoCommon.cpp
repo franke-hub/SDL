@@ -36,7 +36,6 @@
 #include <pub/Data.h>               // For pub::Path, pub::File
 #include <pub/Latch.h>              // For pub::RecursiveLatch
 #include <pub/List.h>               // For pub::List<>
-#include <pub/memory.h>             // For pub::scoped_ptr
 
 #include "IoCommon.h"               // For I/O common objects and subroutines
 #include "CommonThread.h"           // For CommonThread

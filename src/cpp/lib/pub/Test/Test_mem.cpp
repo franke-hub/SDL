@@ -23,7 +23,6 @@
 #include <memory>                   // For std::unique_ptr
 
 #include <pub/Debug.h>              // For pub::debugging methods
-#include "pub/memory.h"             // For pub::scoped_ptr, tested
 #include <pub/TEST.H>               // For VERIFY macro
 #include "pub/Wrapper.h"            // For pub::Wrapper
 #include "pub/utility.i"            // For pub::utility conversion routines
