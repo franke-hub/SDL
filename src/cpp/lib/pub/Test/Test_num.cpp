@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2021-2023 Frank Eskesen.
+//       Copyright (c) 2021-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Test the Number object.
 //
 // Last change date-
-//       2023/04/29
+//       2026/09/05
 //
 //----------------------------------------------------------------------------
 #include <iostream>                 // For std::cout, ...
@@ -29,7 +29,7 @@
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Interval.h>           // For pub::Interval
 #include "pub/Number.h"             // For pub::Number, tested
-#include <com/Random.h>             // For com::Random
+#include <pub/Random.h>             // For pub::Random
 #include <pub/Wrapper.h>            // For pub::Wrapper
 
 #define PUB _LIBPUB_NAMESPACE
