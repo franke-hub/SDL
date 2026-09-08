@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2024 Frank Eskesen.
+//       Copyright (C) 2018-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -14,18 +14,16 @@
 //       Named.h
 //
 // Purpose-
-//       Define the the Named attribute and the NamedObject class.
+//       Define the the Named attribute class.
 //
 // Last change date-
-//       2024/11/04
+//       2026/09/07
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_NAMED_H_INCLUDED
 #define _LIBPUB_NAMED_H_INCLUDED
 
 #include <string>                   // For std::string
-
-#include <pub/Object.h>             // For pub::Object
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
@@ -69,30 +67,6 @@ void
    set_name(                        // Set associated name
      const std::string _name)       // To this name
 {  name= _name; }                   // _name= nullptr disallowed
-}; // class Named
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       NamedObject
-//
-// Purpose-
-//       Define the NamedObject type
-//
-//----------------------------------------------------------------------------
-class NamedObject : public Named, public Object { // The NamedObject type
-//----------------------------------------------------------------------------
-// NamedObject::Constructors
-//----------------------------------------------------------------------------
-public:
-   NamedObject( void ) = default;   // Default constructor
-
-   NamedObject(                     // Constructor
-     const std::string name)        // The associated name
-:  Named(name), Object() {}
-
-virtual
-   ~NamedObject( void ) = default;  // Destructor
 }; // class Named
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_NAMED_H_INCLUDED

@@ -65,7 +65,7 @@ ConsoleService         consoleService; // The ConsoleService
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-std::mutex             mutex;       // (Hidden) mutex
+static std::mutex      mutex;       // (Hidden) mutex
 
 //----------------------------------------------------------------------------
 //
@@ -191,10 +191,12 @@ void
 //
 //----------------------------------------------------------------------------
    ConsoleService::ConsoleService( void )      // Constructor
-:  Service("Console") {}
+:  Service("Console")
+{  if( HCDM ) debugh("ConsoleService(%p)!\n", this); }
 
    ConsoleService::~ConsoleService( void )     // Destructor
-{
+{  if( HCDM ) debugh("ConsoleService(%p)~\n", this);
+
    std::lock_guard<decltype(mutex)> lock(mutex);
    delete console_thread;
    console_thread= nullptr;

@@ -17,7 +17,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2026/06/28
+//       2026/09/07
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -348,8 +348,7 @@ std::string
 //
 //----------------------------------------------------------------------------
    Socket::Socket( void )           // Constructor
-:  Object()
-,  h_select([](int) {})             // Default (NOP) event handler
+:  h_select([](int) {})             // Default (NOP) event handler
 ,  host_addr(), peer_addr()
 {  if( HCDM )
      debugh("Socket(%p)::Socket()\n", this);
@@ -363,7 +362,6 @@ std::string
 
    Socket::Socket(                  // Copy constructor
      const Socket&     that)        // Source Socket
-:  Object()
 {  if( HCDM )
      debugh("Socket(%p)::Socket(%p)\n", this, &that);
 

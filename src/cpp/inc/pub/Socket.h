@@ -17,7 +17,7 @@
 //       Standard socket (including openssl sockets) wrapper.
 //
 // Last change date-
-//       2026/06/28
+//       2026/09/07
 //
 // Implementation notes-
 //       Error recovery is the user's responsibility.
@@ -31,6 +31,7 @@
 
 #include <atomic>                   // For std::atomic
 #include <functional>               // For std::function
+#include <stdexcept>                // For std::runtime_error
 #include <string>                   // For std::string
 
 #include <fcntl.h>                  // For fcntl
@@ -41,14 +42,14 @@
 #include <sys/socket.h>             // For socket methods
 
 #include <pub/Exception.h>          // For pub::Exception
-#include <pub/Object.h>             // For base class, ...
 #include <pub/mutex.h>              // For pub::mutex
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 // SocketException | Thrown when an invalid parameter is detected
 //----------------------------------------------------------------------------
-class SocketException : public Exception { using Exception::Exception;
+class SocketException : public pub::Exception {
+   using pub::Exception::Exception;
 }; // class SocketException
 
 //----------------------------------------------------------------------------
@@ -63,7 +64,7 @@ class SocketException : public Exception { using Exception::Exception;
 //       Standard socket wrapper.
 //
 //----------------------------------------------------------------------------
-class Socket : public Object {      // Standard posix socket wrapper
+class Socket {                      // Standard posix socket wrapper
 public:
 //----------------------------------------------------------------------------
 // Socket::sockaddr_x | Extended sockaddr (currently only used for AF_UNIX)

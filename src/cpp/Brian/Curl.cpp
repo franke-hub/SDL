@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2024 Frank Eskesen.
+//       Copyright (c) 2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Curl Commands and Services
 //
 // Last change date-
-//       2024/11/15
+//       2026/09/07
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::mutex, std::lock_guard
@@ -28,7 +28,6 @@
 #include <pub/Clock.h>              // For pub::Clock
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/diag-counter.h>       // For pub::diag::Counter (DEBUGGING)
-#include <pub/String.h>             // For pub::String
 #include <pub/Thread.h>             // For pub::Thread::sleep
 #include <pub/utility.h>            // For pub::utility::to_string
 

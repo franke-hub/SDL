@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2025 Frank Eskesen.
+//       Copyright (c) 2019-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       A Command is a Named work handler.
 //
 // Last change date-
-//       2025/01/20
+//       2026/09/07
 //
 //----------------------------------------------------------------------------
 #ifndef COMMAND_H_INCLUDED
@@ -30,7 +30,8 @@
 
 #include "shared_ptr-debug.h"       // For shared_ptr debugging control
 #include <pub/Named.h>              // For pub::Named, base class
-#include <pub/Object.h>             // For work resultant
+
+#include "Object.h"                 // The Command resultant type
 
 //----------------------------------------------------------------------------
 //
@@ -52,7 +53,7 @@ class Command : public pub::Named { // Command
 public:
 typedef std::map<std::string, Command*>       Map_t; // The Map type
 typedef Map_t::iterator                       MapIter_t; // The Map iterator
-typedef std::shared_ptr<pub::Object>          resultant; // Method work result
+typedef std::shared_ptr<Object>               resultant; // Method work result
 
 //----------------------------------------------------------------------------
 // Command::Constructors/destructor

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2024 Frank Eskesen.
+//       Copyright (C) 2020-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       ~/src/cpp/inc/pub/Trace.h Stress test
 //
 // Last change date-
-//       2024/12/20
+//       2026/09/07
 //
 // Parameters-
 //       --help        (Display help message)
@@ -53,7 +53,6 @@
 #include <pub/Thread.h>             // For pub::Thread
 #include <pub/utility.h>            // For pub::utility::atol
 #include "pub/utility.i"            // For pub::utility conversion routines
-#include <pub/macro/try_catch.h>    // For TRY_CATCH macro
 
 #include "pub/Trace.h"              // This is what we test
 
@@ -440,7 +439,7 @@ extern int                          // Return code
    // Mainline code: Trace stress test
    //-------------------------------------------------------------------------
    rc= 2;                           // Default, exception return code
-   TRY_CATCH(
+   try {
      if( HCDM ) debugf("\n");
      if( false ) {                  // If true, tasks do nothing
        debugf("%4d HCDM.c == TRACE DISABLED ==\n", __LINE__);
@@ -477,7 +476,13 @@ extern int                          // Return code
      Main::term();
 
      rc= 0;                         // Test successful
-   )
+   } catch(std::exception& X) {
+     debugf("std::exception(%s)\n", X.what());
+   } catch(const char* X) {
+     debugf("const char*(%s)\n", X);
+   } catch(...) {
+     debugf("catch(...)\n");
+   }
 
    //-------------------------------------------------------------------------
    // Terminate

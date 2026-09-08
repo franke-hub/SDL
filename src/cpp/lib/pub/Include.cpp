@@ -17,7 +17,7 @@
 //       Compile header files that have no associated library module.
 //
 // Last change date-
-//       2026/03/23
+//       2026/09/07
 //
 // Implementation note-
 //       For dependency testing, include the file to be tested first.
@@ -36,7 +36,6 @@
 #include "pub/Semaphore.h"
 #include "pub/Signals.h"
 #include "pub/Statistic.h"
-#include "pub/String.h"
 #include "pub/utility.i"
 
 #include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros

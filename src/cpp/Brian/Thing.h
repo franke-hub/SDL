@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2024-2025 Frank Eskesen.
+//       Copyright (c) 2024-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Debugging object (with reference Counter.)
 //
 // Last change date-
-//       2025/01/20
+//       2026/09/07
 //
 //----------------------------------------------------------------------------
 #ifndef THING_H_INCLUDED
@@ -26,8 +26,9 @@
 #include <memory>                   // For invoker's std::make_shared
 
 #include "shared_ptr-debug.h"       // For shared_ptr debugging control
-#include <pub/Object.h>             // For pub::Object, base class
 #include <pub/diag-counter.h>       // For pub::diag::Counter (DEBUGGING)
+
+#include "Object.h"                 // For Object, base class
 
 //----------------------------------------------------------------------------
 //
@@ -38,7 +39,7 @@
 //       An Object with a reference counter.
 //
 //----------------------------------------------------------------------------
-class Thing : public pub::Object {  // Object with reference Counter
+class Thing : public Object {       // An Object with a reference Counter
 //----------------------------------------------------------------------------
 // Thing::Attributes
 //----------------------------------------------------------------------------
@@ -50,7 +51,7 @@ pub::diag::Counter     counter;     // Constructor/destructor counter
 //----------------------------------------------------------------------------
 public:
    Thing( void )                    // Constructor
-:  pub::Object() {}
+:  Object() {}
 
 // Destructor declaration not required
 }; // class Thing

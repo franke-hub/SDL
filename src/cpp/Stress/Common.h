@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2024 Frank Eskesen.
+//       Copyright (C) 2020-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Main::Task sequencing controls, including a trace table.
 //
 // Last change date-
-//       2024/12/20
+//       2026/09/07
 //
 // Implementation notes-
 //       Defines class Main and class Task.
@@ -327,17 +327,15 @@ virtual void
    //-------------------------------------------------------------------------
    // Run the test
    time= epoch_nano();              // Start time
-   TRY_CATCH(
-     try {
-       test();                      // Run the test
-     } catch(...) {
-       Trace::trace(".BUG", __LINE__, "Exception");
-       Trace::stop();
+   try {
+     test();                      // Run the test
+   } catch(...) {
+     Trace::trace(".BUG", __LINE__, "Exception");
+     Trace::stop();
 
-       opt_verbose= 5;              // (Force trace table dump)
-       throw;                       // Rethrow the exception
-     }
-   )
+     opt_verbose= 5;              // (Force trace table dump)
+     throw;                       // Rethrow the exception
+   }
 
    time= epoch_nano() - time;       // Elapsed time
 

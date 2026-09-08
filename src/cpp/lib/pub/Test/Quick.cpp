@@ -17,7 +17,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2026/03/22
+//       2026/09/07
 //
 //----------------------------------------------------------------------------
 #include <iostream>                 // For std::cout
@@ -40,7 +40,6 @@
 #include "pub/Reporter.h"           // For pub::Reporter
 #include "pub/Signals.h"            // See test_Signals
 #include "pub/Statistic.h"          // For pub::Statistic
-#include "pub/String.h"             // For pub::String (Experimental)
 #include "pub/System.h"             // For pub::System::debug test
 #include "pub/Thread.h"             // For pub::Thread
 #include "pub/Trace.h"              // See test_Trace
@@ -90,7 +89,7 @@ static int             opt_misc= false; // --misc
 static int             opt_mutex= false; // --mutex
 static int             opt_report= false; // --report
 static int             opt_signals= false; // --signals
-static int             opt_string= false; // (Only set if --all)
+//     int             opt_string= false; // (Only set if --all)
 static int             opt_trace= false; // --trace
 
 static struct option   opts[]=      // Options
@@ -818,11 +817,9 @@ static constexpr const char* const good=
    error_count += VERIFY( wildchar::strcasecmp("**NOW* is THE time*to **PARTY**", good) == 0);
 
    // Test demangle ----------------------------------------------------------
-   Object object;
    string S= demangle(typeid(pub::utility::demangle));
    error_count += VERIFY(S == "std::string (std::type_info const&)");
 
-   error_count += VERIFY(demangle(typeid(object)) == "pub::Object");
    error_count += VERIFY(demangle(typeid(nullptr)) == "decltype(nullptr)");
 
    Exception* X= new IndexException("IX test");
@@ -1254,9 +1251,10 @@ static inline int
 //       test_String
 //
 // Purpose-
-//       (Minimally) test ~/src/cpp/inc/pub/String.h
+//       (OBSOLETE) test ~/src/cpp/inc/pub/String.h
 //
 //----------------------------------------------------------------------------
+#if 0
 static inline int
    test_String( void )              // Test pub/String.h
 {
@@ -1302,6 +1300,7 @@ static inline int
 
    return error_count;
 }
+#endif
 
 //----------------------------------------------------------------------------
 //
@@ -1589,7 +1588,7 @@ extern int                          // Return code
        opt_mutex= true;
        opt_report= true;
        opt_signals= true;
-       opt_string= true;
+       // opt_string= true;
        // opt_trace= true;          // Select separately (needs validation)
      }
 
@@ -1617,7 +1616,7 @@ extern int                          // Return code
      if( opt_mutex )   error_count += test_mutex();
      if( opt_report)   error_count += test_Reporter();
      if( opt_signals ) error_count += test_Signals();
-     if( opt_string )  error_count += test_String();
+     // if( opt_string )  error_count += test_String();
      if( opt_trace )   error_count += test_Trace();
 //   if( true )        error_count += test_dirty(); // Optional bringup test
 

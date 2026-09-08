@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2024 Frank Eskesen.
+//       Copyright (c) 2018-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Standard Exception and built-in Exceptions.
 //
 // Last change date-
-//       2024/09/29
+//       2026/09/07
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_EXCEPTION_H_INCLUDED
@@ -25,8 +25,9 @@
 
 #include <stdexcept>                // For std::runtime_error
 #include <string>                   // For std::string
+#include <typeinfo>                 // For std::type_info
 
-#include "Object.h"                 // For Object, _LIBPUB_ macros
+#include <pub/utility.h>            // For pub::demangle
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
@@ -38,7 +39,7 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //       Exception base class.
 //
 //----------------------------------------------------------------------------
-class Exception : public Object, public std::runtime_error { // Exception base class
+class Exception : public std::runtime_error { // Exception base class
 //----------------------------------------------------------------------------
 // Exception::Attributes
 //----------------------------------------------------------------------------
@@ -52,7 +53,8 @@ public:
 inline
    Exception(                       // String constructor
      const std::string text= default_exception) // Exception descriptor
-:  Object(), std::runtime_error(text) {} // (Default) constructor
+:  std::runtime_error(text)         // (Default) constructor
+{  }
 
 //----------------------------------------------------------------------------
 // Exception::Object methods
@@ -70,6 +72,14 @@ virtual inline
 
    return result;
 }
+
+std::string
+   get_class_name() const
+{  return pub::utility::demangle(typeid(*this)); }
+
+std::string
+   to_string() const
+{  return operator std::string(); }
 }; // class Exception
 
 //----------------------------------------------------------------------------
