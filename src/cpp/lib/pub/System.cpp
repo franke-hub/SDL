@@ -17,13 +17,12 @@
 //       System method implementations.
 //
 // Last change date-
-//       2026/03/08
+//       2026/09/08
 //
 // Implementation note-
 //       The system logfile is "$HOME/.local/log/syslog.out"
 //
 //----------------------------------------------------------------------------
-#include <atomic>                   // For atomic_uint64_t
 #include <string>                   // For std::string
 
 #include <cstdlib>                  // For getenv
@@ -190,83 +189,6 @@ void
      }
    }}}}
 }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       System::Hardware accessor methods
-//
-// Purpose-
-//       Get hardware information
-//
-//       System::get_LR   Get Link Register (Caller's return address)
-//       System::get_SP   Get Stack Pointer
-//       System::get_TSC  Get Time Stamp Counter
-//
-//----------------------------------------------------------------------------
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// get_LR
-#if defined(__GNUC__)               // GNU compiler required
-void*                               // The Link Register
-   get_LR( void )                   // Get Link Register
-{  return __builtin_extract_return_addr(__builtin_return_address(0)); }
-
-#else // (Simulated) - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void*
-   get_LR( void )
-{  return nullptr; }
-#endif
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// get_SP
-#if  defined(__GNUC__)              // GNU compiler required
-void*                               // The Stack Pointer
-   get_SP( void )                   // Get Stack Pointer
-{  return __builtin_frame_address(0); }
-
-#else // (Simulated) - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void*
-   get_SP( void )
-{  return nullptr; }
-#endif
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// get_TSC
-#if defined(__GNUC__) && defined(_HW_X86) // GNU compiler, x86 required
-uint64_t                            // The Time Stamp Counter
-   get_TSC( void )                  // Get Time Stamp Counter
-{
-   uint64_t            result;      // Resultant
-
-#ifdef __x86_64__                   // 64 bit assembler code
-   asm volatile("\n"
-"        rdtsc\n"                   // Read the time stamp counter
-"        salq    $32, %%rdx\n"      // Position the upper resultant
-"        orq     %%rdx, %%rax\n"    // Combine with lower resultant
-       : "=a" (result)              // %0
-       :                            // (No INP parameter)
-       :
-       );
-
-   return result;
-#else
-   asm volatile("\n"                // 32 bit assembler code
-"        rdtsc\n"                   // Read the time stamp counter
-       : "=A" (result)              // %0
-       :                            // (No INP parameter)
-       :
-       );
-#endif
-
-   return result;
-}
-
-#else // (Simulated) - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uint64_t
-   get_TSC( void )
-{  static std::atomic<std::uint64_t> tsc(0); return ++tsc; }
-#endif
 
 //----------------------------------------------------------------------------
 //

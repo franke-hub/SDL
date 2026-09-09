@@ -17,7 +17,7 @@
 //       Define the System namespace
 //
 // Last change date-
-//       2026/03/08
+//       2026/09/08
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_SYSTEM_H_INCLUDED
@@ -94,37 +94,6 @@ extern void
    debug(                           // System debugging display
      const char*      info="",      // Caller information
      bool             detail= false); // Add detailed information?
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       System::Hardware accessor methods
-//
-// Purpose-
-//       Get hardware information
-//
-//       System::get_LR   Get Link Register
-//       System::get_SP   Get Stack Pointer
-//       System::get_TSC  Get Time Stamp Counter
-//
-// Implementation notes-
-//       These methods are simulated unless using the GNU compiler and
-//       (for get_TSC) X86 hardware. If unsupported:
-//           System::get_LR   returns nullptr
-//           System::get_SP   returns nullptr
-//           System::get_TSC  (atomically) returns its invocation count
-//
-//       get_TSC returns a 64 bit value even on 32 bit hardware.
-//
-//----------------------------------------------------------------------------
-extern void*                        // The Link Register
-   get_LR( void );                  // Get Link Register
-
-extern void*                        // The Stack Pointer
-   get_SP( void );                  // Get Stack Pointer
-
-extern uint64_t                     // The Time Stamp Counter
-   get_TSC( void );                 // Get Time Stamp Counter
 
 //----------------------------------------------------------------------------
 //

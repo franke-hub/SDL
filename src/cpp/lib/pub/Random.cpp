@@ -17,14 +17,14 @@
 //       Implement Random.h
 //
 // Last change date-
-//       2026/02/18
+//       2026/09/08
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<uint64_t>
 #include <cstdint>                  // For integer types, UINT64_MAX
 
 #include <pub/Debug.h>              // For namespace pub::debugging
-#include <pub/Hardware.h>           // For pub::Hardware::getTSC
+#include <pub/Hardware.h>           // For pub::Hardware::get_TSC
 #include "pub/Random.h"             // For pub::Random, implemented
 
 #define PUB _LIBPUB_NAMESPACE
@@ -101,9 +101,9 @@ uint64_t                            // The next pseudo-random value
 void
    Random::randomize( void )        // Randomize
 {
-   uint64_t new_seed= Hardware::getTSC();
-   new_seed ^= Hardware::getTSC();
-   new_seed ^= Hardware::getTSC();
+   uint64_t new_seed= Hardware::get_TSC();
+   new_seed ^= Hardware::get_TSC();
+   new_seed ^= Hardware::get_TSC();
 
    set_seed(new_seed);
 

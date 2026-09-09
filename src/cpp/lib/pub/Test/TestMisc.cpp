@@ -17,7 +17,7 @@
 //       Miscellaneous tests.
 //
 // Last change date-
-//       2026/05/22
+//       2026/09/08
 //
 //----------------------------------------------------------------------------
 #include <functional>               // For std::function
@@ -59,6 +59,16 @@ enum // Generic enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more
 }; // Generic enum
+
+//----------------------------------------------------------------------------
+// Extended options
+//----------------------------------------------------------------------------
+static int             opt_random= false; // --random
+
+static struct option   opts[]=      // The getopt_long parameter: longopts
+{  {"random",    no_argument,       &opt_random,    true}
+,  {0, 0, 0, 0}                     // (End of option list)
+};
 
 //----------------------------------------------------------------------------
 // Test_IO constant data
@@ -109,24 +119,24 @@ static inline int                   // Number of errors encountered
    if( opt_verbose )
      debugf("\ntest_Hardware\n");
 
-   intptr_t one= (intptr_t)pub::Hardware::getLR();
-   intptr_t two= (intptr_t)pub::Hardware::getLR();
+   intptr_t one= (intptr_t)pub::Hardware::get_LR();
+   intptr_t two= (intptr_t)pub::Hardware::get_LR();
    error_count += VERIFY(two > one && (two-one) < 64);
    if( opt_verbose )
-     debugf("one(0x%.16zx) two(0x%.16zx) getLR\n", one, two);
+     debugf("one(0x%.16zx) two(0x%.16zx) get_LR\n", one, two);
 
-   one= (intptr_t)pub::Hardware::getSP();
-   two= (intptr_t)pub::Hardware::getSP();
+   one= (intptr_t)pub::Hardware::get_SP();
+   two= (intptr_t)pub::Hardware::get_SP();
    error_count += VERIFY(two == one);
    if( opt_verbose )
-     debugf("one(0x%.16zx) two(0x%.16zx) getSP\n", one, two);
+     debugf("one(0x%.16zx) two(0x%.16zx) get_SP\n", one, two);
 
    intptr_t max= 0;
    intptr_t min= 1'000'000'000'000;
-   one= pub::Hardware::getTSC();
+   one= pub::Hardware::get_TSC();
    intptr_t old= one;
    for(int i= 0; i<64; ++i) {
-     two= pub::Hardware::getTSC();
+     two= pub::Hardware::get_TSC();
      error_count += VERIFY(two >= one);
      intptr_t del= two - old;
      if( del < min )
@@ -137,7 +147,7 @@ static inline int                   // Number of errors encountered
    }
    error_count += VERIFY(two > one);
    if( opt_verbose )
-     debugf("one(0x%.16zx) two(0x%.16zx) min(%zd) max(%zd) getTSC\n"
+     debugf("one(0x%.16zx) two(0x%.16zx) min(%zd) max(%zd) get_TSC\n"
            , one, two, min, max);
 
    return error_count;
@@ -783,46 +793,6 @@ static inline int                   // Number of errors encountered
      log(LL_ALL,   "%s LL_ALL   (+stderr)\n", __FILE__); // (syslog and stderr)
    }
 
-   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   // Test System::get_LR, System::get_SP, System::get_TSC
-#if defined(__GNUC__) && defined(_HW_X86) // GNU compiler, x86 required
-   intptr_t one= (intptr_t)get_LR();
-   intptr_t two= (intptr_t)get_LR();
-   error_count += VERIFY(two > one && (two-one) < 64);
-   if( opt_verbose )
-     debugf("one(0x%.16zx) two(0x%.16zx) get_LR\n", one, two);
-
-   one= (intptr_t)get_SP();
-   two= (intptr_t)get_SP();
-   error_count += VERIFY(two == one);
-   if( opt_verbose )
-     debugf("one(0x%.16zx) two(0x%.16zx) get_SP\n", one, two);
-
-   intptr_t max= 0;
-   intptr_t min= 1'000'000'000'000;
-   one= get_TSC();
-   intptr_t old= one;
-   for(int i= 0; i<64; ++i) {
-     two= get_TSC();
-     error_count += VERIFY(two >= one);
-     intptr_t del= two - old;
-     if( del < min )
-       min= del;
-     if( del > max )
-       max= del;
-     old= two;
-   }
-
-   error_count += VERIFY(two > one);
-   if( opt_verbose )
-     debugf("one(0x%.16zx) two(0x%.16zx) min(%zd) max(%zd) get_TSC\n"
-           , one, two, min, max);
-#else
-   ++error_count;
-   debugf("System::get_LR, System::get_SP, and System::get_TSC\n"
-          "require GNU compiler and x86 hardware\n");
-#endif
-
    return error_count;
 }
 
@@ -932,8 +902,13 @@ extern int                          // Return code
 {
    //-------------------------------------------------------------------------
    // Initialize
-   Wrapper  tc;                     // The test case wrapper
+   Wrapper  tc= opts;               // The test case wrapper
    Wrapper* tr= &tc;                // A test case wrapper pointer
+
+   tc.on_info([]()
+   {
+     fprintf(stderr, "  --random\tSelect the random number test\n");
+   });
 
    tc.on_main([tr](int, char*[])
    {
@@ -943,7 +918,8 @@ extern int                          // Return code
      error_count += test_Hardware();   // Test Hardware.h
      error_count += test_IO();         // Test IO.h
      error_count += test_Properties(); // Test Properties.h
-     error_count += test_Random();     // Test Random.h
+     if( opt_random )
+       error_count += test_Random();   // Test Random.h
      error_count += test_Statistic();  // Test Statistic.h
      error_count += test_System();     // Test System.h
      error_count += test_Tokenizer();  // Test Tokenizer.h
@@ -953,6 +929,12 @@ extern int                          // Return code
        tr->report_errors(error_count);
      }
      return error_count != 0;
+   });
+
+   tc.on_parm([](std::string name, const char* value)
+   { (void)name; (void)value;      // Function currently unused
+
+     return 0;
    });
 
    //-------------------------------------------------------------------------

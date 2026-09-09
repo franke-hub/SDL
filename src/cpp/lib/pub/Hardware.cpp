@@ -17,11 +17,20 @@
 //       System hardware interfaces implementation.
 //
 // Last change date-
-//       2026/09/05
+//       2026/09/08
 //
 // Implementation notes-
-//       Hardware is a struct rather than a namespace so that Hardware::getLR
-//       calls are not optimized away.
+//       Hardware is a struct rather than a namespace so that its methods are
+//       ordinary (non-inline) function calls rather than being optimized away
+//       or inlined into their caller. get_LR and get_SP each report
+//       information about their *direct* caller; wrapping either in a
+//       forwarding call changes what they report, so don't do that.
+//
+//       These methods are simulated unless using the GNU compiler and,
+//       for get_TSC, X86 hardware. If unsupported:
+//           get_LR   returns nullptr
+//           get_SP   returns nullptr
+//           get_TSC  (atomically) returns its invocation count
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic_uint64_t
@@ -30,36 +39,39 @@
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
-// Hardware::getLR: get the caller's return address
+// Hardware::get_LR: get the caller's return address
 //----------------------------------------------------------------------------
-#if !defined(__GNUC__)              // GNU compiler required
-void* Hardware::getLR( void ) { return nullptr; }
-#else
-void*                               // The caller's return address
-   Hardware::getLR( void )          // Get link register
+#if defined(__GNUC__)               // GNU compiler required
+void*                               // The Link Register
+   Hardware::get_LR( void )         // Get Link Register
 {  return __builtin_extract_return_addr(__builtin_return_address(0)); }
+
+#else // (Simulated) - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void*
+   Hardware::get_LR( void )
+{  return nullptr; }
 #endif
 
 //----------------------------------------------------------------------------
-// getSP: get the current stack pointer
+// get_SP: get the current stack pointer
 //----------------------------------------------------------------------------
-#if !defined(__GNUC__)              // GNU compiler required
-void* Hardware::getSP( void ) { return nullptr; }
-#else
-void*                               // The stack pointer
-   Hardware::getSP( void )          // Get stack pointer
+#if  defined(__GNUC__)              // GNU compiler required
+void*                               // The Stack Pointer
+   Hardware::get_SP( void )         // Get Stack Pointer
 {  return __builtin_frame_address(0); }
+
+#else // (Simulated) - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void*
+   Hardware::get_SP( void )
+{  return nullptr; }
 #endif
 
 //----------------------------------------------------------------------------
-// getTSC: get the current time stamp counter
+// get_TSC: get the current time stamp counter
 //----------------------------------------------------------------------------
-#if !defined(__GNUC__) || !defined(_HW_X86) // GNU compiler, x86 required
-uint64_t Hardware::getTSC( void )
-{  static std::atomic_uint64_t tsc= 0; return ++tsc; }
-#else
-uint64_t                            // The time stamp counter
-   Hardware::getTSC( void )         // Get time stamp counter
+#if defined(__GNUC__) && defined(_HW_X86) // GNU compiler, x86 required
+uint64_t                            // The Time Stamp Counter
+   Hardware::get_TSC( void )        // Get Time Stamp Counter
 {
    uint64_t            result;      // Resultant
 
@@ -85,5 +97,10 @@ uint64_t                            // The time stamp counter
 
    return result;
 }
+
+#else // (Simulated) - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+uint64_t
+   Hardware::get_TSC( void )
+{  static std::atomic<std::uint64_t> tsc(0); return ++tsc; }
 #endif
 _LIBPUB_END_NAMESPACE

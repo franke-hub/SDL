@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2023 Frank Eskesen.
+//       Copyright (c) 2023-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,10 +17,16 @@
 //       System hardware interfaces.
 //
 // Last change date-
-//       2023/05/02
+//       2026/09/08
 //
 // Implementation notes-
-//       Currently only implemented for X86 architecture and GNU compiler.
+//       These methods are simulated unless using the GNU compiler and,
+//       for get_TSC, X86 hardware. If unsupported:
+//           get_LR  returns nullptr
+//           get_SP  returns nullptr
+//           get_TSC (atomically) returns its invocation count
+//
+//       get_TSC returns a 64 bit value even on 32 bit hardware.
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HARDWARE_H_INCLUDED
@@ -33,39 +39,46 @@
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 // Namespace pub::Hardware, system hardware accessor namespace
+//
+// Implementation note-
+//       Hardware is a struct rather than a namespace so that its methods are
+//       ordinary (non-inline) function calls rather than being optimized away
+//       or inlined into their caller. get_LR and get_SP each report
+//       information about their *direct* caller; wrapping either in a
+//       forwarding call changes what they report, so don't do that.
 //----------------------------------------------------------------------------
 struct Hardware {                   // System hardware accessor functions
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Hardware::getLR
+//       Hardware::get_LR
 //
 // Purpose-
-//       Return the link register (return address).
+//       Return the link register (the caller's return address).
 //
 //----------------------------------------------------------------------------
 static void*                        // The caller's return address
-   getLR( void );                   // Get link register
+   get_LR( void );                  // Get link register
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Hardware::getSP
+//       Hardware::get_SP
 //
 // Purpose-
 //       Return the stack pointer.
 //
 //----------------------------------------------------------------------------
 static void*                        // The stack pointer
-   getSP( void );                   // Get stack pointer
+   get_SP( void );                  // Get stack pointer
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Hardware::getTSC
+//       Hardware::get_TSC
 //
 // Purpose-
-//       Return the current timestamp counter
+//       Return the current timestamp counter.
 //
 // Notes-
 //       The timestamp counter is a high resolution elapsed time measurement
@@ -74,7 +87,7 @@ static void*                        // The stack pointer
 //
 //----------------------------------------------------------------------------
 static uint64_t                     // The timestamp counter
-   getTSC( void );                  // Get timestamp counter
+   get_TSC( void );                 // Get timestamp counter
 }; // struct Hardware
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_HARDWARE_H_INCLUDED
