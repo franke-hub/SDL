@@ -17,7 +17,7 @@
 //       Latch.h reference manual
 //
 // Last change date-
-//       2026/04/17
+//       2026/09/09
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Latch.h>
@@ -46,15 +46,21 @@ Latch isn't immediately available.
 | [is_held](./pub_latch-LATCH.md#is_held) | Test: is the Latch held? |
 | [lock](./pub_latch-LATCH.md#lock) | Obtain the (exclusive) Latch. |
 | [reset](./pub_latch-LATCH.md#reset) | Unconditionally reset the Latch. |
+| [statistics](./pub_latch-LATCH.md#statistics) | Display usage statistics (if enabled). |
 | [try_lock](./pub_latch-LATCH.md#try_lock) | Try to obtain the Latch. |
 | [unlock](./pub_latch-LATCH.md#unlock) | Release the Latch. |
 
 #### <a id="Block_latch">[Block_latch](./pub_latch-BLOCK.md)</a>
+Unlike the other Latch types, a Block_latch has no thread affinity: it may be
+locked on one Thread and unlocked on another.
+
 | Method | Purpose |
 |--------|---------|
+| [constructor](./pub_latch-BLOCK.md#constructor) | Create the Block_latch, optionally already held. |
 | [is_held](./pub_latch-BLOCK.md#is_held) | Test: is the Latch held? |
 | [lock](./pub_latch-BLOCK.md#lock) | Obtain the (exclusive) Latch. |
 | [reset](./pub_latch-BLOCK.md#reset) | Unconditionally reset the Latch. |
+| [set](./pub_latch-BLOCK.md#set) | Unconditionally set the Latch (held) state. |
 | [try_lock](./pub_latch-BLOCK.md#try_lock) | Try to obtain the Latch. |
 | [unlock](./pub_latch-BLOCK.md#unlock) | Release the Latch. |
 

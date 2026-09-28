@@ -17,58 +17,63 @@
 //       Latch.h reference manual: SHR_latch
 //
 // Last change date-
-//       2026/03/04
+//       2026/09/09
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Latch.h>
+## pub::SHR_latch
 
-## <a id=shr_latch>pub::SHR_latch</a>
+The SHR_latch is a shared-mode spin Latch: any number of threads may hold it
+at once. Method lock adds a shared holder; method unlock removes one.
 
-The SHR_latch is a spin Latch counter. Method lock increments the counter and
-method unlock decrements it.
+An XCL_latch (see [XCL_latch](./pub_latch-XCL.md)) associated with the same
+SHR_latch can reserve exclusive access. While that reservation is held,
+SHR_latch::try_lock fails and SHR_latch::lock spins, waiting for the
+reservation to be released.
 
-The counter's high-order bit indicates exclusive latch reservation. While
-reserved, the SHR_latch's try_lock returns failure and method lock spins,
-waiting for the reserve to be released.
-
-Applications *MUST NOT* lock the SHR_latch recursively. Doing so can result
-in a livelock between the SHR_latch and an XCL_latch.
+Applications *MUST NOT* lock the SHR_latch recursively (i.e. lock it a
+second time on a thread that already holds it). Doing so can livelock
+against a pending XCL_latch reservation.
 
 <!-- ===================================================================== -->
 ---
-#### <a id=is_held>void pub::SHR_latch::is_held</a>
+#### <a id="is_held">bool pub::SHR_latch::is_held() const;</a>
 
-Returns TRUE if the latch is held, without regard to which Thread holds
-the Latch or whether the latch is held in shared or exclusive mode.
-
----
-#### <a id=lock>void pub::SHR_latch::lock</a>
-
-Obtains the shared Latch.
-
-Note: it is an error to try to obtain exclusive access to a SHR_latch that's
-held by the same Thread. A livelock always occurs.
+Return value: TRUE if the Latch is held or reserved, in either shared or
+exclusive mode, without regard to which thread holds it.
 
 ---
-#### <a id=reset>void pub::SHR_latch::reset</a>
+#### <a id="lock">void pub::SHR_latch::lock();</a>
 
-Unconditionally resets the Latch to its initial (non-held) state.
+Obtains the Latch in shared mode, spinning until it's available.
 
----
-#### <a id=try_lock>void pub::SHR_latch::try_lock</a>
-
-Obtains the shared Latch if it's available.
-
----
-#### <a id=unlock>void pub::SHR_latch::unlock</a>
-
-Releases the shared Latch.
+Note: it is an error for a thread already holding the SHR_latch to try to
+obtain exclusive access (via an associated XCL_latch). A livelock always
+occurs.
 
 ---
-#### <a id=upgrade>void pub::SHR_latch::upgrade</a>
+#### <a id="reset">void pub::SHR_latch::reset();</a>
 
-There is no upgrade method. Exclusive mode access cannot be granted when a
-share latch is held. (A livelock always occurs.)
-Instead:
-- Release the SHR_latch
-- Obtain the XCL_latch
+Unconditionally resets the Latch to its initial (unheld) state.
+
+---
+#### <a id="try_lock">bool pub::SHR_latch::try_lock();</a>
+
+Return value: TRUE iff successful.
+
+Obtains the Latch in shared mode if it's immediately available (not
+exclusively reserved), without spinning.
+
+---
+#### <a id="unlock">void pub::SHR_latch::unlock();</a>
+
+Releases one shared hold on the Latch.
+
+---
+#### <a id="upgrade">(No upgrade method)</a>
+
+SHR_latch has no upgrade method: exclusive access cannot be granted while
+any shared holder remains, including the calling thread, so upgrading a
+held SHR_latch in place would always livelock. Instead:
+- Release the SHR_latch, then
+- Obtain the associated XCL_latch (see [XCL_latch::lock](./pub_latch-XCL.md#lock)).

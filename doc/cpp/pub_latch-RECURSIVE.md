@@ -17,41 +17,51 @@
 //       Latch.h reference manual: RecursiveLatch
 //
 // Last change date-
-//       2026/03/04
+//       2026/09/09
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Latch.h>
+## pub::RecursiveLatch
 
-## <a id=recursive_latch>pub::RecursiveLatch</a>
+The RecursiveLatch is an exclusive spin Latch with thread affinity: methods
+lock and unlock must be invoked from the same thread.
 
-The Recursive Latch is an exclusive counting spin Latch with thread affinity.
-Methods lock and unlock must be invoked by the same thread. Locking while the
-latch is held increments a use counter. Unlocking decrements the use counter.
-When the use counter decrements to zero, the latch becomes available.
+Unlike Latch, a thread already holding the RecursiveLatch may lock it again:
+each such lock increments a use count, and each unlock decrements it. The
+Latch becomes available again only when the use count returns to zero.
 
 <!-- ===================================================================== -->
 ---
-#### <a id=is_held>void pub::RecursiveLatch::is_held</a>
+#### <a id="is_held">bool pub::RecursiveLatch::is_held() const;</a>
 
-Returns TRUE if the latch is held, without regard to which Thread holds
-the Latch.
-
----
-#### <a id=lock>void pub::RecursiveLatch::lock</a>
-
-Obtains the (exclusive) Latch.
+Return value: TRUE if the Latch is held, without regard to which thread
+holds it.
 
 ---
-#### <a id=reset>void pub::RecursiveLatch::reset</a>
+#### <a id="lock">void pub::RecursiveLatch::lock();</a>
 
-Unconditionally resets the Latch to its initial (non-held) state.
-
----
-#### <a id=try_lock>void pub::RecursiveLatch::try_lock</a>
-
-Obtains the (exclusive) Latch if it's available.
+Obtains the Latch, spinning until it's available. If the calling thread
+already holds the Latch, increments the use count instead of spinning.
 
 ---
-#### <a id=unlock>void pub::RecursiveLatch::unlock</a>
+#### <a id="reset">void pub::RecursiveLatch::reset();</a>
 
-Releases the (exclusive) Latch.
+Unconditionally resets the Latch to its initial (unheld) state, regardless
+of the current use count.
+
+---
+#### <a id="try_lock">bool pub::RecursiveLatch::try_lock();</a>
+
+Return value: TRUE iff successful.
+
+Obtains the Latch if it's immediately available, without spinning, or if
+the calling thread already holds it (incrementing the use count).
+
+---
+#### <a id="unlock">void pub::RecursiveLatch::unlock();</a>
+
+Decrements the use count. Releases the Latch when the use count reaches
+zero.
+
+An exception is thrown if invoked from a thread that does not hold the
+Latch.

@@ -14,47 +14,67 @@
 //       ~/doc/cpp/pub_latch-BLOCK.md
 //
 // Purpose-
-//       Latch.h reference manual: block_latch
+//       Latch.h reference manual: Block_latch
 //
 // Last change date-
-//       2026/03/04
+//       2026/09/09
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Latch.h>
+## pub::Block_latch
 
-## <a id=block_latch>pub::Block_latch</a>
-
-The Block_latch is an exclusive spin Latch without thread checking, i.e.
-Latch::lock may be used in one thread and Latch::unlock in a different one.
+The Block_latch is an exclusive spin Latch with no thread affinity: unlike
+every other Latch type, it may be locked on one thread and unlocked on a
+different one.
 
 Usage notes:
-- The lock method attempts to obtain the lock even if the same thread holds
-the lock. This is allowed but can result in a spinlock.
-- The unlock method throws an exception if invoked while unlocked.
+- The lock method attempts to obtain the Latch even if it's already held by
+the calling thread. This is allowed, but results in the calling thread
+spinning against itself.
+- The unlock method throws an exception if invoked while the Latch isn't
+held.
 
 <!-- ===================================================================== -->
 ---
-#### <a id=is_held>void pub::Block_latch::is_held</a>
+#### <a id="constructor">pub::Block_latch::Block_latch();</a>
+#### <a id="constructor2">pub::Block_latch::Block_latch(latch_t init);</a>
 
-Returns TRUE if the latch is held, without regard to which Thread holds
-the Latch.
+The default constructor creates the Block_latch in the available (unheld)
+state.
 
----
-#### <a id=lock>void pub::Block_latch::lock</a>
-
-Obtains the (exclusive) Latch.
-
----
-#### <a id=reset>void pub::Block_latch::reset</a>
-
-Unconditionally resets the Latch to its initial (non-held) state.
+The second constructor creates the Block_latch already in the state given by
+`init`: a non-zero value creates it already held.
 
 ---
-#### <a id=try_lock>void pub::Block_latch::try_lock</a>
+#### <a id="is_held">bool pub::Block_latch::is_held() const;</a>
 
-Obtains the (exclusive) Latch if it's available.
+Return value: TRUE if the Latch is held, without regard to which thread
+holds it.
 
 ---
-#### <a id=unlock>void pub::Block_latch::unlock</a>
+#### <a id="lock">void pub::Block_latch::lock();</a>
+
+Obtains the (exclusive) Latch, spinning until it's available.
+
+---
+#### <a id="reset">void pub::Block_latch::reset();</a>
+
+Unconditionally resets the Latch to its initial (unheld) state.
+
+---
+#### <a id="set">void pub::Block_latch::set();</a>
+
+Unconditionally sets the Latch to its held state.
+
+---
+#### <a id="try_lock">bool pub::Block_latch::try_lock();</a>
+
+Return value: TRUE iff successful.
+
+Obtains the (exclusive) Latch if it's immediately available, without
+spinning.
+
+---
+#### <a id="unlock">void pub::Block_latch::unlock();</a>
 
 Releases the (exclusive) Latch.
