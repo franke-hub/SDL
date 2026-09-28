@@ -1,4 +1,28 @@
+<!-- -------------------------------------------------------------------------
+//
+//       Copyright (c) 2026 Frank Eskesen.
+//
+//       This file is free content, distributed under cc by-sa version 4.0
+//       with attribution required.
+//       (See accompanying file LICENSE.BY_SA-4.0 or the original contained
+//       within https://creativecommons.org/licenses/by-sa/4.0/us/legalcode)
+//
+// SPDX-License-Identifier: CC-BY-4.0
+//----------------------------------------------------------------------------
+//
+// Title-
+//       ~/doc/cpp/pub_correctness_review.md
+//
+// Purpose-
+//       Claude correctness review report
+//
+// Last change date-
+//       2026/09/05
+//
+-------------------------------------------------------------------------- -->
 # PUB Library Correctness Review
+
+Copyright (c) 2026 Frank Eskesen.
 
 Repository: `franke-hub/SDL`, library under review: `src/cpp/lib/pub`
 (with headers in `src/cpp/inc/pub`). Reviewed at commit `6704b679`
