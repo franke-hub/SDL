@@ -551,7 +551,7 @@ enum VIF7                           // Flag byte [7] (Operational controls)
 //       get_file_type
 //
 // Purpose-
-//       Extrace file type from file
+//       Extract file type from file
 //
 //----------------------------------------------------------------------------
 static inline int                   // The file type (character)

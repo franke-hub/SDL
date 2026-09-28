@@ -1016,7 +1016,6 @@ ssize_t                             // Number of bytes read
    if( IODM ) trace(__LINE__, "%zd= read()", L);
 
    if( USE_ITRACE && VERBOSE && L >= 0 ) {
-     Trace::trace(".SOK", __LINE__, "This is a test");
      Trace::io_trace(".SOK", "<<RD", this, i2v(handle), addr, L);
    }
 

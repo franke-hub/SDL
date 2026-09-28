@@ -17,7 +17,7 @@
 //       Implement ClientThread object methods
 //
 // Last change date-
-//       2026/07/25
+//       2026/09/22
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -207,14 +207,6 @@ static void
 {  if( hcdm() )
      debugf("ClientThread(%p)::ClientThread(%p,%s)\n", this
            , socket, s2c(init_path));
-
-   //-------------------------------------------------------------------------
-   // Set transfer size -- optimization attempt (has no noticable effect)
-   //-------------------------------------------------------------------------
-   if( USE_RCVBUF_SIZE > 0 ) {      // If transfer size optimization
-     int optval= USE_RCVBUF_SIZE;
-     socket->set_option(SOL_SOCKET, SO_RCVBUF, &optval, sizeof(optval));
-   }
 }
 
 //----------------------------------------------------------------------------

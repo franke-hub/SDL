@@ -17,7 +17,7 @@
 //       Common routines used by RdClient and RdServer.
 //
 // Last change date-
-//       2026/07/27
+//       2026/09/22
 //
 // Environment variables-
 //       LOG_HCDM=n    Hard Core Debug Mode verbosity
@@ -31,6 +31,7 @@
 #include <cstdarg>                  // For va_* functions
 #include <cstdio>                   // For fprintf, ...
 #include <cstring>                  // For strcmp, memcmp, ...
+#include <ctime>                    // For clock_gettime, timespec, ...
 
 #include <dirent.h>                 // For directory management
 #include <endian.h>                 // For be16toh, be32toh, ...
@@ -369,6 +370,12 @@ void
 {
    if( stdlog ) {
      lock_guard<decltype(mutex)> lock(mutex); // Single thread mode
+
+     struct timespec ticker;       // UTC time base
+     clock_gettime(CLOCK_REALTIME, &ticker);
+     double tod= (double)ticker.tv_sec;
+     tod      += (double)ticker.tv_nsec / 1'000'000'000.0;
+     fprintf(stdlog, "%16.5f ", tod);
 
      va_list argptr;                // Argument list pointer
      va_start(argptr, fmt);         // Initialize va_ functions

@@ -17,7 +17,7 @@
 //       Implement ServerThread object methods
 //
 // Last change date-
-//       2026/08/01
+//       2026/09/22
 //
 // Implementation notes-
 //       This multi-threaded server DOES NOT change path or file permissions
@@ -122,14 +122,6 @@ static inline bool                  // TRUE if hcdm && verbose(N)
            , s2c(init_path), s2c(invalid));
    real_path= pub::data::Name::get_full_name(name.get_path_name()
                                             , name.get_file_name());
-
-   //-------------------------------------------------------------------------
-   // Set transfer size -- optimization attempt (has no noticable effect)
-   //-------------------------------------------------------------------------
-   if( USE_RCVBUF_SIZE > 0 ) {      // If transfer size optimization
-     int optval= USE_RCVBUF_SIZE;
-     socket->set_option(SOL_SOCKET, SO_RCVBUF, &optval, sizeof(optval));
-   }
 
    start(ITS_DETACHED);             // Start the Thread, invoking run()
 }

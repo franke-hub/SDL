@@ -17,7 +17,7 @@
 //       Base object for ListenThread, ClientThread, and ServerThread.
 //
 // Last change date-
-//       2026/07/23
+//       2026/09/22
 //
 //----------------------------------------------------------------------------
 #ifndef COMMONTHREAD_H_INCLUDED
@@ -61,10 +61,6 @@ enum MODE                           // Buffer mode
 {  MODE_RESET                       // Reset, idle
 ,  MODE_WR                          // WRITE mode
 ,  MODE_RD                          // READ  mode
-};
-
-enum                                // Compile-time control: RdClient/RdServer
-{  USE_RCVBUF_SIZE= 8192            // SO_RCVBUF buffer size, 0 if unused
 };
 
 //----------------------------------------------------------------------------
