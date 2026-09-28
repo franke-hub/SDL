@@ -11,13 +11,13 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/doc/cpp/REFEFENCE.md
+//       ~/doc/cpp/REFERENCE.md
 //
 // Purpose-
 //       SDL Distribution reference manual
 //
 // Last change date-
-//       2026/09/05
+//       2026/09/09
 //
 -------------------------------------------------------------------------- -->
 # Software Development Lab (SDL) C++ Library Reference Manual
@@ -123,12 +123,11 @@ If really wanted, use ~/src/cpp/inc/com/ifmacro.h instead.
 - Interval.h: Provides an interval timer.
 - [Latch.h:](./Latch.md) Provides spin Latches, which can sometimes be less
 overhead than a mutex.
-  - [Basic_latch:](./pub_latch-BASIC.md) Basic spin Latch
-  - [Latch:](./pub_latch-LATCH.md) Spin Latch
+  - [Latch:](./pub_latch-LATCH.md) Exclusive spin Latch
+  - [Block_latch:](./pub_latch-BLOCK.md) Exclusive spin Latch, no thread affinity
   - [RecursiveLatch:](./pub_latch-RECURSIVE.md) Recursive spin Latch
-  - [SHR_latch:](./pub_latch-SHR.md) Multipurpose Latch - shared mode
-  - [XCL_latch:](./pub_latch-XCL.md) Multipurpose Latch - exclusive mode
-  - [NullLatch:](./pub_latch-NULL.md) Does nothing, but imitates a Latch.
+  - [SHR_latch:](./pub_latch-SHR.md) Shared/exclusive Latch pair - shared mode
+  - [XCL_latch:](./pub_latch-XCL.md) Shared/exclusive Latch pair - exclusive mode
 - [List.h:](./List.md) Provides:
   - [AI_List:](./pub_list-AI.md) Atomic Insert list,
   - [DHDL_list:](./pub_list-DHDL.md) Doubly Headed Doubly Linked list,
@@ -176,7 +175,7 @@ scheduling via WorkerPool, a thread pool manager.
 #### Library features
 
 - [Multi-threading Management](./Multi-threading.md)
-- [Time Management](./Time-representation.md)
+- [Time Management](./Time-reference.md)
 
 ---
 [Back](../index.md)
