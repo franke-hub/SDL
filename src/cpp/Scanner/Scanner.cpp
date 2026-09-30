@@ -17,7 +17,7 @@
 //       Source file checker.
 //
 // Last change date-
-//       2026/07/13
+//       2026/09/29
 //
 // Usage-
 //       Scanner {path} options
@@ -135,6 +135,7 @@ static int             EARLY_YEAR= 2000; // Earliest allowed copyright year
 static string          HOME;        // The HOME environment value + "/"
 static Data            IGNORE;      // The list of file names to ignore
 static string          OWNER_NAME= ""; // For non-standard owner (add .)
+static const char*     TEST_FILE= "";  // For debugging (when set)
 
 static Data*           data_remove= nullptr; // Common: .remove file
 static Data*           data_revise= nullptr; // Common: .revise file
@@ -315,7 +316,7 @@ static struct option   OPTS[]=      // The getopt_long longopts parameter
 ,  {"format",    no_argument,       &opt_form,    true}
 ,  {"listx",     no_argument,       &opt_listx,   true}
 ,  {"mode",      no_argument,       &opt_mode,    true}
-,  {"multi",     optional_argument, &opt_multi,      1}
+,  {"multi",     no_argument,       &opt_multi,   true}
 ,  {"permits",   no_argument,       &opt_mode,    true}
 ,  {"unix",      no_argument,       &opt_unix,    true}
 ,  {"copy",      no_argument,       &opt_copy,    true}
@@ -327,7 +328,6 @@ enum OPT_INDEX
 {  OPT_HELP= 0
 ,  OPT_VERBOSE= 1
 ,  OPT_ALL= 2
-,  OPT_MULTI= 7
 };
 
 //----------------------------------------------------------------------------
@@ -606,7 +606,7 @@ static void
    // Load copyright data
    string base= "/home/data/SDL/.headings"; // The license file directory
 
-   data_none= new Data(base, "README.md"); // Load an unmatchable copyright
+   data_none= new Data(base, "SCANNER.NONE"); // Load an unmatchable copyright
 
    bash_gpl=  new Data(base, "B.GPL");  // Load the GPL  copyright
    bash_lgpl= data_none;                // Load the LGPL copyright (disallowed)
@@ -683,6 +683,13 @@ static void
    verify_data(lily_sa40);
    verify_data(lily_zero);
 
+   verify_data(mark_gpl);
+   verify_data(mark_lgpl);
+   verify_data(mark_mit);
+   verify_data(mark_mit0);
+   verify_data(mark_sa40);
+   verify_data(mark_zero);
+
    verify_data(more_bsd3);
    verify_data(more_bsl1);
    verify_data(more_gpl);
@@ -691,6 +698,16 @@ static void
    verify_data(more_mit0);
    verify_data(more_sa40);
    verify_data(more_zero);
+
+   if( false ) {
+     mark_gpl ->debug("mark_gpl");
+     mark_lgpl->debug("mark_lgpl");
+     mark_mit ->debug("mark_mit");
+     mark_mit0->debug("mark_mit0");
+     mark_sa40->debug("mark_sa40");
+     mark_zero->debug("mark_zero");
+     exit(0);
+   }
 
    //-------------------------------------------------------------------------
    // Initialize the remove_revise_list
@@ -969,11 +986,6 @@ static void
        {{{{
          switch( opt_index )
          {
-           case OPT_MULTI:
-             if( optarg )
-               opt_multi= parm_int();
-             break;
-
            case OPT_VERBOSE:
              if( optarg )
                opt_verbose= parm_int();
@@ -1026,7 +1038,7 @@ static void
      printf("%5s --format\n",  opt_form  ? " true" : "false");
      printf("%5s --listx\n",   opt_listx ? " true" : "false");
      printf("%5s --mode\n",    opt_mode  ? " true" : "false");
-     printf("%5d --multi\n",   opt_multi);
+     printf("%5s --multi\n",   opt_multi ? " true" : "false");
      printf("%5s --unix\n",    opt_unix  ? " true" : "false");
      printf("\n");
    }
@@ -2258,6 +2270,16 @@ static bool                         // TRUE if SPDX identifier added
    bool changed= false;             // Default, not changed
 
    if( rhs && memcmp(lhs->text+3, "SPDX-License-Identifier:", 24) == 0 ) {
+     if( memcmp(rhs->text+3, "SPDX-License-Identifier:", 24) == 0 ) {
+       // If this occurs, correct by replacing the line
+       fprintf(stderr, "File(%s) %s SPDX-License-Identifier invalid\n"
+                       "  Expected(%s)\n"
+                       "    Actual(%s)\n"
+                     , s2c(data.full()), type, lhs->text+3, rhs->text+3);
+       allow_multi();
+       return changed;
+     }
+
      if( opt_auto ) {               // If auto-correct allowed
        List& list= data.line();     // (The file line list)
 
@@ -2277,8 +2299,6 @@ static bool                         // TRUE if SPDX identifier added
                      , s2c(data.full()), type);
      }
 
-     if( opt_multi < 0 )            // If stricter multi enforcement
-       exit(1);
      allow_multi();
    }
 
@@ -2380,8 +2400,6 @@ static bool                         // TRUE if copyright converted
                        , s2c(data.full()));
        }
 
-       if( opt_multi < 0 )          // If stricter multi enforcement
-         exit(1);
        allow_multi();
        break;
      }
@@ -2409,6 +2427,12 @@ static void
    verify_copy_text(                // Verify copyright text
      Data&             data)        // For this data
 {
+   // Look for a specific file (for debugging)
+   if( data.full() == TEST_FILE ) {
+     fprintf(stderr, "%4d %s found\n", __LINE__, TEST_FILE);
+   }
+
+   // Find the copyright line
    Line* line= get_copy_line(data); // The copyright line
    if( line == nullptr ) {          // If missing
      fprintf(stderr, "File(%s) Copyright missing\n", s2c(data.full()));
@@ -2416,6 +2440,7 @@ static void
      return;
    }
 
+   // Set the count and table for the file type
    string       data_full= data.full(); // (The string must be persistent)
    const char*       full= s2c(data_full); // Fully qualified file name
    int*             count= misc_count; // Default: misc (a.k.a bash)
@@ -2443,6 +2468,7 @@ static void
      }
    }
 
+   // Match the copyright with one of the headings
    string prefix= line->text;       // (The file's copyright line)
    prefix= prefix.substr(0, strcasestr(line->text, "copyright") - line->text);
    for(int i= 0; table[i].name; i++) {
@@ -2491,7 +2517,6 @@ static void
        return;
      }
 
-     // Copyright text did not match any of the supported versions.
      // Auto-correct missing SPDX identifier
      if( auto_correct_spdx(data, table[i].name, prefix, lhs, rhs) )
        return;
