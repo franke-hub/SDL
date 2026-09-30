@@ -7,7 +7,7 @@
 //       (See accompanying file LICENSE.BY_SA-4.0 or the original contained
 //       within https://creativecommons.org/licenses/by-sa/4.0/us/legalcode)
 //
-// SPDX-License-Identifier: CC-BY-4.0
+// SPDX-License-Identifier: CC-BY-SA-4.0
 //----------------------------------------------------------------------------
 import java.awt.*;                  // (Imports added)
 import java.awt.event.ActionEvent;

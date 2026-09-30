@@ -7,7 +7,7 @@
 //       (See accompanying file LICENSE.BY_SA-4.0 or the original contained
 //       within https://creativecommons.org/licenses/by-sa/4.0/us/legalcode)
 //
-// SPDX-License-Identifier: CC-BY-4.0
+// SPDX-License-Identifier: CC-BY-SA-4.0
 //----------------------------------------------------------------------------
 //
 // Title-
@@ -17,7 +17,7 @@
 //       Dispatch.h reference manual: Done, Wait
 //
 // Last change date-
-//       2026/04/24
+//       2026/09/28
 //
 -------------------------------------------------------------------------- -->
 ## (pub\::dispatch\::)Done

@@ -1,13 +1,13 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
-%%       Copyright (C) 2020 Frank Eskesen.
+%%       Copyright (C) 2020-2026 Frank Eskesen.
 %%
 %%       This file is free content, distributed under cc by-sa version 4.0
 %%       with attribution required.
 %%       (See accompanying file LICENSE.BY_SA-4.0 or the original contained
 %%       within https://creativecommons.org/licenses/by-sa/4.0/us/legalcode)
 %%
-%% SPDX-License-Identifier: CC-BY-4.0
+%% SPDX-License-Identifier: CC-BY-SA-4.0
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%       This copyright applies only to this Lily representation, not to the
 %%       score by Ludwig van Beethoven.
@@ -20,7 +20,7 @@
 %%       Moonlight Sonata, Ludwig van Beethoven.
 %%
 %% Last change date-
-%%       2020/02/05
+%%       2026/09/28
 %%
 %% Implementation notes-
 %%       B# is used in place of C#b ... C#

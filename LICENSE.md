@@ -1,13 +1,13 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (C) 2025 Frank Eskesen.
+//       Copyright (C) 2025-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under cc by-sa version 4.0
 //       with attribution required.
 //       (See accompanying file LICENSE.BY_SA-4.0 or the original contained
 //       within https://creativecommons.org/licenses/by-sa/4.0/us/legalcode)
 //
-// SPDX-License-Identifier: CC-BY-4.0
+// SPDX-License-Identifier: CC-BY-SA-4.0
 //----------------------------------------------------------------------------
 //
 // Title-
@@ -17,13 +17,13 @@
 //       SDL (Software Development Laboratory) lisensing information
 //
 // Last change date-
-//       2025/08/27
+//       2026/09/28
 //
 //------------------------------------------------------------------------ -->
 
 # ~/LICENSE.md
 
-Copyright (C) 2025 Frank Eskesen.
+Copyright (C) 2025-2026 Frank Eskesen.
 
 This file is free content, distributed under cc by-sa version 4.0
 with attribution required.
@@ -77,7 +77,7 @@ License detail:
   - SPDX-License-Identifier: BSD-3-Clause
   - ~/src/py/Sample/GUI/Qt/widgets-example.py
 - [Creative Commons V4.0](.licenses/LICENSE.BY_SA-4.0)
-  - SPDX-License-Identifier: CC-BY-4.0
+  - SPDX-License-Identifier: CC-BY-SA-4.0
   - ~/src/lily/Eskesen/* (Cheesy, but original, music)
   - ~/src/lily/Public/* (Lily representations of out of copyright music.)
   - ~/src/lily/Sample/* (Incomplete sample Lily layouts.

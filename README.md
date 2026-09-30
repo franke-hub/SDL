@@ -1,13 +1,13 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2025 Frank Eskesen.
+//       Copyright (C) 2020-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under cc by-sa version 4.0
 //       with attribution required.
 //       (See accompanying file LICENSE.BY_SA-4.0 or the original contained
 //       within https://creativecommons.org/licenses/by-sa/4.0/us/legalcode)
 //
-// SPDX-License-Identifier: CC-BY-4.0
+// SPDX-License-Identifier: CC-BY-SA-4.0
 //----------------------------------------------------------------------------
 //
 // Title-
@@ -17,11 +17,11 @@
 //       SDL Project overview information.
 //
 // Last change date-
-//       2025/08/27
+//       2026/09/28
 //
 //------------------------------------------------------------------------ -->
 
-Copyright (C) 2020-2025 Frank Eskesen.
+Copyright (C) 2020-2026 Frank Eskesen.
 
 This file is free content, distributed under the MIT license.
 (See the accompanying file LICENSE.MIT or the original contained

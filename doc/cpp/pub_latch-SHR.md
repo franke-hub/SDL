@@ -7,7 +7,7 @@
 //       (See accompanying file LICENSE.BY_SA-4.0 or the original contained
 //       within https://creativecommons.org/licenses/by-sa/4.0/us/legalcode)
 //
-// SPDX-License-Identifier: CC-BY-4.0
+// SPDX-License-Identifier: CC-BY-SA-4.0
 //----------------------------------------------------------------------------
 //
 // Title-
@@ -17,7 +17,7 @@
 //       Latch.h reference manual: SHR_latch
 //
 // Last change date-
-//       2026/09/09
+//       2026/09/28
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Latch.h>
