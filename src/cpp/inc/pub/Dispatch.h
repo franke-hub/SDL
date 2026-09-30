@@ -17,7 +17,7 @@
 //       Work dispatcher.
 //
 // Last change date-
-//       2026/04/25
+//       2026/09/30
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_DISPATCH_H_INCLUDED
@@ -307,8 +307,10 @@ virtual void                        // The Worker interface
 //       The Wait until done Object
 //
 // Notes-
-//       This Object cannot cannot be shared, but can be reused by calling the
-//       reset method once the wait has been satisfied.
+//       Unlike other Done objects, a Wait object cannot be shared: it can
+//       be used by only one work Item at a time, since its Event can only
+//       be posted once. It can be reused by calling the reset method once
+//       the wait has been satisfied.
 //
 // Implementation notes-
 //       The Wait object uses the done() method to convert the Done object
@@ -343,15 +345,16 @@ void
    reset( void )                    // Reset for re-use
 {  event.reset(); }
 
-int32_t                             // The event code (Always positive)
+// The Item's completion code is available in its cc field
+void
    wait( void )                     // Wait for work Item completion
-{  return event.wait(); }
+{  event.wait(); }
 
 private:
 virtual void
    done(                            // Complete
      Item*             item) final  // This work Item
-{  event.post(item->cc); }
+{  (void)item; event.post(); }
 }; // class pub::dispatch::Wait
 
 //----------------------------------------------------------------------------
