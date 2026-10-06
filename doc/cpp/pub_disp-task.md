@@ -17,67 +17,68 @@
 //       Dispatch.h reference manual: Task
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/06
 //
 -------------------------------------------------------------------------- -->
-## (pub::dispatch::)Task
 ###### Defined in header <pub/Dispatch.h>
+## pub::dispatch::Task
+
+A Task processes the work Items on its work queue one at a time, in the
+order they were enqueued.
+Any number of threads may enqueue work Items simultaneously, without
+locking.
+
+A Task runs single threaded but without thread affinity: `work(Item*)` is
+never invoked again until it returns, but the thread that invokes it may
+differ from one invocation to the next.
+
+Task extends [pub::Worker](./Worker.md). It has no application-visible
+attributes, and Tasks cannot be copied.
 
 <!-- ===================================================================== -->
-## <a id="class-task">class pub\::dispatch\::Task : public pub\::Worker</a>
+---
+#### <a id="destructor">virtual pub::dispatch::Task::~Task();</a>
 
-A Task serially processes Items in its work queue in single-threaded fashion,
-although the actual Thread may vary between Items.
-Any number of Threads can simultaneously add work Items to the work queue
-without locking. Items are processed in the order they are enqueued.
+If the Task has enqueued work Items, the destructor waits until they
+complete. A Task is never deleted while it has outstanding work Items.
 
-### *Attributes*
+__Note__ Do not delete a Task from within its own `work(Item*)` method.
+The destructor would wait for the running `work(Item*)` method to complete,
+which it never does.
+This can occur unexpectedly, for example when a work Item contains the last
+shared_ptr reference to the Task (or to an object containing the Task) and
+posting it deletes that reference.
+Use [Disp::post](./pub_disp-disp.md#post) rather than
+[Item::post](./pub_disp-item.md#post) to complete such work Items.
 
-protected: AI_list<Item> itemList; // The work Item list.
+---
+#### <a id="enqueue">void pub::dispatch::Task::enqueue(Item* item);</a>
 
-### *Methods*
-
-#### <a id="construct-done">void Task();</a>
-
-The (default) constructor.
-
-#### <a id="destruct">void ~Task();</a>
-
-The destructor.
-
-Before exiting the destructor examines the itemList and, if it's not empty,
-enqueues an FC_CHASE work Item and waits for its completion.
-This sequence prevents the destruction of a Task with outstanding work Items.
-
-__Note__ Care must be taken not to delete a Task while running work(Item*),
-since the destructor's FC_CHASE operation will block waiting for the
-running work method to complete. This can occur, for example, if the work
-Item contains a shared_ptr to the Task or to an object containing the Task.
-(Use `Disp\::post` rather than `Item\::post` to complete such work Items.)
-
-#### <a id="enqueue">void enqueue(Item* item);</a>
-
-Atomically inserts the work Item onto the Task's work queue and schedules
-the Task if necessary.
+Enqueues the work `item` onto this Task's work queue, scheduling the Task
+if it isn't already running.
+This operation is thread safe and lock free.
 Any number of threads may simultaneously enqueue work Items.
 
-#### private: virtual void work() final;
+---
+#### <a id="is_running">bool pub::dispatch::Task::is_running();</a>
 
-This overrides Worker::work(). It's used by Dispatch to process Items,
-invoking work(Item*) for each Item.
+Return value: TRUE if the Task has work Items enqueued or in process.
 
-#### <a id="work">protected: virtual void work(Item* item);</a>
+This method has limited utility: the status may change before the method
+returns.
 
-See also: The [LambdaTask](pub_disp-lambda.md#class-task) provides an
-alternative coding mechanism for implementing the work function.
+---
+#### <a id="work">protected: virtual void pub::dispatch::Task::work(Item* item);</a>
 
-This method should be overridden.
+Processes the work `item`. **Override this method.**
+(A [LambdaTask](./pub_disp-lambda.md#LambdaTask) provides an alternative
+to overriding it.)
 
-This method is invoked by the dispatcher to process a work Item.
-When processing is complete, the application either enqueues the work Item
-onto another Task or, if Item processing is complete, invokes item->post().
+When it's finished with the work Item, `work` either completes it by
+invoking `item->post()` or enqueues it onto another (or even the same)
+Task.
 
-The work method is single-threaded but runs without thread affinity.
-That is, each time work is invoked it runs under control of a thread
-and will not be invoked again until it returns.
-However, each time work is invoked it the underlying thread may differ.
+Only work Items with non-negative function codes are passed to `work`.
+
+The default implementation simply completes the Item, invoking
+`item->post()`.

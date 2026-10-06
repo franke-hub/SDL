@@ -17,70 +17,67 @@
 //       Dispatch.h reference manual: LambdaTask, LambdaDone
 //
 // Last change date-
-//       2026/09/28
+//       2026/09/30
 //
 -------------------------------------------------------------------------- -->
-## (pub\::dispatch\::)LambdaTask
-## (pub\::dispatch\::)LambdaDone
 ###### Defined in header <pub/Dispatch.h>
+## pub::dispatch::LambdaTask
+## pub::dispatch::LambdaDone
 
-The LambdaTask and LambdaDone objects are useful for creating custom Task
-and Done objects without requiring derived object.
+LambdaTask and LambdaDone create custom Task and Done objects without
+requiring a derived class.
+Any data the lambda function needs can be defined along with the LambdaTask
+or LambdaDone object and captured by reference.
+(LambdaDone uses this mechanism in the [example](#example).)
 
-Any required data areas can be defined along with the LambdaTask or LambdaDone
-object and passed by reference to the Lambda function.
-(LambdaDone uses this mechanism in the example.)
+A LambdaTask or LambdaDone created without a lambda function has no handler.
+If a work Item is processed or completed before a handler is specified, a
+`std::bad_function_call` exception is thrown.
 
 <!-- ===================================================================== -->
-## <a id="class-task">class pub\::dispatch\::LambdaTask : public Task</a>
+## <a id="LambdaTask">pub::dispatch::LambdaTask</a>
 
-### *Attributes*
+LambdaTask extends [Task](./pub_disp-task.md), implementing
+`work(Item*)` as a lambda function.
 
-`public: typedef std\::function<void(Item*)> Work_if;` // The work method interface
+Types:
+- `typedef std::function<void(Item*)> Work_if;` The work handler interface.
 
-`protected: Work_if do_work` // The work method instance
+---
+#### <a id="LambdaTask-constructor">pub::dispatch::LambdaTask::LambdaTask();</a>
+#### pub::dispatch::LambdaTask::LambdaTask(Work_if f);
 
-### *Methods*
+Creates the LambdaTask, using function `f` (if specified) as the
+`work(Item*)` handler.
 
-#### <a id="construct-ltd">void LambdaTask();</a>
-
-The default the LambdaTask constructor leaves do_work uninitialized.
-Uninitialized function calls throw the 'bad_function_call' std::exception.
-
-#### <a id="construct-ltf">void LambdaTask(Work_if f);</a>
-
-Constructs the LambdaTask using function `f` as the work(Item*) handler.
-
+---
 #### <a id="on_work">void pub::dispatch::LambdaTask::on_work(Work_if f);</a>
 
-Replaces do_work with the specified lambda function.
+Replaces the `work(Item*)` handler with function `f`.
 
 <!-- ===================================================================== -->
-## <a id="class-done">class pub\::dispatch\::LambdaDone : public Done</a>
+## <a id="LambdaDone">pub::dispatch::LambdaDone</a>
 
-### *Attributes*
+LambdaDone extends [Done](./pub_disp-done.md#Done), implementing
+`done(Item*)` as a lambda function.
 
-`public: typedef std\::function<void(Item*)> Done_if;` // The done method interface
+Types:
+- `typedef std::function<void(Item*)> Done_if;` The done handler interface.
 
-`protected: Done_if do_done` // The done method instance
+---
+#### <a id="LambdaDone-constructor">pub::dispatch::LambdaDone::LambdaDone();</a>
+#### pub::dispatch::LambdaDone::LambdaDone(Done_if f);
 
-### *Methods*
+Creates the LambdaDone, using function `f` (if specified) as the
+`done(Item*)` handler.
 
-#### <a id="construct-ldd">LambdaDone();</a>
+---
+#### <a id="on_done">void pub::dispatch::LambdaDone::on_done(Done_if f);</a>
 
-The default the LambdaDone constructor leaves do_done uninitialized.
-Uninitialized function calls throw the 'bad_function_call' std::exception.
-
-#### <a id="construct-ldf">LambdaDone(Done_if f);</a>
-
-Constructs the LambdaDone using function `f` as the done(Item*) handler.
-
-#### <a id="on_done">virtual void on_done(Done_if f);</a>
-
-Replaces do_done with the specified lambda function.
+Replaces the `done(Item*)` handler with function `f`.
 
 <!-- ===================================================================== -->
-### Example
+### <a id="example">Example</a>
 
 ```cpp <!-- ~/src/cpp/Xample/pub_disp-lambda.cpp -->
 #include <pub/Debug.h>              // For namespace pub::debugging

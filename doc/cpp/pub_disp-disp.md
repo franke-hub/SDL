@@ -17,70 +17,76 @@
 //       Dispatch.h reference manual: Disp
 //
 // Last change date-
-//       2026/09/28
+//       2026/09/30
 //
 -------------------------------------------------------------------------- -->
-## pub::dispatch::Disp
 ###### Defined in header <pub/Dispatch.h>
+## pub::dispatch::Disp
+
+Disp provides a set of Dispatcher utility functions.
+All methods are static: there is no constructor and there are no
+application-visible attributes.
 
 <!-- ===================================================================== -->
-## <a id="class-disp">class pub\::dispatch\::Disp</a>
-
-The Disp class provides a set of utility functions implemented as static
-methods.
-
-### *Attributes*
-
-(None defined.)
-
-### *Methods*
-
-#### <a id="construct">void pub::dispatch::Disp::Disp(void) = delete;</a>
-
-There is no constructor. All methods are static.
-
-#### <a id="delay">void* pub::dispatch::Disp::delay(double seconds, Item* item);</a>
-
-Return value: A token that can be used by cancel() to cancel the delay.
-
-Schedules a delay. The delay is not associated with any Task.
-When the delay expires or is cancelled, Dispatch invokes item->post(), which
-then invokes item->done->done(Item*).
-
-#### <a id="cancel">bool pub::dispatch::Disp::cancel(void* token);</a>
+---
+#### <a id="cancel">static bool pub::dispatch::Disp::cancel(void* token);</a>
 
 Return value: TRUE iff the delay was cancelled.
 
-Cancels the delay specified by token, the return value from delay().
+Cancels the delay specified by `token`, the return value from
+[delay](#delay).
+A cancelled delay's work Item completes with completion code
+`Item::CC_PURGE`.
 
-An application using cancel can also differentiate whether or not the delay
-completed or was cancelled using the Item condition code (Item.cc):
-- Timeout delays are posted with CC_NORMAL.
-- cancelled delays are posted with CC_PURGED.
+An application can determine whether a delay expired or was cancelled
+using either the return value from cancel or the Item's completion code:
+- `Item::CC_NORMAL`: The delay expired.
+- `Item::CC_PURGE`: The delay was cancelled.
 
-#### <a id="shutdown">void pub::dispatch::Disp::shutdown(void);</a>
+---
+#### <a id="delay">static void* pub::dispatch::Disp::delay(double seconds, Item* item);</a>
 
-This terminates the Dispatcher's (internal) delay notification thread.
-All incomplete delay operations complete with item.cc= CC_PURGE.
+Return value: A token that can be used by [cancel](#cancel) to cancel the
+delay.
 
-Any subsequent delay operation restarts the delay notification thread.
+Schedules a delay. The delay is not associated with any Task.
+After `seconds` seconds, the `item` completes (`item->post()` is invoked)
+with completion code `Item::CC_NORMAL`.
 
-#### <a id="post">void pub::dispatch::Disp::post(Item* item, int cc);</a>
+---
+#### <a id="enqueue">static void pub::dispatch::Disp::enqueue(Task* task, Item* item);</a>
 
-The Item is posted under control of a (hidden) Dispatch Task.
+Enqueues the work `item` onto the specified `task`.
+This has the same effect as `task->enqueue(item)`, which applications should
+generally use instead.
 
-This feature is useful under certain circumstances.
+---
+#### <a id="post">static void pub::dispatch::Disp::post(Item* item, int cc= 0);</a>
 
+Completes the work `item` with completion code `cc`, the same as
+`item->post(cc)` except that the post operation runs under control of an
+internal Dispatch Task rather than the caller's.
+
+This is needed when posting an Item could delete the running Task.
 Consider an Item containing a shared_ptr reference to the running Task.
-When the Task destructor discovers that the Task is running, it issues a
-CHASE operation and waits for it to complete, insuring that all queued Items
-have completed.
-If posting the Item removes the last shared_ptr (deleting the running Task,)
-a livelock occurs because the CHASE is blocked by the running Task.
+When the Task destructor discovers that the Task is running, it waits for all
+enqueued Items to complete.
+If posting the Item removes the last shared_ptr reference (deleting the
+running Task), a livelock occurs: the destructor waits for the running Task,
+which is running the destructor.
 
-Moving the post operation to a different task prevents this livelock.
+Using Disp::post moves the post operation to a different Task, preventing
+this livelock.
 
-#### <a id="enqueue">void pub::dispatch::Disp::enqueue(Task* task, Item* item);</a>
+---
+#### <a id="shutdown">static void pub::dispatch::Disp::shutdown();</a>
 
-Enqueue the specified work item onto the specified Task.
-This has the same effect as `task->enqueue(item)`.
+Terminates Dispatcher delay processing.
+All incomplete [delay](#delay) operations complete with completion code
+`Item::CC_PURGE`.
+
+A subsequent delay operation restarts delay processing.
+
+Applications are not required to invoke shutdown.
+However, no delay cleanup occurs when a process completes:
+pending delay Items are not posted.

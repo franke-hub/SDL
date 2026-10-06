@@ -17,56 +17,61 @@
 //       Dispatch.h reference manual: Done, Wait
 //
 // Last change date-
-//       2026/09/28
+//       2026/09/30
 //
 -------------------------------------------------------------------------- -->
-## (pub\::dispatch\::)Done
-## (pub\::dispatch\::)Wait
 ###### Defined in header <pub/Dispatch.h>
+## <a id="Done">pub::dispatch::Done</a>
 
-<!-- ===================================================================== -->
-## <a id="class-done">class pub\::dispatch\::Done</a>
+Done is the work Item completion handler.
+When a work Item whose `done` field points to a Done object is
+[posted](./pub_disp-item.md#post), that Done object's `done` method is
+invoked.
 
-### *Attributes*
+A Done object may be shared: any number of work Items may use the same
+Done object simultaneously.
+Since those Items may complete on different threads, a shared Done object's
+`done` method must allow concurrent invocation.
 
-(None defined.)
-
-### *Methods*
-
-#### <a id="construct-done">Done();</a>
-
-The (default) Done constructor.
-
-#### virtual void done(Item* item);</a>
-
-Handles the completion of the associated work Item. **Override this method**
+Done is an abstract class with no application-visible attributes.
+Applications override its `done` method, either in a Done subclass or by
+using a [LambdaDone](./pub_disp-lambda.md#LambdaDone).
 
 <!-- ===================================================================== -->
 ---
-### <a id="class-wait">class pub\::dispatch\::Wait : public Done</a>
+#### <a id="done">virtual void pub::dispatch::Done::done(Item* item) = 0;</a>
 
-### *Attributes*
+Handles the completion of the work `item`. **Override this method.**
 
-`private: Event event;              // The wait/post Event
+The Item's completion code, `item->cc`, has already been set.
 
-### *Methods*
+<!-- ===================================================================== -->
+## <a id="Wait">pub::dispatch::Wait</a>
 
-#### <a id="construct-wait">Wait();</a>
+Wait extends Done, allowing an application to wait for a work Item to
+complete.
 
-The (default) Wait constructor.
+Unlike other Done objects, a Wait object **cannot be shared**.
+It can be used by only one work Item at a time, because it contains a
+single Event that can be posted only once.
+Posting it again before it's [reset](#reset) is an (unchecked) error.
 
-#### private: virtual void done(Item* item) final;
+A Wait object can be reused by calling its [reset](#reset) method after the
+wait has been satisfied.
+Wait objects cannot be copied.
 
-This overrides Done\::done in order to implement Wait\::wait.
+<!-- ===================================================================== -->
+---
+#### <a id="reset">void pub::dispatch::Wait::reset();</a>
 
-#### <a id="reset">void reset();</a>
+Resets the Wait object for reuse.
+Once a work Item using this Wait object completes, [wait](#wait) returns
+immediately until reset is invoked.
 
-Reset the Wait object (for reuse.)
-Once posted, Wait does not wait until it's reset.
+---
+#### <a id="wait">void pub::dispatch::Wait::wait();</a>
 
-#### <a id="wait">int32_t void wait();</a>
+Waits for work Item completion.
 
-Return value: The Item's completion code, set when Item.post is invoked
-(normally by a Task.)
-
-Wait for work Item completion.
+The Item's completion code is available in its `cc` field when wait
+returns.

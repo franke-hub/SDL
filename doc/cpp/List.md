@@ -17,7 +17,7 @@
 //       List.h reference manual
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/06
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/List.h>
@@ -37,10 +37,6 @@
 
 ##### <a id="pub_v_std_list">Differences between pub::List and std::List </a>
 
-
-
-
-
 Unlike std::List<T>, pub::List<T> elements are links, not copies.
 The various List types do not *own* the Link objects; they only control their
 position on a List.
@@ -57,18 +53,14 @@ pub::List<T>::Link requires one less load operation.)
 Differences:
 - ++pub::List<T>::end() == pub::List<T>::end()
 - ++std::list<T>::end() == std::list<T>::begin()
-</br>
 - --pub::List<T>::end() == pub::List<T>::end()
 - --std::list<T>::end() == std::list<T>::rbegin()
-</br>
 - --pub::List<T>::begin() == pub::List<T>::end()
 - --std::list<T>::begin() == std::list<T>::rend()
 - Methods *List<T>::end() and List<T>::end()-> throw an exception rather than
 act in an undefined manner.
-</br>
 - pub::AI_list provides a lock-free atomic insertion capability not available
 in std::list.
-</br>
 - std::list has methods not available in pub::List. It handle arrays extremely
 well.
 

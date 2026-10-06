@@ -17,29 +17,40 @@
 //       PUB Library, multi-threading management
 //
 // Last change date-
-//       2026/09/28
+//       2026/09/30
 //
 -------------------------------------------------------------------------- -->
-# Multi-threading Management: Dispatcher
+# Multi-threading Management
 
-### Conceptual overview
+The PUB library provides these multi-threading components:
 
-See also: [Implementation details](./Dispatch.md)
+| Component | Header | Description |
+|-----------|--------|-------------|
+| [Dispatcher](#dispatcher) | [Dispatch.h](./Dispatch.md) | Lock-free work queues: Tasks, Items, and completion handlers |
+| [Thread](./Thread.md) | Thread.h | A separate unit of execution |
+| [Worker](./Worker.md) | Worker.h | An interface class scheduled by the WorkerPool thread pool |
+| [Latches](./Latch.md) | Latch.h | Spin latches, for short critical sections |
+| [AI_list](./pub_list-AI.md) | List.h | Atomic Insert list: any number of threads may insert without locking |
+| [mutex](#mutex) | mutex.h | A mutex that may be unlocked by a different thread |
 
-The Dispatcher is a work queue system for multithreaded programs consisting
-of four major components:
-- (pub\::dispatch\::)[Task](#task)
-  - Sequentially processes Items
-  - Single thread logic (but the actual thread can change.)
-- (pub\::dispatch\::)[Item](#item)
-  - Describes the operation to process and its associated data
-  - Modifiable by the Task
-- (pub\::dispatch\::)[Done](#done)
-  - Item.done points to this
-  - Discribes what happens when Item processing completes
-  - Default processing (Item.done == nullptr) is to delete the Item.
-- (pub\::dispatch\::)[Wait](#wait) (a subclass of Done)
-  - Provides a wait method, which returns when Item processing completes
+<!-- ===================================================================== -->
+## <a id="dispatcher">The Dispatcher</a>
+
+The Dispatcher is a work queue system for multi-threaded programs.
+It has four major components, all in namespace `pub::dispatch`:
+- [Task](./pub_disp-task.md)
+  - Processes Items sequentially, one at a time.
+  - Runs single threaded, but the actual thread can change.
+- [Item](./pub_disp-item.md)
+  - Describes the operation to process and its associated data.
+  - May be modified by the Task.
+- [Done](./pub_disp-done.md#Done)
+  - An Item's `done` field points to this.
+  - Describes what happens when Item processing completes.
+  - If an Item's `done` field is `nullptr`, the Item is deleted when
+processing completes.
+- [Wait](./pub_disp-done.md#Wait) (a subclass of Done)
+  - Provides a wait method, which returns when Item processing completes.
 
 ```
 *----------------*    The Task contains persistent data associated with a
@@ -51,7 +62,7 @@ of four major components:
 *----------------*    The Item contains information related to each function
 |                |    invocation and completion.
 |      ITEM      |
-|                |--> Done/Wait/NULL
+|                |--> Done/Wait/nullptr
 *----------------*
 
 *----------------*    The Done object contains the function that's driven when
@@ -67,46 +78,43 @@ of four major components:
 *----------------*
 ```
 
-The Dispatcher also contains a set of static [utility functions](#Disp).
+The Dispatcher also provides a set of static
+[utility functions](./pub_disp-disp.md), including timer (delay) functions.
 
-<!-- ===================================================================== -->
+See [Dispatch.h](./Dispatch.md) for the class and method reference.
+
 ### Application design overview
 
 #### Items are atomically enqueued onto Tasks
 
-- Lock-free (Compare_exchange) additions to the Task's Item List
-  - Items can be simultaneously added by **any number** of actors
-  - Adding an Item to an empty list used to schedule processing
-  - Items are added in reverse order
-- Begin inverts the order; Items are processed in FIFO order
-- Items added to the list during begin/end processing included in iteration
-- Items contain a pointer to the Done object which implements the function
-driven when processing completes.
-  - If the pointer is null, the Item is deleted on completion. (Implementing
-the "Fire and Forget" idiom.)
+- Items are added to a Task's work queue without locking.
+Any number of threads may enqueue Items simultaneously.
+- Enqueuing an Item onto an idle Task schedules the Task.
+- Items are processed in FIFO order.
+Items enqueued while the Task is running are included in that processing.
+- Each Item points to the Done object that's driven when processing
+completes.
+If that pointer is `nullptr`, the Item is deleted when processing
+completes, implementing the "fire and forget" idiom.
 
-Each begin/end iteration runs under the same Thread, but the Thread may differ
-between iterations.
+#### Tasks process Items sequentially
 
-#### Tasks process Items sequentially in FIFO order
-
-Each begin/end iteration runs under the same Thread, but the Thread may differ
-between iterations. (Tasks cannot use thread-local storage.)
-
-- Tasks process Items serially, one at a time
-  - Tasks operation in single Thread mode but do not use a fixed Thread.
-  - Applications implement `virtual void work(Item*)` using either a subclass
-or a `LambdaTask.`
-  - When a Task completes Item processing, it invokes `Item->done().`
-  - Tasks do not necessarily complete Item processing. They may enqueue the
-Item on another (or even the same) Task.
+- A Task processes Items serially, one at a time.
+- Applications implement `virtual void work(Item*)` either in a Task
+subclass or by using a [LambdaTask](./pub_disp-lambda.md#LambdaTask).
+- When a Task completes Item processing, it invokes `item->post()`.
+A Task need not complete an Item, though.
+It may instead enqueue the Item onto another (or even the same) Task.
+- A Task runs single threaded, but the thread may change from one
+invocation of `work(Item*)` to the next.
+Tasks therefore cannot use thread-local storage.
 
 #### Tasks can wait
 
-- A running Task can do anything a running Thread can do
-- Use with care: while waiting, Tasks DO NOT process other work Items.
+- A running Task can do anything a running Thread can do, including wait.
+- Use this with care: while a Task waits, it does not process its other
+work Items.
 
-<!-- ===================================================================== -->
 ### (Simple) sample application block diagram
 
 ```
@@ -161,7 +169,10 @@ int read(Dev_item* item) // (Scaffolded)
 virtual void
    work(Item* item)
 {  Dev_item* dev_item= dynamic_cast<Dev_item*>(item);
-   if( dev_item == nullptr ) item->post(CC_ERROR_IT);
+   if( dev_item == nullptr ) {
+     item->post(CC_ERROR_IT);
+     return;
+   }
 
    int cc= read(dev_item);     // Read the next input item
    dev_item->post(cc);         // Operation complete
@@ -188,58 +199,20 @@ int main() {
 ```
 
 <!-- ===================================================================== -->
-## <a id="Disp">Disp: static utility functions</a>
+## <a id="mutex">pub::mutex</a>
 
-### Timer functions
+Defined in header <pub/mutex.h>, `pub::mutex` is a replacement for
+`std::mutex`. It provides the usual `lock`, `try_lock`, and `unlock`
+methods, and works with `std::lock_guard`.
 
-The dispatcher provides a set of timing functions:
+Unlike `std::mutex`, a `pub::mutex` is *guaranteed* to allow locking in
+one thread and unlocking in another.
 
-#### void* delay(double seconds, Item item)
+> **Cygwin note:** Under Cygwin, `std::mutex` has a bug that causes the
+> Windows handle count to grow until no more handles can be allocated,
+> at which point an exception is thrown.
+> (The problem has been reported.)
+> `pub::mutex` does not have this problem.
 
-- Return value: A token that can be used to cancel the delay
-- seconds: The number of seconds to delay
-- item: The Item posted when the delay completes (or is cancelled)
-
-#### bool cancel(void* token)
-
-- Return value: `true` if and only if the token was still active
-- token: The return value from delay
-
-Applications can determine whether or not an Item was successfully cancelled
-using:
-- The return code from cancel
-- The Item's completion code
-  - CC_NORMAL: The delay expired
-  - CC_PURGE: The delay was cancelled
-
-#### void shutdown()
-
-Cancels all pending delay operations and terminates the (internal) Timer
-Thread.
-
-While it is not *necessary* for an application to shutdown the Timer Thread,
-no Dispatcher Timer cleanup occurs when a process completes.
-Process cleanup does delete the Timer Thread and any storage associated with
-unexpired delay requests.
-
-### Other functions
-
-#### void enqueue(Task* task, Item* item)
-
-Applications should generally use `task->enqueue(item)` instead. This method
-uses internal tracing not normally active in production distributions.
-
-#### void post(Item* item, cc= 0)
-
-The Item is posted under control of a (hidden) Dispatch Task.
-
-This feature is useful under certain circumstances.
-
-Consider an Item containing a shared_ptr reference to the running Task.
-When the Task destructor discovers that the Task is running, it issues a
-CHASE operation and waits for it to complete, insuring that all queued Items
-have completed.
-If posting the Item removes the last shared_ptr (deleting the running Task,)
-a livelock occurs because the CHASE is blocked by the running Task.
-
-Moving the post operation to a different task prevents this livelock.
+---
+[Back](./REFERENCE.md)
