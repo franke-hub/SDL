@@ -17,7 +17,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2026/09/07
+//       2026/10/06
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -737,8 +737,8 @@ int                                 // Return code (0 OK)
      if( rc == 0 )
        host_addr.copy((sockaddr*)&hostaddr, hostsize);
      else
-       debugf("%4d %d= getsockname(...) %d:%s\n", __LINE__, rc
-             , errno, strerror(errno));
+       fprintf(stderr, "%4d %d= getsockname(...) %d:%s\n", __LINE__, rc
+                     , errno, strerror(errno));
 
      if( HCDM )
        debugf("%4d HCDM %d= getsockname(%s,%d) %d:%s\n", __LINE__, rc
@@ -832,13 +832,15 @@ int                                 // Return code, 0 OK
        if( C == ':' )
          break;
 
-       debugf("Socket::name_to_addr(%s) invalid port number\n", nps.c_str());
+       fprintf(stderr, "Socket::name_to_addr(%s) invalid port number\n"
+                     , nps.c_str());
        errno= EINVAL;
        return EINVAL;
      }
    }
    if( x == 0 && nps[0] != ':' ) {
-     debugf("Socket::name_to_addr(%s) missing ':' delimiter\n", nps.c_str());
+     fprintf(stderr, "Socket::name_to_addr(%s) missing ':' delimiter\n"
+                   , nps.c_str());
      errno= EINVAL;
      return EINVAL;
    }
