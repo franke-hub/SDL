@@ -17,7 +17,7 @@
 //       Implement ServerThread object methods
 //
 // Last change date-
-//       2026/09/22
+//       2026/10/07
 //
 // Implementation notes-
 //       This multi-threaded server DOES NOT change path or file permissions
@@ -58,12 +58,12 @@ enum                                // Generic enum
 [[noreturn]]
 static void
    SNO(int line)                    // (Should Not Occur)
-{  throwf("%4d %s (Should Not Occur)\n", line, __FILE__); }
+{  msgabort("%4d %s (Should Not Occur)\n", line, __FILE__); }
 
 [[noreturn]]
 static void
    SNO(int line, int op)            // (Should Not Occur, invalid opcode )
-{  throwf("%4d %s Client op(%c,%d) invalid\n", line, __FILE__, op, op); }
+{  msgabort("%4d %s Client op(%c,%d) invalid\n", line, __FILE__, op, op); }
 
 //----------------------------------------------------------------------------
 //
@@ -118,8 +118,8 @@ static inline bool                  // TRUE if hcdm && verbose(N)
    pub::data::Name name(init_path);
    string invalid= name.resolve();
    if( invalid != "" )
-     throwf("%4d ServerThread: init_path(%s) invalid: %s", __LINE__
-           , s2c(init_path), s2c(invalid));
+     msgabort("%4d ServerThread: init_path(%s) invalid: %s", __LINE__
+             , s2c(init_path), s2c(invalid));
    real_path= pub::data::Name::get_full_name(name.get_path_name()
                                             , name.get_file_name());
 
@@ -193,8 +193,8 @@ void
 
    // Connected message
    if( init_path.size() > (PATH_MAX-1) )
-     throwf("Path(%s) name too long (%'zd > %'zd", s2c(init_path)
-           , init_path.size(), size_t(PATH_MAX-1));
+     msgabort("Path(%s) name too long (%'zd > %'zd", s2c(init_path)
+             , init_path.size(), size_t(PATH_MAX-1));
 
    string peer_name= socket->get_peer_name();
    msgout("Server: Connected... Host(%s:%d)\n"
@@ -398,8 +398,8 @@ void
 
      ssize_t L= read(fd, buffer, min(size, MAX_TRANSFER)); // Read file
      if( L < 1 )
-       throwf("Server %'zd= read(%s) error: %d:%s"
-             , L, s2c(file->get_file_name()), errno, strerror(errno));
+       msgabort("Server %'zd= read(%s) error: %d:%s"
+               , L, s2c(file->get_file_name()), errno, strerror(errno));
 
      wr_data(buffer, L);            // Send some of the file
      size -= (size_t)L;             // Those sent aren't left to send
@@ -409,8 +409,8 @@ void
    // Close the file
    //-------------------------------------------------------------------------
    if( close(fd) != 0 )             // Close data file failed
-     throwf("%4d Server: close(%s) failure", __LINE__
-           , s2c(file->get_file_name()));
+     msgabort("%4d Server: close(%s) failure", __LINE__
+              , s2c(file->get_file_name()));
 }
 
 //----------------------------------------------------------------------------

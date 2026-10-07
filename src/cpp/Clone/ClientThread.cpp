@@ -17,7 +17,7 @@
 //       Implement ClientThread object methods
 //
 // Last change date-
-//       2026/09/22
+//       2026/10/07
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -443,8 +443,8 @@ int                                 // Return code, 0 expected
          rd_data(buffer, rd_size);  // Read from server
          size_t wr_size= write(fd, buffer, rd_size); // Write some of the file
          if( wr_size != rd_size )   // Wrong amount written
-           throwf("%4d ClientThread: %'zd=write(%s,%'zd) error",
-                  __LINE__, wr_size, s2c(full_name), rd_size);
+           msgabort("%4d ClientThread: %'zd=write(%s,%'zd) error", __LINE__
+                   , wr_size, s2c(full_name), rd_size);
 
          left -= rd_size;           // Those read aren't left to read
        }                            // Done reading more bytes
@@ -640,7 +640,7 @@ void
        || (client->desc.file_info&INFO_XUSR) == 0 ) { // or can't change to it
      int rc= chmod(full_char, client->get_chmod()|(S_IRUSR|S_IWUSR|S_IXUSR));
      if( rc != 0 )                  // Couldn't give self permissions
-       throwf("%4d ClientThread: chmod(%s) failure", __LINE__, full_char);
+       msgabort("%4d ClientThread: chmod(%s) failure", __LINE__, full_char);
    }
 
    //-------------------------------------------------------------------------
@@ -1229,7 +1229,7 @@ deferred_action:
          break;
 
        default:                     // If unknown code
-         throwf("%4d ClientThread: Action code(%d)", __LINE__, ac);
+         msgabort("%4d ClientThread: Action code(%d)", __LINE__, ac);
          break;
      }
    }

@@ -17,7 +17,7 @@
 //       The RdServer's client.
 //
 // Last change date-
-//       2026/07/27
+//       2026/10/07
 //
 // Usage-
 //       RdClient <-options> <server_host<:server_port> <client_path>>
@@ -262,25 +262,22 @@ static void
 
    Socket* socket= new Socket();
    if( socket == nullptr )
-     throwf("%4d Unable to create socket\n", __LINE__);
+     msgabort("%4d Unable to create socket\n", __LINE__);
 
    // int rc= socket->nameToAddr(nps, &sockaddr, &socksize, AF_INET);
    // if( addr == 0 )
-   //   throwf("%4d Invalid host name(%s) %d:%s",
-   //          __LINE__, s2c(nps), errno, strerror(errno));
+   //   msgabort("%4d Invalid host name(%s) %d:%s", __LINE__
+   //           , s2c(nps), errno, strerror(errno));
 
    int
    rc= socket->open(AF_INET, SOCK_STREAM, PF_UNSPEC);
    if( rc )
-     throwf("%4d %d= socket->open(AF_INET, SOCK_STREAM, PF_UNSPEC)\n"
-           , __LINE__, rc);
+     msgabort("%4d %d= socket->open(AF_INET, SOCK_STREAM, PF_UNSPEC)\n"
+             , __LINE__, rc);
 
    rc= socket->connect(nps);
-   if( rc != 0 ) {
-     fprintf(stderr, "%d= connect(%s) %d:%s\n", rc, s2c(nps)
-                   , errno, strerror(errno));
-     exit(EXIT_FAILURE);
-   }
+   if( rc != 0 )
+     msgabort("%d= connect(%s) %d:%s\n", rc, s2c(nps), errno, strerror(errno));
 
    //-------------------------------------------------------------------------
    // Create and directly invoke the client worker pseudo-Thread

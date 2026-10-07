@@ -17,7 +17,7 @@
 //       Common I/O objects and subroutines used by RdClient and RdServer.
 //
 // Last change date-
-//       2026/07/22
+//       2026/10/07
 //
 //----------------------------------------------------------------------------
 #include <memory>                   // For std::make_unique, ...
@@ -82,7 +82,7 @@ static constexpr const uint64_t
 [[noreturn]]
 static void
    SNO(int line)                    // (Should Not Occur)
-{  throwf("%4d %s (Should Not Occur)\n", line, __FILE__); }
+{  msgabort("%4d %s (Should Not Occur)\n", line, __FILE__); }
 
 //============================================================================
 //
@@ -714,8 +714,8 @@ void
        char buffer[PATH_MAX];       // Link name buffer
        ssize_t size= rdlink(file->get_full_name(), buffer, sizeof(buffer));
        if( size < 0 )               // If cannnot read link
-         throwf("%zd= rdlink(%s,%p,%zd)\n", size, s2c(file->get_full_name())
-               , buffer, sizeof(buffer));
+         msgabort("%zd= rdlink(%s,%p,%zd)\n", size, s2c(file->get_full_name())
+                 , buffer, sizeof(buffer));
 
        file->link_name= buffer;
      }

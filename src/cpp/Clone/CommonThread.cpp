@@ -17,7 +17,7 @@
 //       Implement CommonThread object methods
 //
 // Last change date-
-//       2026/07/23
+//       2026/10/07
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -57,7 +57,7 @@ static Latch           mutex;       // Exclusion mutex
 [[noreturn]]
 static void
    SNO(int line)                    // (Should Not Occur)
-{  throwf("%4d %s (Should Not Occur)\n", line, __FILE__); }
+{  msgabort("%4d %s (Should Not Occur)\n", line, __FILE__); }
 
 //----------------------------------------------------------------------------
 //

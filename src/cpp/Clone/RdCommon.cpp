@@ -17,7 +17,7 @@
 //       Common routines used by RdClient and RdServer.
 //
 // Last change date-
-//       2026/09/22
+//       2026/10/07
 //
 // Environment variables-
 //       LOG_HCDM=n    Hard Core Debug Mode verbosity
@@ -30,6 +30,7 @@
 #include <cerrno>                   // For errno
 #include <cstdarg>                  // For va_* functions
 #include <cstdio>                   // For fprintf, ...
+#include <cstdlib>                  // For EXIT_FAILURE
 #include <cstring>                  // For strcmp, memcmp, ...
 #include <ctime>                    // For clock_gettime, timespec, ...
 
@@ -242,6 +243,41 @@ void
      debug= new Debug(file_char);
      debug->set_mode(Debug::MODE_INTENSIVE);
    }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       msgabort
+//
+// Purpose-
+//       Write an error message to stderr and stdlog, then terminate
+//
+//----------------------------------------------------------------------------
+ATTRIB_NORETURN
+ATTRIB_PRINTF(1, 2)
+void
+   msgabort(                        // Write an error message and terminate
+     const char*       fmt,         // The PRINTF format string
+                       ...)         // The remaining arguments
+{
+   lock_guard<decltype(mutex)> lock(mutex); // Single thread mode
+
+   va_list argptr;                  // Argument list pointer
+   va_start(argptr, fmt);           // Initialize va_ functions
+   vfprintf(stderr, fmt, argptr);   // Print the message on stderr
+   va_end(argptr);
+   fflush(stderr);
+
+   if( stdlog ) {                   // If stdlog active
+     va_list logptr;                // Argument list pointer
+     va_start(logptr, fmt);         // Initialize va_ functions
+     vfprintf(stdlog, fmt, logptr);
+     va_end(logptr);                // Close va_ functions
+     fflush(stdlog);
+   }
+
+   exit(EXIT_FAILURE);
 }
 
 //----------------------------------------------------------------------------

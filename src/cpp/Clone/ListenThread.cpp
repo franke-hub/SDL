@@ -17,7 +17,7 @@
 //       Implement ListenThread object methods
 //
 // Last change date-
-//       2026/08/01
+//       2026/10/07
 //
 //----------------------------------------------------------------------------
 #include "IoCommon.h"               // For I/O common objects and subroutines
@@ -86,14 +86,14 @@ void
    // Initialize the Listener socket
    socket= new Socket();            // The listener Socket
    if( socket == nullptr )
-     throwf("%4d ListenThread: unable to create listener", __LINE__);
+     msgabort("%4d ListenThread: unable to create listener", __LINE__);
 
    int rc= socket->open(AF_INET, SOCK_STREAM, PF_UNSPEC);
    if( env_iodm )
      msglog("%4d= open(%d,%d,%d)\n", rc, AF_INET, SOCK_STREAM, PF_UNSPEC);
    if( rc )
-     throwf("%4d ListenThread: %d= open(%d,%d,%d)\n", __LINE__, rc
-           , AF_INET, SOCK_STREAM, PF_UNSPEC);
+     msgabort("%4d ListenThread: %d= open(%d,%d,%d)\n", __LINE__, rc
+             , AF_INET, SOCK_STREAM, PF_UNSPEC);
 
    int optval= true;                // (Needed before the bind)
    rc= socket->set_option(SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
@@ -101,20 +101,20 @@ void
      msglog("%4d= set_option(%d,%d,...)\n", rc
            , SOL_SOCKET, SO_REUSEADDR);
    if( rc )
-     throwf("%4d ListenThread: %d= set_option(%d,%d,...)\n", __LINE__
-           , rc, SOL_SOCKET, SO_REUSEADDR);
+     msgabort("%4d ListenThread: %d= set_option(%d,%d,...)\n", __LINE__
+             , rc, SOL_SOCKET, SO_REUSEADDR);
 
    rc= socket->bind(port);          // Set port number
    if( env_iodm )
      msglog("%4d= bind(%d)\n", rc, port);
    if( rc )
-     throwf("%4d ListenThread: %d= bind(%d)\n", __LINE__, rc, port);
+     msgabort("%4d ListenThread: %d= bind(%d)\n", __LINE__, rc, port);
 
    rc= socket->listen();            // Begin listening
    if( env_iodm )
      msglog("%4d= listen()\n", rc);
    if( rc )
-     throwf("%4d ListenThread: %d= listen()\n", __LINE__, rc);
+     msgabort("%4d ListenThread: %d= listen()\n", __LINE__, rc);
 
    msgout("Server: Host(%s:%d) %s %s\n"
          , s2c(socket->gethostname()), port

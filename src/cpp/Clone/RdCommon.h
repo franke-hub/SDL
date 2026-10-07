@@ -17,7 +17,7 @@
 //       Common objects and subroutines.
 //
 // Last change date-
-//       2026/07/23
+//       2026/10/07
 //
 //----------------------------------------------------------------------------
 #ifndef RDCOMMON_H_INCLUDED
@@ -261,6 +261,22 @@ inline size_t                       // The minimum value
      size_t            lhs,         // Left Hand Side
      size_t            rhs)         // Right Hand Side
 {  if( lhs < rhs ) return lhs; else return rhs; }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       msgabort
+//
+// Purpose-
+//       Write an error message to stderr and stdlog, then terminate
+//
+//----------------------------------------------------------------------------
+ATTRIB_NORETURN
+ATTRIB_PRINTF(1, 2)
+extern void
+   msgabort(                        // Write an error message and terminate
+     const char*       fmt,         // The PRINTF format string
+                       ...);        // The remaining arguments
 
 //----------------------------------------------------------------------------
 //
