@@ -17,11 +17,11 @@
 //       Distribution development detail
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 
-Copyright &copy; 2023-2025 Frank Eskesen.
+Copyright &copy; 2023-2026 Frank Eskesen.
 
 This file is free content, distributed under cc by-sa version 4.0 with
 attribution required.
@@ -46,6 +46,8 @@ https://creativecommons.org/licenses/by-sa/4.0/us/legalcode)
 ### Other resources
 <!-- (TODO) - [Computer usage Journal](Journal/Computer.md) -->
 - [Development Journal](Journal/Journal.md)
+- [C++ Library Reference Manual](cpp/REFERENCE.md)
+- [SDL Project overview](../README.md)
 
 ---
 [Back](../README.md)

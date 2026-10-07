@@ -17,7 +17,7 @@
 //       PUB Library, multi-threading management
 //
 // Last change date-
-//       2026/09/30
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 # Multi-threading Management
@@ -30,6 +30,8 @@ The PUB library provides these multi-threading components:
 | [Thread](./Thread.md) | Thread.h | A separate unit of execution |
 | [Worker](./Worker.md) | Worker.h | An interface class scheduled by the WorkerPool thread pool |
 | [Latches](./Latch.md) | Latch.h | Spin latches, for short critical sections |
+| [Event](./Event.md) | Event.h | Wait/post events |
+| [Semaphore](./Semaphore.md) | Semaphore.h | Counting semaphore |
 | [AI_list](./pub_list-AI.md) | List.h | Atomic Insert list: any number of threads may insert without locking |
 | [mutex](#mutex) | mutex.h | A mutex that may be unlocked by a different thread |
 

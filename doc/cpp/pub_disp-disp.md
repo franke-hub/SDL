@@ -17,7 +17,7 @@
 //       Dispatch.h reference manual: Disp
 //
 // Last change date-
-//       2026/09/30
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Dispatch.h>
@@ -90,3 +90,6 @@ A subsequent delay operation restarts delay processing.
 Applications are not required to invoke shutdown.
 However, no delay cleanup occurs when a process completes:
 pending delay Items are not posted.
+
+---
+[Back](./Dispatch.md) | [Reference manual](./REFERENCE.md)

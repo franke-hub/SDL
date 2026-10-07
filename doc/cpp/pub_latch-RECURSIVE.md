@@ -17,7 +17,7 @@
 //       Latch.h reference manual: RecursiveLatch
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Latch.h>
@@ -65,3 +65,6 @@ zero.
 
 An exception is thrown if invoked from a thread that does not hold the
 Latch.
+
+---
+[Back](./Latch.md) | [Reference manual](./REFERENCE.md)

@@ -17,7 +17,7 @@
 //       Latch.h reference manual: Latch
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Latch.h>
@@ -67,3 +67,6 @@ spinning.
 #### <a id="unlock">void pub::Latch::unlock();</a>
 
 Releases the (exclusive) Latch.
+
+---
+[Back](./Latch.md) | [Reference manual](./REFERENCE.md)

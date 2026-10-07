@@ -17,7 +17,7 @@
 //       Console.h reference manual
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ## pub::Console
@@ -39,3 +39,6 @@ automatic character echoing.
 | [start](./pub_console.md#start) | Start Console operation. |
 | [stop](./pub_console.md#stop) | Stop Console operation. |
 | [wait](./pub_console.md#wait) | Wait for Console stop. |
+
+---
+[Back](./REFERENCE.md)

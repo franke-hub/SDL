@@ -17,7 +17,7 @@
 //       SDL Distribution reference manual
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 # Software Development Lab (SDL) C++ Library Reference Manual
@@ -110,7 +110,7 @@ std\::shared_ptr and std\::weak_ptr usage problems.
 "wild store" problems.
 - [Dispatch.h:](./Dispatch.md) Provides lock-free multi-threading control
 mechanisms.
-- Event.h: Provides a wait/post event handling mechanism.
+- [Event.h:](./Event.md) Provides wait/post event handling mechanisms.
 - Exception.h: (to be removed?) Provides a base pub\::Exception.
 - Fileman.h: Provides file handling utility functions.
 - Hardware.h: Mechanisms for reading the link pointer, stack pointer, and
@@ -156,7 +156,7 @@ grow until it's unable to allocate another handle and throws an exception.
 - Reporter.h: Provides a generic mechanism for statistical event recording and
 reporting. __TODO__ Event status checking.
 - Select.h: Provides a socket polling controller and selector.
-- Semaphore.h: Provides wait/post semaphore functions.
+- [Semaphore.h:](./Semaphore.md) Provides a counting semaphore.
 - [Signals.h:](./Signals.md) Provides a "signals and slots" mechanism.
 - Socket.h: Provides socket interfaces.
 - Statistic.h: Provides statistical measurement object.
@@ -178,4 +178,4 @@ scheduling via WorkerPool, a thread pool manager.
 - [Time Management](./Time-reference.md)
 
 ---
-[Back](../index.md)
+[Back](../../README.md) | [Development detail](../index.md)

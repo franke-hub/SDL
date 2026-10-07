@@ -17,7 +17,7 @@
 //       Latch.h reference manual
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Latch.h>
@@ -143,3 +143,6 @@ For longer or contended sections, prefer `std::mutex`.
 
 Note that exclusive mode is granted to one writer **at a time**.
 Multiple writers can co-exist. Each will have exclusive access when running.
+
+---
+[Back](./REFERENCE.md)

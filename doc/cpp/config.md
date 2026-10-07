@@ -17,7 +17,7 @@
 //       config.h reference manual
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 ------------------------------------------------------------------------ -->
 \#include <pub/config.h>
@@ -39,3 +39,6 @@ the `fmt` argument.
   - Attribute numbers begin at 1.
 For non-static class methods, the attribute numbers begin at 2.
 (The implied `this` object pointer is argument number 1.)
+
+---
+[Back](./REFERENCE.md)

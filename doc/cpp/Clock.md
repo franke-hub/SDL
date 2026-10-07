@@ -17,7 +17,7 @@
 //       Clock.h reference manual
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ## pub::Clock
@@ -33,3 +33,6 @@
 | [get](./pub_clock.md#get) | Get the time field. |
 | [set](./pub_clock.md#set) | Set the time. |
 | [now](./pub_clock.md#now) | Obtain the current time. |
+
+---
+[Back](./REFERENCE.md)

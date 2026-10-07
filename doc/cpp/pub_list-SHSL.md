@@ -17,7 +17,7 @@
 //       List.h reference manual: SHSL_list<T>
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ## `pub::SHSL_list<T>`
@@ -176,3 +176,6 @@ int main() {
    return 0;
 }
 ```
+
+---
+[Back](./List.md) | [Reference manual](./REFERENCE.md)

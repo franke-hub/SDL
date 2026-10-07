@@ -17,7 +17,7 @@
 //       Utf.h utf8_decoder reference manual
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ## <a id="header">pub::utf8_decoder</a>
@@ -146,3 +146,6 @@ This is an alias for reset((const utf8_t*)addr, Length length).
 
 #### void reset(void)
 This resets the decoder to its initial state, setting offset= 0 and column= -1.
+
+---
+[Back](./Utf.md) | [Reference manual](./REFERENCE.md)

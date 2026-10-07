@@ -17,7 +17,7 @@
 //       Console.h reference manual
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ## Defined in header <pub/Console.h>
@@ -106,3 +106,4 @@ Each Console::start invocation increments the usage counter.
 Each Console::stop invocation decrements the usage counter.
 
 ---
+[Back](./Console.md) | [Reference manual](./REFERENCE.md)

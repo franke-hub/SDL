@@ -17,7 +17,7 @@
 //       Latch.h reference manual: XCL_latch
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Latch.h>
@@ -154,3 +154,6 @@ thread turns out not to have held the SHR_latch at all.
 
 If upgrade succeeds, the Latch remains held exclusively until downgrade or
 unlock is invoked.
+
+---
+[Back](./Latch.md) | [Reference manual](./REFERENCE.md)

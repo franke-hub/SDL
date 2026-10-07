@@ -17,7 +17,7 @@
 //       Allocator.h reference manual
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 The Allocator classes are experimental. Their use is discouraged.
@@ -115,3 +115,6 @@ Release one (fixed-size) block.
 
 If supplied, put verifies that the size parameter
 matches the constructor's size parameter.
+
+---
+[Back](./Allocator.md) | [Reference manual](./REFERENCE.md)

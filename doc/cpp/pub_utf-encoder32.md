@@ -17,7 +17,7 @@
 //       Utf.h utf32_encoder reference manual
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ## <a id="header">pub::utf32_encoder</a>
@@ -103,3 +103,6 @@ then sets the encoder offset= 0 and column= -1.
 
 #### void reset(void) noexcept
 Sets the encoder offset= 0 and column= -1.
+
+---
+[Back](./Utf.md) | [Reference manual](./REFERENCE.md)

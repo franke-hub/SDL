@@ -17,7 +17,7 @@
 //       Debug.h reference manual
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ## pub::Debug
@@ -154,3 +154,6 @@ counterparts:
 | [vtraceh](./pub_debug.md#vtraceh) | Write (only) to the trace file, including heading information. |
 | [throwf](./pub_debug.md#throwf) | Write to stderr and the trace file, then throw an exception. |
 | [vthrowf](./pub_debug.md#vthrowf) | Write to stderr and the trace file, then throw an exception. |
+
+---
+[Back](./REFERENCE.md)

@@ -17,7 +17,7 @@
 //       Utf.h reference manual - methods
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ## <a id="header">Utf.h method reference manual</a>
@@ -142,3 +142,5 @@
 | [encode          ](./pub_utf-encoder32.md#encode) | Encode a Symbol. |
 | [reset           ](./pub_utf-encoder32.md#resets) | Reset the encoder. |
 
+---
+[Back](./Utf.md) | [Reference manual](./REFERENCE.md)

@@ -17,7 +17,7 @@
 //       Dispatch.h reference manual: Item
 //
 // Last change date-
-//       2026/09/30
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Dispatch.h>
@@ -90,3 +90,6 @@ If `done` is not `nullptr`, sets the completion code to `cc` and invokes
 `done->done(this)`.
 Otherwise, the Item is deleted.
 (Items without a Done object must therefore be allocated using `new`.)
+
+---
+[Back](./Dispatch.md) | [Reference manual](./REFERENCE.md)

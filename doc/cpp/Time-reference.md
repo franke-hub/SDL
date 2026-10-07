@@ -17,7 +17,7 @@
 //       PUB Library, time representation
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 # Time Representation: Clock, Julian, Calendar
@@ -205,3 +205,6 @@ It verifies:
 - round-trip conversion accuracy
 - correct handling of negative years
 - correct behavior across the 1582 calendar transition
+
+---
+[Back](./REFERENCE.md)

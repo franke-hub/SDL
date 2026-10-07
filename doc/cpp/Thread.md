@@ -17,48 +17,47 @@
 //       Thread.h reference manual
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Thread.h>
-## `pub::Thread`
+## pub::Thread
 
-<!-- ===================================================================== -->
----
-#### Thread
 A Thread is a separate unit of execution.
 All Threads in a process share the same address space.
+Applications implement the Thread's `run` method in a subclass, then
+[start](./pub_thread.md#start) the Thread.
 
-##### Thread::tlss (Thread Local Storage Struct)
-The Thread Local Storage Struct is an internal structure that maintains
-Thread state information independently from the Thread.
+Usage notes:
+- A started Thread must be either [joined](./pub_thread.md#join) or
+[detached](./pub_thread.md#detach). A joined Thread may be started again.
+- Only the running Thread itself may detach, and a Thread cannot join
+itself.
+- If `run` throws an exception, the exception is caught, a message and a
+backtrace are written, and the Thread otherwise completes normally.
+- Thread::tlss is an internal structure, not for application use.
+- Threads cannot be copied.
 
-A thread-local pointer to it is defined in Thread.cpp, tl_tlss.
-(This pointer is not available for application use.)
-Method Thread::current uses this to quickly locate the current Thread.
+<!-- ===================================================================== -->
+| Method | Purpose |
+|--------|---------|
+| [constructor](./pub_thread.md#constructor) | Create an idle Thread. |
+| [destructor](./pub_thread.md#destructor) | Delete the Thread. |
+| [current](./pub_thread.md#current) | Get the current Thread. |
+| [debug](./pub_thread.md#debug) | Display the Thread's state. |
+| [detach](./pub_thread.md#detach) | Detach the running Thread. |
+| [get_handle](./pub_thread.md#get_handle) | Get the native thread handle. |
+| [get_max_threads](./pub_thread.md#get_max_threads) | Get the maximum number of running Threads. |
+| [join](./pub_thread.md#join) | Wait for the Thread to complete. |
+| [joinable](./pub_thread.md#joinable) | Test: Is the Thread joinable? |
+| [run](./pub_thread.md#run) | Operate the Thread. **Override this method.** |
+| [set_max_threads](./pub_thread.md#set_max_threads) | Set the maximum number of running Threads. |
+| [sleep](./pub_thread.md#sleep) | Delay the current thread. |
+| [start](./pub_thread.md#start) | Start the Thread. |
+| [static_debug](./pub_thread.md#static_debug) | Display Thread statistics. |
+| [yield](./pub_thread.md#yield) | Give up the current time slice. |
 
-##### Member functions
-
-| Method               | Purpose                                             |
-| :------------------- | :-------------------------------------------------- |
-| [constructor](./pub_thread.md#constructor) | Create a Thread               |
-| [destructor](./pub_thread.md#destructor)   | Delete the Thread             |
-| [debug](./pub_thread.md#debug)             | Display the Thread state      |
-| [static_debug](./pub_thread.md#static_debug) | Display global Thread state |
-| [get_handle](./pub_thread.md#get_handle)   | Get the Thread handle         |
-| [get_max_threads](./pub_thread.md#get_max) | Get the maximum allowed running Thread count |
-| [set_max_threads](./pub_thread.md#set_max) | Set the maximum allowed running Thread count |
-| [joinable](./pub_thread.md#joinable)       | Test: Is the Thread joinable? |
-| [current](./pub_thread.md#current)         | Get the current Thread*       |
-| [sleep](./pub_thread.md#sleep)             | Delay the current Thread      |
-| [yield](./pub_thread.md#yield)             | Give up current time slice    |
-| [detach](./pub_thread.md#detach)           | Detach execution thread       |
-| [join](./pub_thread.md#join)               | Wait for Thread completion    |
-| [run](./pub_thread.md#run)                 | Operate the Thread            |
-| [start](./pub_thread.md#start)             | Start the Thread              |
-| [drive](./pub_thread.md#drive)             | Drive the Thread              |
-| [start_failure](./pub_thread.md#failure)   | Handle start failure          |
-
+<!-- ===================================================================== -->
 #### Example
 
 ```cpp
@@ -67,17 +66,17 @@ Method Thread::current uses this to quickly locate the current Thread.
 
 class MyThread : public pub::Thread {
 public:
-    void run() override {
-        printf("Hello from thread\n");
-    }
-};
+virtual void
+   run( void ) override
+{  printf("Hello from thread\n"); }
+}; // class MyThread
 
 int main() {
-    MyThread t;
-    t.start();
-    t.join();
+   MyThread t;
+   t.start();                       // (Returns immediately)
+   t.join();                        // Wait until run() returns
 }
 ```
 
-`start()` launches the thread and returns immediately.
-`join()` blocks until `run()` returns.
+---
+[Back](./REFERENCE.md)

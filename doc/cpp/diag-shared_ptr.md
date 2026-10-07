@@ -17,7 +17,7 @@
 //       diag-shared_ptr.h reference manual
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ## std::pub_diag::debug_ptr<T>
@@ -133,3 +133,6 @@ by the compiler before any other DEV library include.
 - For dependency control, all (source and include) DEV library files that
 include DEV files use `#include "dev/include-file.h"` rather than
 `#include <dev/include-file.h>`.
+
+---
+[Back](./REFERENCE.md)

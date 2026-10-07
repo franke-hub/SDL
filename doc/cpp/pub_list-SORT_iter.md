@@ -17,7 +17,7 @@
 //       List.h reference manual: DHDL_sort iterator
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ###### Defined by header <pub/List.h>
@@ -88,3 +88,6 @@ returning the iterator state before the update.
 Compares iterator's current Link* for (in)equality
 without regard to the associated List*.
 Note: All end() iterator's _link fields are nullptr.
+
+---
+[Back](./List.md) | [Reference manual](./REFERENCE.md)

@@ -17,7 +17,7 @@
 //       Dispatch.h reference manual (overview)
 //
 // Last change date-
-//       2026/09/30
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Dispatch.h>
@@ -156,3 +156,6 @@ For a LambdaTask and LambdaDone example, see
 For a larger example, see the
 [sample application](./Multi-threading.md#dispatcher) in Multi-threading
 Management.
+
+---
+[Back](./REFERENCE.md)

@@ -17,214 +17,161 @@
 //       Thread.h reference manual
 //
 // Last change date-
-//       2026/09/28
-//
-// Documentation notes-
-//       This is the fourth draft of this document. It needs more work.
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
-<!-- --------------------------------------------------------------------- -->
 ###### Defined in header <pub/Thread.h>
-## `pub\::Thread`
+## pub::Thread
 
 Thread is the base threading class.
-The (pure virtual) run method provides Thread operational logic which must be
-implemented in a subclass.
+Its pure virtual `run` method provides the Thread's operational logic,
+which a subclass implements.
 
-#### Thread\::tlss_event
-Fields:
-  - drive_initialized: set by Thread\::drive when the tlss is initialized
-  - start_completed: set by Thread\::start just before it exits
+Types and constants:
+- `typedef pthread_t handle_t;` The native thread handle type.
+- `static const handle_t null_handle;` The handle of a Thread that isn't
+active.
+- `enum ITS { ITS_JOINABLE, ITS_DETACHED };` The initial Thread state,
+specified when the Thread is [started](#start).
 
-The tlss_event is constructed in-place in Thread\::tlss\::TES.
+Thread::tlss (Thread Local Storage Struct) is an internal structure, not
+for application use.
 
-We (in-place) construct the tlss_event when the tlss is constructed and invoke
-its destructor after waiting for drive_initialized and start_completed.
-This somewhat convoluted mechanism allows us to release Event resources used
-in initialization as soon as we're done using them.
-(Each Event contains a condition variable and a std\::mutex.)
-<!-- ---------------------------------------------------------------------
-We don't know how useful this is.
-- We don't know what system resources condition variables might require.
-- A std\::mutex contains a waiting thread queue. The implementation is opaque.
+<!-- ===================================================================== -->
+---
+#### <a id="constructor">pub::Thread::Thread();</a>
 
-Once we're done with the tlss_event, no threads will ever be waiting on them
-again. That doesn't guarantee that system resources aren't still required.
----------------------------------------------------------------------- -->
+Creates the Thread in an idle state.
+The [start](#start) method begins Thread execution.
 
-#### Thread\::tlss
-Thread\::tlss (Thread Local Storage Struct) is an internal class used to
-maintain state information.
+---
+#### <a id="destructor">virtual pub::Thread::~Thread();</a>
 
-Fields:
-- mutex: A RecursiveLatch serializing changes to the tlss itself
-- fsm: A Finite State Machine
-- thread: A pointer to the associated Thread (while it exists)
-- handle: The associated pthread_t
-- E: A pointer to the tlss_event (alway to TES)
-- TES: (The storage area for the tlss_event structure)
+Deletes the Thread.
 
-#### Addressing Thread\::tlss
-The Thread itself addresses the tlss using Thread\::tlss_, which is valid for
-active Threads that have not been detached or joined.
+A started Thread should be [joined](#join) or [detached](#detach) before
+it's deleted. Deleting one that isn't is an error, which is recorded in the
+system log. The destructor then attempts recovery:
+- If the Thread deletes itself while running, it's automatically detached.
+- Otherwise, the destructor waits for the Thread to complete, joining it.
 
-An internal thread-local pointer, tl_tlss, locates the active Thread's tlss.
+Do not use a Thread after deleting it. In particular, if another thread is
+joining the Thread, results are unpredictable.
 
-## Threading overview
+---
+#### <a id="current">static Thread* pub::Thread::current();</a>
 
-- The Thread is constructed in an idle state.
-- Thread\::start
-  - Allocates the (internal) Thread\::tlss
-  - Begins the Thread, starting Thread\::drive
-- Thread\::drive
-  - Sets tl_tlss, pointer to the (internal) Thread Local Storage Struct
-  - Invokes Thread\::run (an application supplied virtual method that)
-provides the Thread's execution logic.
-    - Thread\::run completes, returning to Thread\::drive
-  - For detached Threads, tlss storage is deleted
-  - For other Threads, tlss storage ownership is passed to Thread. The tlss
-will be deleted when Thread\::join is invoked.
+Return value: The current Thread, or nullptr.
 
-## Implementation notes
-Thread logic includes serialization logic not described here, but which is
-well documented in the source code: `~/src/cpp/lib/pub/Thread.cpp`.
+Only threads started by [start](#start) are Threads.
+For any other thread, including the main thread, nullptr is returned.
 
-Of particular concern:
-- Thread\::start and Thread\::drive synchronization.
-- Thread\::detach, Thread\::join, and Thread\::~Thread synchronization.
+---
+#### <a id="debug">virtual void pub::Thread::debug(const char* info= "") const;</a>
 
-Thread\::run is invoked using try..catch recovery.
-If an exception occurs during run, an error message and a program backtrace
-automatically occur but otherwise treated as if run returned normally.
+Displays the Thread's state.
+`info` is an optional caller-supplied identifying string included in the
+display.
 
-#### <a id="constructor">Thread(void)</a>
-Note: The copy constructor and assignment operator are deleted.
-Threads cannot be copied or assigned.
+---
+#### <a id="detach">void pub::Thread::detach();</a>
 
-Constructs the Thread, beginning in an idle state.
-The Thread\::start method begins executing the Thread, eventually driving
-the user-supplied virtual Thread\::run method.
+Detaches the Thread.
+A detached Thread cannot be joined. Its system resources are released
+automatically when it completes.
+[current](#current) still returns the Thread while a detached Thread runs.
 
-#### <a id="destructor">~Thread(void)</a>
-Deconstructs the Thread.
+Detach may only be invoked once, and only from the running Thread itself.
+Otherwise, a std::runtime_error exception is thrown.
 
-A Thread should not invoke the destructor without first invoking either
-Thread\::detach or Thread\::join, making it inactive.
+---
+#### <a id="get_handle">handle_t pub::Thread::get_handle() const;</a>
 
-###### Destructor error recovery (active Thread deletion)
-Active Thread deletion is an error, recorded in "~/.local/log/syslog.out".
+Return value: The native thread handle, or null_handle.
 
-If the running Thread invokes the destructor, it is automatically detached.
-(Thread\::detach can only be invoked from a running Thread.)
+The handle is available from the time the Thread is started until it's
+joined.
+For a detached Thread, null_handle is returned.
 
-If a completed Thread invokes the destructor, it is automatically joined.
+---
+#### <a id="get_max_threads">static size_t pub::Thread::get_max_threads();</a>
 
-Once an application invokes the destructor, if the application accesses it
-later the storage is no longer a Thread.
-Results will be unpredictable, unexpected, and generally bad.
+Return value: The maximum number of concurrently running Threads.
+The default is 8192.
 
-#### <a id="debug">void debug(const char* info= "")</a>
-Writes debugging messages displaying the Thread's content.
+When this many Threads are running, [start](#start) waits until another
+Thread completes.
 
-#### <a id="static_debug">void static_debug(const char* info= "")</a>
-Writes debugging messages displaying Thread statistics.
+---
+#### <a id="join">void pub::Thread::join();</a>
 
-<!-- Accessor methods                                                      -->
+Waits for the Thread to complete, then releases its system resources.
+After a join completes, the Thread may be started again.
 
-#### <a id="get_handle">handle_t get_handle(void)</a>
-Returns the native Thread handle.
-The current implementation uses a pthread_t.
+If invoked from the Thread itself, `errno` is set to `EDEADLK` and the
+method returns without waiting. (The Thread could never complete.)
 
-The handle only applies when the Thread is running, i.e. in the run() method.
+If the Thread was never started, was detached, or was already joined, a
+std::runtime_error exception is thrown.
 
-#### <a id="get_max">size_t get_max_threads(void)</a>
-Returns the current max_threads counter.
+---
+#### <a id="joinable">bool pub::Thread::joinable() const;</a>
 
-A (static) Semaphore is used to limit the number of concurrently running
-Threads. This value begins with get_max_threads().
+Return value: TRUE iff the Thread can be [joined](#join).
 
-Thread\::start invokes Semaphore\::wait, decrementing the count and continuing
-or waiting (for a short time) and retrying.
+---
+#### <a id="run">virtual void pub::Thread::run() = 0;</a>
 
-When Thread\::run completes, Semaphore\::post allows another Thread to start.
+Operates the Thread. **Override this method.**
 
-#### <a id="set_max">void set_max_threads(size_t size)</a>
-Updates the current max_threads counter and the Semaphore count.
+If `run` throws an exception, the exception is caught, a message and a
+backtrace are written, and the Thread otherwise completes normally.
 
-Interaction with Thread\::start and Thread\::run completion may occur.
-The Semaphore count will be precisely updated if Threads do not start or
-complete while this method is running, but can be imprecise otherwise.
+---
+#### <a id="set_max_threads">static void pub::Thread::set_max_threads(size_t count);</a>
 
-#### <a id="joinable">bool joinable(void)</a>
-Returns `true` if and only if the Thread is in a joinable state.
+Sets the maximum number of concurrently running Threads.
 
-<!-- Static public methods                                                 -->
+If Threads start or complete while this method runs, the limit may
+temporarily be inexact.
 
-#### <a id="current">Thread* current(void)</a>
-Returns the current Thread.
+---
+#### <a id="sleep">static void pub::Thread::sleep(double seconds);</a>
 
-Thread\::current only returns Thread* for threads created by a Thread\::start.
-Thread\::current returns nullptr for threads created by any other mechanism.
-(The main thread was not started by Thread\::start.)
+Delays the current thread, whether or not it's a Thread, for `seconds`
+seconds.
+The resolution is one microsecond. Shorter delays return immediately.
 
-#### <a id="sleep">void sleep(double delay)</a>
-This delays the current execution thread (no matter how it was created) by
-`delay` seconds.
+---
+#### <a id="start">void pub::Thread::start(ITS its= ITS_JOINABLE);</a>
 
-#### <a id="yield">void yield(void)</a>
-Causes the current execution thread (no matter how it was created) to yield
-control to all other threads.
+Starts the Thread, which then invokes [run](#run).
 
-<!-- Methods                                                               -->
+If `its` is `ITS_DETACHED`, the Thread starts in the detached state, as if
+[detach](#detach) were the first statement in `run`.
 
-#### <a id="detach">void detach(void)</a>
-Causes the current Thread to go from the active into the detached state.
-Once detached, its state cannot change.
+If the maximum number of Threads is already running, start waits until
+another Thread completes. (See [get_max_threads](#get_max_threads).)
 
-- Thread\::detach may only be invoked (once) and only from the running Thread.
-- A detached Thread cannot be joined. Its system resources remain until it
-completes, at which time they are automatically released.
-- Thread\::current *is* valid and returns the Thread pointer for a detached
-Thread.
+A std::runtime_error exception is thrown if the Thread is already active or
+if the system cannot create the thread.
 
-#### <a id="join">void join(void)</a>
-Wait for Thread to complete.
+__Note__ The Thread may complete, and could even be deleted, before start
+returns. Applications needing to reference the Thread after start must
+provide their own synchronization.
 
-If invoked from the current Thread, `errno` is set to `EDEADLK` and no other
-action is taken.
-(The current Thread cannot complete while waiting for it to complete.)
+---
+#### <a id="static_debug">static void pub::Thread::static_debug(const char* info= "");</a>
 
-Implementation note: join with timeout is not implemented.
+Displays Thread statistics, such as the number of Threads started, running,
+and completed.
+`info` is an optional caller-supplied identifying string included in the
+display.
 
-#### <a id="run">virtual void run(void) = 0</a>
-Subclasses *MUST* implement this pure virtual method.
+---
+#### <a id="yield">static void pub::Thread::yield();</a>
 
-This method provides application-defined execution logic.
+Gives up the current thread's time slice, whether or not it's a Thread.
 
-#### <a id="start">void start(ITS its= ITS_JOINABLE)</a>
-This begins Thread execution, invoking Thread\::run.
-
-The `its` (Initial Thread State) parameter is set to Thread\::ITS_DETACHED
-to start the Thread in the detached state.
-This state is behaves as if `detach()` was the first statement in the
-(subclass's) `Thread\::run` method.
-
-<!-- Private methods                                                       -->
-
-#### <a id="drive">private: void drive(void* _thread)</a>
-This method:
-- Completes Thread initialization
-- Invokes Thread\::run
-- Handles Thread termination
-
-#### <a id="failure">private: void start_failure(void)</a>
-Handle Thread\::start exceptions:
-- Logging the failure in the Trace table
-- Deleting the tlss (Thread Local Storage Struct)
-- Logging the failure using System\::log.
-- Invoking Debug\::throwf which:
-  - Writes an error message to stdout and `./debug.out`.
-  - Throws a std\::runtime_error (constructed using the error message as a
-parameter.)
-
-Implementation note: This method has never been tested.
+---
+[Back](./Thread.md) | [Reference manual](./REFERENCE.md)

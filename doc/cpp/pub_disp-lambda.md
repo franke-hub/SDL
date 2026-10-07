@@ -17,7 +17,7 @@
 //       Dispatch.h reference manual: LambdaTask, LambdaDone
 //
 // Last change date-
-//       2026/09/30
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Dispatch.h>
@@ -151,3 +151,6 @@ Lambda functions replaced
 1777049709.806 <@000a00037070> Replacement LambdaTask work handler complete
 1777049709.806 <@000000000000> main() complete
 ```
+
+---
+[Back](./Dispatch.md) | [Reference manual](./REFERENCE.md)

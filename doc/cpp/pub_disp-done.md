@@ -17,7 +17,7 @@
 //       Dispatch.h reference manual: Done, Wait
 //
 // Last change date-
-//       2026/09/30
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Dispatch.h>
@@ -75,3 +75,6 @@ Waits for work Item completion.
 
 The Item's completion code is available in its `cc` field when wait
 returns.
+
+---
+[Back](./Dispatch.md) | [Reference manual](./REFERENCE.md)

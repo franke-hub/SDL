@@ -17,7 +17,7 @@
 //       diag-pristine.h reference manual
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ## pub::diag::Pristine
@@ -50,3 +50,6 @@ in addition to the error message the object content is dumped.
 Checks the Pristine object for consistency.
 The return code is zero if the the object is consistent.
 If inconsistent, an error message is written and the return code is non-zero.
+
+---
+[Back](./REFERENCE.md)

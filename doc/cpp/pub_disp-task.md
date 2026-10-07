@@ -17,7 +17,7 @@
 //       Dispatch.h reference manual: Task
 //
 // Last change date-
-//       2026/10/06
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Dispatch.h>
@@ -82,3 +82,6 @@ Only work Items with non-negative function codes are passed to `work`.
 
 The default implementation simply completes the Item, invoking
 `item->post()`.
+
+---
+[Back](./Dispatch.md) | [Reference manual](./REFERENCE.md)

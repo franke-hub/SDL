@@ -17,7 +17,7 @@
 //       Latch.h reference manual: SHR_latch
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Latch.h>
@@ -77,3 +77,6 @@ any shared holder remains, including the calling thread, so upgrading a
 held SHR_latch in place would always livelock. Instead:
 - Release the SHR_latch, then
 - Obtain the associated XCL_latch (see [XCL_latch::lock](./pub_latch-XCL.md#lock)).
+
+---
+[Back](./Latch.md) | [Reference manual](./REFERENCE.md)

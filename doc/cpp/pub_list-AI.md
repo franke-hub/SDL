@@ -17,7 +17,7 @@
 //       List.h reference manual: AI_list<T>
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/List.h>
@@ -144,3 +144,6 @@ int main() {
 
 - [Dispatch](Dispatch.md) Multi-threading dispatcher
   - pub::dispatch::Item, derived from AI_list<pub::dispatch::Item>::Link.
+
+---
+[Back](./List.md) | [Reference manual](./REFERENCE.md)

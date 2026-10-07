@@ -17,7 +17,7 @@
 //       Clock.h reference manual
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ## Defined in header <pub/Clock.h>
@@ -99,3 +99,4 @@ Note that this is a static method. It does not modify the `time` attribute.
 Return value: The number of seconds since the epoch.
 
 ---
+[Back](./Clock.md) | [Reference manual](./REFERENCE.md)

@@ -17,7 +17,7 @@
 //       Debug.h reference manual
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ## Defined in header <pub/Debug.h>
@@ -333,3 +333,6 @@ int main() {
    traceh("This ONLY appears in %s\n",   "TRACE");
 }
 ```
+
+---
+[Back](./Debug.md) | [Reference manual](./REFERENCE.md)

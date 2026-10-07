@@ -17,7 +17,7 @@
 //       List.h reference manual: DHDL_list<T>
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/List.h>
@@ -179,3 +179,6 @@ int main() {
    return 0;
 }
 ```
+
+---
+[Back](./List.md) | [Reference manual](./REFERENCE.md)

@@ -17,7 +17,7 @@
 //       Allocator.h reference manual
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ## pub::Allocator
@@ -50,3 +50,6 @@ Class: BlockAllocator (Allocate/release a fixed size block.
 | [destructor](./pub_allocator.md#b_destruct) | Release all allocated storage |
 | [get](./pub_allocator.md#b_get) | Allocate a fixed-size storage block |
 | [put](./pub_allocator.md#b_put) | Release a fixed-size storage block |
+
+---
+[Back](./REFERENCE.md)

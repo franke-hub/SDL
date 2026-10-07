@@ -17,7 +17,7 @@
 //       Claude correctness review report
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 # PUB Library Correctness Review
@@ -232,3 +232,6 @@ and warrant a fresh look.
   in this sandbox). Nothing suspicious turned up on inspection, but
   that's a weaker form of review than the programmatic/sanitizer
   verification the rest of this report relies on.
+
+---
+[Back](./REFERENCE.md)

@@ -17,7 +17,7 @@
 //       List.h reference manual
 //
 // Last change date-
-//       2026/10/06
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/List.h>
@@ -190,3 +190,6 @@ The DHDL_sort duplicates all functions of DHDL_list, adding the sort method.
 | [lifo](./pub_list-SHSL.md#lifo) | LIFO order link insertion |
 | [remq](./pub_list-SHSL.md#remq) | Remove TAIL element from the List. |
 | [reset](./pub_list-SHSL.md#reset) | Empty the List, returning the head link. |
+
+---
+[Back](./REFERENCE.md)

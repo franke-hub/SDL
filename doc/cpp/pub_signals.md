@@ -17,7 +17,7 @@
 //       Signals.h reference manual
 //
 // Last change date-
-//       2026/09/28
+//       2026/10/07
 //
 -------------------------------------------------------------------------- -->
 ## Defined in header <pub/Signals.h>
@@ -192,3 +192,4 @@ implementation, as provided to Signal::connect by the application
 // (As shown) this just invokes the Event handler
 
 ---
+[Back](./Signals.md) | [Reference manual](./REFERENCE.md)
