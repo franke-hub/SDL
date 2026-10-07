@@ -17,7 +17,7 @@
 //       Standard socket (including openssl sockets) wrapper.
 //
 // Last change date-
-//       2026/09/07
+//       2026/10/07
 //
 // Implementation notes-
 //       Error recovery is the user's responsibility.
@@ -170,7 +170,7 @@ virtual void
 protected:
 _LIBPUB_PRINTF(2,3)
 static void
-   trace(                           // Trace socket operation
+   debug_io(                        // Socket operation debug message
      int               line,        // For this source code line
      const char*       fmt,         // Format string
                        ...);        // The PRINTF argument list
@@ -509,7 +509,7 @@ virtual void
 protected:
 _LIBPUB_PRINTF(3,4)
 virtual void
-   trace(                           // Trace socket operation
+   debug_io(                        // Socket operation debug message
      int               line,        // For this source code line
      const char*       fmt,         // Format string
                        ...) const;  // The PRINTF argument list

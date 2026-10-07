@@ -73,7 +73,7 @@ typedef Socket::sockaddr_x          sockaddr_x;
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  IODM= false                      // I/O Debug Mode?
-,  IOEM= true                       // I/O error Debug Mode?
+,  IOEM= false                      // I/O error Debug Mode?
 ,  VERBOSE= 1                       // Verbosity, higher is more verbose
 
 ,  USE_CHECKING= true               // Use internal cross-checking?
@@ -433,11 +433,11 @@ void
 //
 // Method-
 //       Socket::debug
-//       Socket::trace
+//       Socket::debug_io
 //
 // Purpose-
 //       Diagnostic display
-//       Trace socket operation message
+//       Socket operation debug message
 //
 //----------------------------------------------------------------------------
 void
@@ -453,7 +453,7 @@ void
 }
 
 void
-   Socket::trace(                   // Trace socket operation
+   Socket::debug_io(                // Socket operation debug message
      int               line,        // For this source code line
      const char*       fmt,         // Format string
                        ...)         // The PRINTF argument list
@@ -606,7 +606,7 @@ Socket*                             // The new connection Socket
    sockaddr_storage peeraddr;
    socklen_t peersize= sizeof(peeraddr);
    int client= ::accept(handle, (sockaddr*)&peeraddr, &peersize);
-   if( IODM ) trace(__LINE__, "%d= accept", client);
+   if( IODM ) debug_io(__LINE__, "%d= accept", client);
    if( client < 0 )
      return nullptr;
 
@@ -640,7 +640,7 @@ int                                 // Return code (0 OK)
      debugh("Socket(%p)::bind(%p,%d)\n", this, hostaddr, hostsize);
 
    int rc= ::bind(handle, hostaddr, hostsize);
-   if( IODM ) trace(__LINE__, "%d= bind(%d)", rc, handle);
+   if( IODM ) debug_io(__LINE__, "%d= bind(%d)", rc, handle);
    if( rc == 0 ) {
      host_size= hostsize;
      host_addr.copy(hostaddr, hostsize);
@@ -726,7 +726,8 @@ int                                 // Return code (0 OK)
 
    int rc= ::connect(handle, peeraddr, peersize);
    if( IODM )
-     trace(__LINE__, "%d= connect(%d,%p,%d)", rc, handle, peeraddr, peersize);
+     debug_io(__LINE__, "%d= connect(%d,%p,%d)"
+                      , rc, handle, peeraddr, peersize);
 
    if( rc == 0 ) {
      peer_size= peersize;
@@ -782,7 +783,7 @@ int                                 // Return code, 0 expected
 
    int rc= ::listen(handle, SOMAXCONN); // Wait for new connection
    if( rc && IODM ) {               // If listen failure
-     trace(__LINE__, "%d= listen()", rc);
+     debug_io(__LINE__, "%d= listen()", rc);
      display_ERR();
    }
 
@@ -814,7 +815,7 @@ int                                 // Return code, 0 OK
          || size_t(*size) <= (nps.size()+offsetof(sockaddr_un, sun_path)) ) {
        errno= EINVAL;
        if( IOEM )
-         trace(__LINE__, "'%s' AF_UNIX name too long", s2c(nps));
+         debug_io(__LINE__, "'%s' AF_UNIX name too long", s2c(nps));
        return -1;
      }
 
@@ -865,10 +866,10 @@ int                                 // Return code, 0 OK
    // Select the first matching entry returned by getaddrinfo
    addrinfo* info= nullptr;         // Resultant info
    int rc= getaddrinfo(s2c(name), s2c(port), nullptr, &info);
-   if( IODM ) trace(__LINE__, "%d= getaddrinfo(%s)", rc, s2c(nps));
+   if( IODM ) debug_io(__LINE__, "%d= getaddrinfo(%s)", rc, s2c(nps));
    if( rc ) {                       // If unable to get addrinfo
      if( IOEM )
-       trace(__LINE__, "'%s' name:port invalid/unknown", s2c(nps));
+       debug_io(__LINE__, "'%s' name:port invalid/unknown", s2c(nps));
      *size= 0;
      errno= EINVAL;
      rc= -1;
@@ -994,7 +995,7 @@ int                                 // Return code, 0 OK
      errno= EBADF;
    else {
      rc= ::shutdown(handle, how);
-     if( IODM ) trace(__LINE__, "%d= shutdown(%d)", rc, how);
+     if( IODM ) debug_io(__LINE__, "%d= shutdown(%d)", rc, how);
    }
 
    return rc;
@@ -1015,7 +1016,7 @@ ssize_t                             // Number of bytes read
      size_t            size)        // Data length
 {
    ssize_t L= ::read(handle, (char*)addr, size);
-   if( IODM ) trace(__LINE__, "%zd= read()", L);
+   if( IODM ) debug_io(__LINE__, "%zd= read()", L);
 
    if( USE_ITRACE && VERBOSE && L >= 0 ) {
      Trace::io_trace(".SOK", "<<RD", this, i2v(handle), addr, L);
@@ -1039,7 +1040,7 @@ ssize_t                             // Number of bytes sent
      size_t            size)        // Data length
 {
    ssize_t L= ::write(handle, (char*)addr, size);
-   if( IODM ) trace(__LINE__, "%zd= write()", L);
+   if( IODM ) debug_io(__LINE__, "%zd= write()", L);
 
    if( USE_ITRACE && VERBOSE && L >= 0 ) {
      Trace::io_trace(".SOK", ">>WR", this, i2v(handle), (char*)addr, L);
@@ -1065,7 +1066,7 @@ ssize_t                             // Number of bytes read
      int               flag)        // Receive options
 {
    ssize_t L= ::recv(handle, addr, size, flag);
-   if( IODM ) trace(__LINE__, "%zd= recv()", L);
+   if( IODM ) debug_io(__LINE__, "%zd= recv()", L);
 
    if( USE_ITRACE && VERBOSE && L >= 0 ) {
      Trace::io_trace(".SOK", "RECV", this, i2v(handle), addr, L);
@@ -1083,7 +1084,7 @@ ssize_t                             // The number of bytes read
      socklen_t*        peer_size)   // Source peer address length
 {
    ssize_t L= ::recvfrom(handle, addr, size, flag, peer_addr, peer_size);
-   if( IODM ) trace(__LINE__, "%zd= recvfrom()", L);
+   if( IODM ) debug_io(__LINE__, "%zd= recvfrom()", L);
 
    if( USE_ITRACE && VERBOSE && L >= 0 ) {
      Trace::io_trace(".SOK", "FRCV", this, i2v(handle), addr, L);
@@ -1098,7 +1099,7 @@ ssize_t                             // The number of bytes received
      int               flag)        // Send options
 {
    ssize_t L= ::recvmsg(handle, msg, flag);
-   if( IODM ) trace(__LINE__, "%zd= recvmsg()", L);
+   if( IODM ) debug_io(__LINE__, "%zd= recvmsg()", L);
 
    if( USE_ITRACE && VERBOSE && L >= 0 ) {
      void* addr= msg->msg_iov[0].iov_base;
@@ -1129,7 +1130,7 @@ ssize_t                             // Number of bytes sent
      int               flag)        // Transmit options
 {
    ssize_t L= ::send(handle, addr, size, flag);
-   if( IODM ) trace(__LINE__, "%zd= send()", L);
+   if( IODM ) debug_io(__LINE__, "%zd= send()", L);
 
    if( USE_ITRACE && VERBOSE && L >= 0 ) {
      Trace::io_trace(".SOK", "SEND", this, i2v(handle), addr, L);
@@ -1144,7 +1145,7 @@ ssize_t                             // The number of bytes written
      int               flag)        // Send options
 {
    ssize_t L= ::sendmsg(handle, msg, flag);
-   if( IODM ) trace(__LINE__, "%zd= sendmsg()", L);
+   if( IODM ) debug_io(__LINE__, "%zd= sendmsg()", L);
 
    if( USE_ITRACE && VERBOSE && L >= 0 ) {
      void* addr= msg->msg_iov[0].iov_base;
@@ -1173,7 +1174,7 @@ ssize_t                             // The number of bytes written
      }
    }
    ssize_t L= ::sendto(handle, addr, size, flag, peeraddr, peersize);
-   if( IODM ) trace(__LINE__, "%zd= sendto()", L);
+   if( IODM ) debug_io(__LINE__, "%zd= sendto()", L);
 
    if( USE_ITRACE && VERBOSE && L >= 0 ) {
      Trace::io_trace(".SOK", "SND2", this, i2v(handle), addr, L);
@@ -1252,11 +1253,11 @@ SSL_socket&                         // (Always *this)
 //
 // Method-
 //       SSL_socket::debug
-//       SSL_socket::trace
+//       SSL_socket::debug_io
 //
 // Purpose-
 //       Diagnostic display
-//       Trace socket operation message
+//       SSL_Socket operation debug message
 //
 //----------------------------------------------------------------------------
 void
@@ -1269,7 +1270,7 @@ void
 }
 
 void
-   SSL_socket::trace(               // Trace SSL_socket operation
+   SSL_socket::debug_io(            // SSL_socket operation debug message
      int               line,        // For this source code line
      const char*       fmt,         // Format string
                        ...) const   // The PRINTF argument list
@@ -1312,7 +1313,7 @@ Socket*                             // The new connection SSL_socket
    sockaddr_storage peeraddr;
    socklen_t peersize= sizeof(peeraddr);
    int client= ::accept(handle, (sockaddr*)&peeraddr, &peersize);
-   if( IODM ) trace(__LINE__, "%d= accept", client);
+   if( IODM ) debug_io(__LINE__, "%d= accept", client);
    if( client < 0 )
      return nullptr;
 
@@ -1322,7 +1323,7 @@ Socket*                             // The new connection SSL_socket
    peer_size= peersize;
 
    result->ssl= SSL_new(ssl_ctx);
-   if( IODM ) trace(__LINE__, "%p= SSL_new", result->ssl);
+   if( IODM ) debug_io(__LINE__, "%p= SSL_new", result->ssl);
    if( result->ssl == nullptr ) {
      display_ERR();
      delete result;
@@ -1332,7 +1333,7 @@ Socket*                             // The new connection SSL_socket
    SSL_set_mode(result->ssl, SSL_MODE_AUTO_RETRY);
 
    int rc= SSL_accept(result->ssl);
-   if( IODM ) trace(__LINE__, "%d= SSL_accept", rc);
+   if( IODM ) debug_io(__LINE__, "%d= SSL_accept", rc);
    if( rc != 1 ) {
      if( IOEM ) {                   // (May need to pass error info to user)
        char buff[256];
@@ -1373,7 +1374,7 @@ int                                 // Return code (0 OK)
    int rc= Socket::connect(peer_addr, peer_size); // Create the connection
    if( rc == 0 ) {
      ssl= SSL_new(ssl_ctx);
-     if( IODM ) trace(__LINE__, "%p= SSL_new", ssl);
+     if( IODM ) debug_io(__LINE__, "%p= SSL_new", ssl);
      if( ssl == nullptr ) {
        display_ERR();
        throw std::runtime_error("SSL_new failure"); // (SHOULD NOT OCCUR)
@@ -1382,7 +1383,7 @@ int                                 // Return code (0 OK)
 
      SSL_set_fd(ssl, handle);
      rc= SSL_connect(ssl);
-     if( IODM ) trace(__LINE__, "%d= SSL_connect(%p)", rc, ssl);
+     if( IODM ) debug_io(__LINE__, "%d= SSL_connect(%p)", rc, ssl);
      if( SSL_connect(ssl) < 0 ) {
        display_ERR();
        throw std::runtime_error("SSL_connect failure"); // (SHOULD NOT OCCUR)
@@ -1409,7 +1410,7 @@ ssize_t                             // Number of bytes read
      size_t            size)        // Data length
 {
    ssize_t L= SSL_read(ssl, addr, size);
-   if( IODM ) trace(__LINE__, "%zd= SSL_read()", L);
+   if( IODM ) debug_io(__LINE__, "%zd= SSL_read()", L);
 
    if( USE_ITRACE && VERBOSE && L >= 0 ) {
      Trace::io_trace(".SSL", "<<RD", this, i2v(handle), addr, L);
@@ -1433,7 +1434,7 @@ ssize_t                             // Number of bytes sent
      size_t            size)        // Data length
 {
    ssize_t L= SSL_write(ssl, addr, size);
-   if( IODM ) trace(__LINE__, "%zd= SSL_write()", L);
+   if( IODM ) debug_io(__LINE__, "%zd= SSL_write()", L);
 
    if( USE_ITRACE && VERBOSE && L >= 0 ) {
      Trace::io_trace(".SSL", ">>WR", this, i2v(handle), addr, L);
