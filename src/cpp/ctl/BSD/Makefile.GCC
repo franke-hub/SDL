@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2024 Frank Eskesen.
+##       Copyright (c) 2007-2026 Frank Eskesen.
 ##
 ##       This file is free content, distributed under creative commons CC0,
 ##       explicitly released into the Public Domain.
@@ -17,7 +17,7 @@
 ##       Default GCC compiler controls
 ##
 ## Last change date-
-##       2024/03/04
+##       2026/10/07
 ##
 ##############################################################################
 
@@ -43,15 +43,12 @@ COPTS  += $(OPTIMIZE)############## Customized optimization
 
 else
 COPTS  += -g -O3################### Default, debugging, full optimization
-COPTS  += -finline-functions####### Optimize out inline functions
+COPTS  += -finline-functions####### Use aggressive inline function optimization
 endif
 
 COPTS  += -std=gnu++17############# Use C++17 standard (gnu version)
-###### += -ansi ################### ANSI level
-###### += -mlong64################# 64 bit longs (DOESN'T WORK)
-###### += -mno-fp-regs############# Don't use FP registers
-###### += -fexceptions############# Enable try/catch exception handling
-################################### (Conflicts with -O3)
+###### += -ansi ################### (Conflicts with C++)
+###### += -fexceptions############# (try/catch handling is now the C++ default)
 
 ################################### Warnings (-Wall/extras commented out)
 COPTS  += -Wall ################### Activate all standard warnings
@@ -63,14 +60,12 @@ COPTS  += -Werror ################# Treat warnings as errors
 ###### += -Wdangling-else ######### Possible if-else confusion
 ###### += -Wfatal-errors ########## Abort on first error
 ###### += -Wformat ################ Extensive printf, etc. checking
-###### += -Wimplicit ############## Implicit function or parameter
 COPTS  += -Wmissing-declarations ## Global function has no prototype
 ###### += -Wno-deprecated########## Don't warn about deprecated usage
 ###### += -Wreturn-type ########### Implicit return type
 ###### += -Wshadow ################ Disallow shadow variables
 ###### += -Wswitch ################ Switch, enumerated index lacks case
 COPTS  += -Wswitch-default ######## Switch, missing default case
-###### += -Wtemplate-debugging #### C++ only
 ###### += -Wtrigraphs ############# Trigraphs encountered
 ###### += -Wuninitialized########## Variable used before being set
 ###### += -Wunused################# Unused variable or function

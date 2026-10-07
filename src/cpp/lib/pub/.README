@@ -16,7 +16,7 @@
 ##       Development status, history, and reminders.
 ##
 ## Last change date-
-##       2026/04/23
+##       2026/10/07
 ##
 ##############################################################################
 
@@ -69,6 +69,11 @@
 
 ##############################################################################
 ## TODO:
+2026/10/07 Change ~/src/cpp/ctl/BSD/Makefile.GCC to use the "-Wshadow" option.
+         For defect prevention rather than defect correction.
+         This requires extensive changes, definitely in other libraries and
+         possibly in applications too.
+
 2022/08/23 Implement CLANG compiler compilation
          ~/src/cpp/ctl/BSD/Makefile has some (untested) code already.
 
