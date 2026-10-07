@@ -41,8 +41,8 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //
 // Implementation notes-
 //       A Semaphore is not (currently) an Object.
-//       Semaphore::post is known as P in the literature
-//       Semaphore::wait is known as V in the literature
+//       Semaphore::post is known as V in the literature
+//       Semaphore::wait is known as P in the literature
 //
 //----------------------------------------------------------------------------
 class Semaphore {                   // Semaphore descriptor
