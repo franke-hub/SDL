@@ -17,15 +17,18 @@
 //       Test the Diagnostic functions.
 //
 // Last change date-
-//       2026/10/09
+//       2026/10/15
 //
 // Implementation notes-
 //       No verification tests included. Use --verbose to display values.
 //
 //----------------------------------------------------------------------------
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE                 // For pthread_getattr_np
+#endif
 
 #include <string>                   // For std::string
+#include <cstdint>                  // For intptr_t
 
 #include <pthread.h>                // For pthread interface
 #include <string.h>                 // For strerror
