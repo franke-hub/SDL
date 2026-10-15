@@ -17,7 +17,7 @@
 //       Dictionary method implementation.
 //
 // Last change date-
-//       2026/06/11
+//       2026/10/09
 //
 //----------------------------------------------------------------------------
 #include <memory>                   // For std:unique_ptr, make_unique
@@ -63,10 +63,10 @@ const char*            rule;        // Rule name
 };
 
 dict_rule_t            dict_rule[]=
-{  {"/usr/share/myspell/en_US-large.dic", "/usr/share/myspell/en_US-large.aff"}
-,  {"/usr/share/myspell/en_US.dic", "/usr/share/myspell/en_US.aff"}
-,  {"/usr/share/hunspell/en_US-large.dic", "/usr/share/hunspell-large/en_US.aff"}
+{  {"/usr/share/hunspell/en_US-large.dic", "/usr/share/hunspell/en_US-large.aff"}
+,  {"/usr/share/myspell/en_US-large.dic", "/usr/share/myspell/en_US-large.aff"}
 ,  {"/usr/share/hunspell/en_US.dic", "/usr/share/hunspell/en_US.aff"}
+,  {"/usr/share/myspell/en_US.dic", "/usr/share/myspell/en_US.aff"}
 ,  {nullptr, nullptr}
 };
 
@@ -174,7 +174,8 @@ static bool
 :  list()
 {  if( HCDM ) debugf("!Dictionary(%p)\n", this);
 
-   string      HOME= getenv("HOME"); // The HOME directory
+   const char* home= getenv("HOME"); // The HOME directory
+   string      HOME= home ? home : "";
    struct stat info;                // Working info struct
 
    const char* dict= nullptr;
@@ -200,6 +201,8 @@ static bool
      exit(1);
    }
 
+   if( VERBOSE > 0 )
+     debugf("dict(%s)\nrule(%s)\n", dict, rule);
    load_rule(rule);
    load_dict(dict);
 
@@ -218,8 +221,8 @@ static bool
            string extension= name.get_extension();
            if( extension == "dic" ) {
              load_dict(name.get_full_name().c_str());
-           } else if( HCDM && VERBOSE > 1 ) {
-             errorf("HCDM Skipping File(%s) extension(%s)\n"
+           } else if( VERBOSE > 1 ) {
+             errorf("Skipping File(%s) extension(%s)\n"
                    , name.get_full_name().c_str()
                    , name.get_extension().c_str());
            }
@@ -233,12 +236,8 @@ static bool
    // Load user-supplied OPTIONAL dictionaries
    if( user_dict ) {
      for(size_t i= 0; user_dict[i]; ++i) {
-       Name name(user_dict[i]);
-       const char* full= name.get_full_name().c_str();
-       if( stat(full, &info) == 0 )
-         load_dict(full);
-       else
-         errorf("WARNING: Optional file(%s) not found\n", full);
+       if( append(user_dict[i]) )
+         errorf("WARNING: Optional file(%s) not found\n", user_dict[i]);
      }
    }
 
@@ -277,9 +276,12 @@ static bool
 //----------------------------------------------------------------------------
 void
    Dictionary::debug(               // Debugging display
-     const char*       info)        // Caller information
+     const char*       info,        // Caller information
+     int               verbose)     // (Optional) verbosity
 {
-   debugf("Dictionary(%p)::debug(%s)\n", this, info);
+   debugf("Dictionary(%p)::debug(%s,%d)\n", this, info, verbose);
+   if( VERBOSE > verbose )
+     verbose= VERBOSE;
 
    if( list.get_head() )
      debugf("word list{'%s'..'%s'}\n"
@@ -287,7 +289,7 @@ void
    else
      debugf("list{} (empty)\n");
 
-   if( VERBOSE > 0 ) {
+   if( verbose ) {
      debugf("\nRule table:\n");
      for(int i= 0; i < DIM_CHAR; ++i) {
        affix_head* head= rule[i].get();
@@ -296,10 +298,8 @@ void
                , head->paired ? "Y" : "N");
 
          for(auto it= head->list.begin(); it != head->list.end(); ++it) {
-           debugf("..Rem(%s) Ins(%s) '%s' %d\n"
-                 , it->remove.c_str(), it->insert.c_str(), it->ifrule.c_str()
-                 , it->ifrule[0]
-                 );
+           debugf("..Rem(%s) Ins(%s) '%s'\n"
+                 , it->remove.c_str(), it->insert.c_str(), it->ifrule.c_str());
          }
          debugf("\n");
        }
@@ -318,8 +318,17 @@ void
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 expected
    Dictionary::append(              // Add file to dictionary
-     const char*       name)        // The file name
-{  (void)name; // NOT CODED YET
+     const char*       file)        // The file name
+{
+   Name name(file);
+   string  full_str= name.get_full_name().c_str();
+   const char* full= full_str.c_str();
+
+   struct stat info;                // Working info struct
+   if( stat(full, &info) != 0 )
+     return 1;
+
+   load_dict(full);
    return 0;
 }
 
@@ -341,11 +350,11 @@ void
      int max_search= 8;             // Maximum search length
      for(Word* item= list.get_tail(); item; item= item->get_prev()) {
        if( word == item->word ) {   // If duplicate
-         if( HCDM && VERBOSE > 0 ) {
+         if( VERBOSE > 0 ) {
            if( affix )
-             debugf("Insert(%s) %s skipped duplicate\n", word.c_str(), affix);
+             debugf("Insert(%s) skipped duplicate: %s\n", affix, word.c_str());
            else
-             debugf("Insert(%s) skipped duplicate\n", word.c_str());
+             debugf("Insert skipped duplicate: %s\n", word.c_str());
          }
          return;
        }
@@ -355,8 +364,8 @@ void
      }
    }
 
-   if( HCDM && VERBOSE > 0 && affix )
-     debugf("Insert(%s) %s\n", word.c_str(), affix);
+   if( VERBOSE > 1 && affix )
+     debugf("Insert(%s): %s\n", affix, word.c_str());
 
    list.fifo(new Word(word));
 }
@@ -376,7 +385,7 @@ bool                                // TRUE if rule applies
      string            text)        // This string?
 {
    bool rc= if_rule(rule, text);
-   if( HCDM && VERBOSE > 1 )
+   if( VERBOSE > 1 )
      debugf("%c= is_rule(%s,%s)\n", rc ? 'T':'F', rule.c_str(), text.c_str());
    return rc;
 }
@@ -466,7 +475,7 @@ void
          if( is_rule(it->ifrule, text) ) {
            string T= text;
            if( it->remove != "0" )
-             T= text.substr(0, text.size()-1);
+             T= text.substr(0, text.size() - it->remove.size());
            T += it->insert;
            insert(T, "SFX");
            if( prefix_ix && head->paired ) {
@@ -560,6 +569,9 @@ void
          rule[head->index]= std::move(head);
      }
    }
+
+   if( head.get() )                 // If PFX/SFX in progress
+     rule[head->index]= std::move(head);
 }
 
 //----------------------------------------------------------------------------
@@ -586,7 +598,7 @@ void
    while( link ) {
      if( prior->word == link->word ) { // If duplicate
        list.remove(link);
-       free(link);
+       delete link;
      } else {                       // If unique
        prior= link;
      }

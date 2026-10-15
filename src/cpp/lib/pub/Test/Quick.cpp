@@ -17,7 +17,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2026/09/07
+//       2026/10/09
 //
 //----------------------------------------------------------------------------
 #include <iostream>                 // For std::cout
@@ -301,7 +301,7 @@ static inline int
 
    if( opt_verbose ) {
      Dictionary dict((const char**)dict_list); // Compilation/Load test
-     dict.debug("Usage test");
+     dict.debug("Usage test", opt_verbose);
 
      if( opt_verbose > 5) {
        debugf("Full dictionary\n");

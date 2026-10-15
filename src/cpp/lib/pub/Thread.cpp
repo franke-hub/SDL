@@ -42,15 +42,17 @@
 //
 // Implementation notes (Thread::detach and Thread::~Thread)-
 //       Running Threads *can* delete themselves but, while a Thread is
-//       running, Thread delete from a different thread is not allowed.
+//       running Thread delete from a different thread is not allowed.
 //       When a running Thread self-deletes, if in a joinable state it also
 //       performs a self-detach.
 //
 //       Similarly, running Threads *can* detach themselves, but detach from
 //       a different Thread is never permitted. Threads that complete without
-//       detaching first must be joined before they are deleted. Thread
-//       delete
-//
+//       detaching first must be joined before they are deleted. The Thread
+//       destructor assumes that, if neither deatach nor join hast been
+//       invoked the application "just forgot" to join and will do the join.
+//       If join is actually invoked after a destructor's invocation, results
+//       are unpredictable.
 //
 // Implementation notes (Thread::cancel)-
 //       Thread::cancel is not implemented. Within the pub library, derived

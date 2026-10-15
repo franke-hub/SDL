@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2024-2025 Frank Eskesen.
+//       Copyright (c) 2024-2026Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Dictionary definition and implementation.
 //
 // Last change date-
-//       2025/11/23
+//       2026/10/09
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_DICTIONARY_H_INCLUDED
@@ -139,7 +139,8 @@ Iterator
 //----------------------------------------------------------------------------
 void
    debug(                           // Debugging display
-     const char*       info= "");   // Informational message
+     const char*       info= "",    // Informational message
+     int               verbose=0);  // (Optional) verbosity
 
 int                                 // Return code, 0 expected
    append(                          // Append/insert a dictionary
