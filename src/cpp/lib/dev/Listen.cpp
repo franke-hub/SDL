@@ -17,11 +17,11 @@
 //       Implement http/Listen.h
 //
 // Last change date-
-//       2026/04/22
+//       2026/10/17
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
-#include <mutex>                    // For std::lock_guard
+#include <mutex>                    // For std::mutex, std::lock_guard
 #include <memory>                   // For std::shared_ptr
 #include <stdexcept>                // For std::out_of_range, ...
 #include <string>                   // For std::string
@@ -40,7 +40,6 @@
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Dispatch.h>           // For pub::namespace pub::dispatch
 #include <pub/Exception.h>          // For pub::Exception
-#include <pub/mutex.h>              // For pub::mutex
 #include <pub/Socket.h>             // For pub::Socket
 #include "pub/Trace.h"              // For pub::Trace
 #include <pub/utility.h>            // For pub::utility::to_string(), ...
@@ -250,7 +249,7 @@ void
 
    listen.debug(info);              // Display socket information
 
-   std::lock_guard<pub::mutex> lock(*const_cast<pub::mutex*>(&mutex));
+   std::lock_guard<std::mutex> lock(*const_cast<std::mutex*>(&mutex));
 
    // Listener information
    int index= 0;                    // (Artificial) index

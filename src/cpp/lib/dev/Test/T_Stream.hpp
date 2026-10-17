@@ -17,7 +17,7 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2026/04/22
+//       2026/10/17
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
@@ -198,7 +198,7 @@ public:
 std::shared_ptr<Client>client;      // The Client
 
 std::atomic_size_t     cur_op_count= 0; // The number of running requests
-pub::mutex             mutex;       // Protects client
+std::mutex             mutex;       // Protects client
 
 pub::Event             ready;       // Thread ready event
 pub::Event             send_end;    // Send completion event (for run_one)

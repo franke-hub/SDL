@@ -17,7 +17,7 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2026/03/23
+//       2026/10/17
 //
 // Implmentation note-
 //       TODO: Test _read() disconnect (close processing)
@@ -26,6 +26,7 @@
 #define OPENSSL_API_COMPAT 30000    // Deprecate OSSL functions < 3.0.0
 
 #include <atomic>                   // For std::atomic<serialno_t>
+#include <mutex>                    // For std::mutex, std::lock_guard
 #include <new>                      // For std::bad_alloc
 #include <stdexcept>                // For std::runtime_error, ...
 #include <string>                   // For std::string
@@ -45,7 +46,6 @@
 #include <pub/Event.h>              // For pub::Event
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Ioda.h>               // For pub::Ioda
-#include <pub/mutex.h>              // For pub::mutex
 #include <pub/Named.h>              // For pub::Named
 #include <pub/Statistic.h>          // For pub::Active_record
 #include <pub/Thread.h>             // For pub::Thread
@@ -233,7 +233,7 @@ static int                          // Actual password length
 static inline void
    initialize_SSL( void )           // Initialize SSL
 {
-static pub::mutex      mutex;       // Latch protecting initialized
+static std::mutex      mutex;       // Latch protecting initialized
 static bool            initialized= false; // TRUE when initialized
 
    std::lock_guard<decltype(mutex)> lock(mutex);
@@ -396,7 +396,7 @@ virtual void
 //----------------------------------------------------------------------------
    Client::Client(                  // Constructor
      ClientAgent*      owner)       // Our ClientAgent
-:  pub::mutex()
+:  std::mutex()
 ,  agent(owner)
 ,  proto_id(proto[HTTP_H1])
 ,  size_inp(BUFFER_SIZE)

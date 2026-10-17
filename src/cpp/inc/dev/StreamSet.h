@@ -17,15 +17,16 @@
 //       HTTP StreamSet object.
 //
 // Last change date-
-//       2026/03/23
+//       2026/10/17
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_STREAMSET_H_INCLUDED
 #define _LIBPUB_HTTP_STREAMSET_H_INCLUDED
 
 #include <memory>                   // For std::shared_ptr
+#include <mutex>                    // For std::mutex, ...
 
-#include "pub/mutex.h"              // For pub::mutex, ...
+#include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 namespace http {
@@ -43,6 +44,8 @@ class Stream;
 //       Control a set of Stream objects.
 //
 // Implementation notes-
+//       Placeholder: Not Implemented
+//
 //       Note: StreamSet::Node is Stream's base class.
 //       Although Stream objects are usually referenced using std::shared_ptr,
 //       we use Node* to maintain the StreamSet Node tree.
@@ -95,7 +98,7 @@ typedef map_t::const_iterator       const_iterator;
 //----------------------------------------------------------------------------
 // StreamSet::Attributes
 //----------------------------------------------------------------------------
-mutable pub::mutex     mutex;       // The SteamSet mutex
+mutable std::mutex     mutex;       // The SteamSet mutex
 map_t                  map;         // The (Stream) Node map
 Node*                  root= nullptr; // The root Node
 

@@ -17,7 +17,7 @@
 //       HTTP Server object.
 //
 // Last change date-
-//       2026/03/23
+//       2026/10/17
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_SERVER_H_INCLUDED
@@ -25,13 +25,13 @@
 
 #include <functional>               // For std::function
 #include <memory>                   // For std::shared_ptr
+#include <mutex>                    // For std::mutex (base class)
 #include <string>                   // For std::string
 #include <cstdint>                  // For integer types
 
 #include <pub/Dispatch.h>           // For namespace pub::dispatch objects
 #include <pub/Event.h>              // For pub::Event
 #include <pub/Ioda.h>               // For pub::Ioda
-#include "pub/mutex.h"              // For pub::mutex, ..., base class
 #include <pub/Socket.h>             // For pub::Socket
 #include "pub/http/Options.h"       // For pub::http::Options
 #include "pub/http/Request.h"       // For pub::http::Request
@@ -54,7 +54,7 @@ class ServerItem;                   // (Internal)
 //       Define the Server class.
 //
 //----------------------------------------------------------------------------
-class Server : public pub::mutex {  // Server class (lockable)
+class Server : public std::mutex {  // Server class (lockable)
 //----------------------------------------------------------------------------
 // Server::Typedefs and enumerations
 //----------------------------------------------------------------------------

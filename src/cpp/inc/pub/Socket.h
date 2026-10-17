@@ -17,7 +17,7 @@
 //       Standard socket (including openssl sockets) wrapper.
 //
 // Last change date-
-//       2026/10/07
+//       2026/10/17
 //
 // Implementation notes-
 //       Error recovery is the user's responsibility.
@@ -31,6 +31,7 @@
 
 #include <atomic>                   // For std::atomic
 #include <functional>               // For std::function
+#include <mutex>                    // For std::mutex
 #include <stdexcept>                // For std::runtime_error
 #include <string>                   // For std::string
 
@@ -42,7 +43,6 @@
 #include <sys/socket.h>             // For socket methods
 
 #include <pub/Exception.h>          // For pub::Exception
-#include <pub/mutex.h>              // For pub::mutex
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
@@ -131,7 +131,7 @@ typedef std::function<void(int)>    f_select; // Select event handler type
 // Socket::Attributes
 //----------------------------------------------------------------------------
 protected:
-pub::mutex             mutex;       // Open/close mutex
+std::mutex             mutex;       // Open/close mutex
 f_select               h_select;    // Selection event handler
 
 int                    handle= CLOSED; // The socket handle (handle)

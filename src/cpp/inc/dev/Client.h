@@ -17,7 +17,7 @@
 //       HTTP Client object.
 //
 // Last change date-
-//       2026/03/23
+//       2026/10/17
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_CLIENT_H_INCLUDED
@@ -26,13 +26,13 @@
 #include <new>                      // For in-place constructor
 #include <functional>               // For std::function
 #include <memory>                   // For std::shared_ptr
+#include <mutex>                    // For std::mutex
 #include <string>                   // For std::string
 #include <cstdint>                  // For integer types
 
 #include <pub/Dispatch.h>           // For pub::Dispatch objects
 #include <pub/Event.h>              // For pub::Event
 #include <pub/Ioda.h>               // For pub::Ioda
-#include <pub/mutex.h>              // For pub::mutex, super class
 #include <pub/Select.h>             // For pub::Select
 #include <pub/Socket.h>             // For pub::Socket
 #include "pub/http/Stream.h"        // For pub::http::Stream, ...
@@ -60,7 +60,7 @@ class Response;
 //       Define the (lockable) Client class.
 //
 //----------------------------------------------------------------------------
-class Client : public pub::mutex {  // Client class (lockable)
+class Client : public std::mutex {  // Client class (lockable)
 //----------------------------------------------------------------------------
 // Client::Typedefs and enumerations
 //----------------------------------------------------------------------------

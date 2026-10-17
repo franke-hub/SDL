@@ -17,7 +17,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2026/04/22
+//       2026/10/17
 //
 // Arguments-
 //       With no arguments, --client defaulted
@@ -38,6 +38,7 @@
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic
 #include <memory>                   // For std::shared_ptr
+#include <mutex>                    // For std::mutex, ...
 #include <cstddef>                  // For offsetof
 #include <cstdint>                  // For UINT16_MAX
 #include <ctime>                    // For time, ...
@@ -56,7 +57,6 @@
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Event.h>              // For pub::Event
 #include <pub/Ioda.h>               // For pub::Ioda
-#include "pub/mutex.h"              // For pub::mutex, ...
 #include <pub/Reporter.h>           // For pub::Reporter
 #include "pub/Signals.h"            // For pub::Signals interface
 #include <pub/Statistic.h>          // For pub::Statistic

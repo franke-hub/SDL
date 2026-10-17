@@ -17,10 +17,11 @@
 //       Implement http/StreamSet.h
 //
 // Last change date-
-//       2026/03/23
+//       2026/10/17
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic
+#include <mutex>                    // For std::mutex, ...
 #include <new>                      // For std::bad_alloc
 #include <stdexcept>                // For std::runtime_error, ...
 #include <string>                   // For std::string
@@ -32,7 +33,6 @@
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Dispatch.h>           // For namespace pub::dispatch
 #include <pub/Exception.h>          // For pub::Exception
-#include "pub/mutex.h"              // For pub::mutex, ...
 #include <pub/Statistic.h>          // For pub::Active_record
 #include "pub/Trace.h"              // For pub::Trace
 #include <pub/utility.h>            // For pub::to_string, ...
