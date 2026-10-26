@@ -682,7 +682,8 @@ static inline int
 
    errno= 0;                        // No error
 
-   // Test atoi, atol, atox --------------------------------------------------
+   //-------------------------------------------------------------------------
+   // Test atoi, atol, atox
    error_count += MUST_EQ(atoi("1234567890"), 1234567890);
    error_count += MUST_EQ(atol("123456789012345"), 123456789012345L);
    error_count += MUST_EQ(atox("12abcdefABCDEF"), 0x12abcdefABCDEF);
@@ -745,7 +746,7 @@ static inline int
    if( opt_hcdm )
      printf("%4d %d, %ld\n", __LINE__, errno, atol("+9223372036854775807"));
 
-   errno= 0; atol("9223372036854775808");
+   errno= 0; atol(" 9223372036854775808");
    error_count += MUST_EQ(errno, ERANGE);
    if( opt_hcdm )
      printf("%4d %d\n", __LINE__, errno);
@@ -772,16 +773,38 @@ static inline int
    if( opt_hcdm )
      printf("%4d %d\n", __LINE__, errno);
 
-   // Test utility::to_string(std::thread::id) -------------------------------
+   // Regression errror checks (atol, atoul)
+   errno= 0; atol("20000000000000000000"); // Regression
+   error_count += MUST_EQ(errno, ERANGE);
+   if( opt_hcdm )
+     printf("%4d %d\n", __LINE__, errno);
+
+   errno= 0;
+   error_count += MUST_EQ(atoul("18446744073709551615"), ULONG_MAX);
+   error_count += MUST_EQ(errno, 0);
+   if( opt_hcdm )
+     printf("%4d %d, %lu\n", __LINE__, errno, atol("18446744073709551615"));
+
+   errno= 0; atoul("18446744073709551616");
+   error_count += MUST_EQ(errno, ERANGE);
+   if( opt_hcdm )
+     printf("%4d %d\n", __LINE__, errno);
+
+   //-------------------------------------------------------------------------
+   // Test utility::to_string(std::thread::id)
    std::thread::id tid= std::this_thread::get_id();
    if( opt_verbose )
      printf("std::thread::id(%s)\n", utility::to_string(tid).c_str());
 
-   // Test wildchar ----------------------------------------------------------
-static constexpr const char* const lazy=
-       "The quick Brown fox jumps over the lazy dog.";
+   //-------------------------------------------------------------------------
+   // Test wildchar
 static constexpr const char* const good=
        "Now is the time for all GOOD men to come to the aid of their party.";
+static constexpr const char* const lazy=
+       "The quick Brown fox jumps over the lazy dog.";
+static constexpr const char* const star=
+       "The quick Brown fox jump* over the *star* dog.";
+
    error_count += VERIFY( wildchar::strcmp("*", "anything") == 0);
    error_count += VERIFY( wildchar::strcmp("*", "") == 0);
    error_count += VERIFY( wildchar::strcmp("this", "this") == 0);
@@ -816,7 +839,21 @@ static constexpr const char* const good=
    error_count += VERIFY( wildchar::strcasecmp("NOW*", good) == 0);
    error_count += VERIFY( wildchar::strcasecmp("**NOW* is THE time*to **PARTY**", good) == 0);
 
-   // Test demangle ----------------------------------------------------------
+   error_count += VERIFY( wildchar::strcmp("*fox jump\\* over*dog.", star) == 0);
+   error_count += VERIFY( wildchar::strcmp("*fox jump\\* over*DOG.", star) != 0);
+   error_count += VERIFY( wildchar::strcmp("*DOG*", star) != 0);
+   error_count += VERIFY( wildchar::strcmp("The*\\*star\\*", star) != 0);
+   error_count += VERIFY( wildchar::strcmp("THE*", star) != 0);
+   error_count += VERIFY( wildchar::strcmp("*\\*star\\* DOG.", star) != 0);
+
+   error_count += VERIFY( wildchar::strcasecmp("*fox jump\\* over*dog.", star) == 0);
+   error_count += VERIFY( wildchar::strcasecmp("*fox JUMP\\* over*DOG.", star) == 0);
+   error_count += VERIFY( wildchar::strcasecmp("*DOG*", star) == 0);
+   error_count += VERIFY( wildchar::strcasecmp("The*\\*star\\*", star) != 0);
+   error_count += VERIFY( wildchar::strcasecmp("* the \\*star\\* DOG.", star) == 0);
+
+   //-------------------------------------------------------------------------
+   // Test demangle
    string S= demangle(typeid(pub::utility::demangle));
    error_count += VERIFY(S == "std::string (std::type_info const&)");
 

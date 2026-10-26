@@ -17,7 +17,7 @@
 //       Define a Worker used to handle discrete units of work.
 //
 // Last change date-
-//       2026/02/23
+//       2026/10/17
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_WORKER_H_INCLUDED
@@ -113,8 +113,8 @@ static size_t                       // The maximum number of active Threads
    get_max_threads( void )          // Get maximum number of active Threads
 {  return max_threads.load(); }
 
-static size_t                       // The current thread pool count
-   get_max_used( void )             // Get current thread pool count
+static size_t                       // The maximum thread pool count
+   get_max_used( void )             // Get maximum thread pool count
 {  return max_used.load(); }
 
 static size_t                       // The current number of running Workers
@@ -168,11 +168,11 @@ static void
 protected:
 static void                         // Decrement the running count
    dec_running( void )
-{  --running; }
+{  if( running > 0 ) --running; }
 
 static void                         // Decrement the threads count
    dec_threads( void )
-{  --threads; }
+{  if( threads > 0 ) --threads; }
 
 static void                         // Increment the running count
    inc_running( void );

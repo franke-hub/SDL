@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2025 Frank Eskesen.
+//       Copyright (c) 2020-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,13 +17,12 @@
 //       Tokenizer and Tokenizer::Iterator object methods.
 //
 // Last change date-
-//       2025/09/08
+//       2026/10/26
 //
 //----------------------------------------------------------------------------
-#include <stdexcept>                // For std::out_of_range exception, ...
 #include <string>                   // For std::string
 #include <cctype>                   // For isspace
-#include <cstring>                  // For memcmp, strstr
+#include <cstring>                  // For strcmp
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include "pub/Tokenizer.h"          // For pub::Tokenizer, implemented
@@ -52,12 +51,61 @@ const Tokenizer::Iterator
 :  input(_input), offset(0), length(0), delim(_delim)
 {
    if( delim ) {                    // If delimiter specified
-     _quote= false;                 // Disable quotes
      if( *delim == '\0' )           // If delimiter == empty string
        delim= nullptr;              // Treat as isspace delimiter
    }
 
    next();
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Tokenizer::Iterator::operators
+//
+// Purpose-
+//       Implement Tokenizer::Iterator operators
+//
+//----------------------------------------------------------------------------
+std::string                         // The associated substring
+   Tokenizer::Iterator::operator()( void ) // Get associated substring
+{
+   // Handle quoted string
+   if( _quote ) {                   // If quotes are enabled
+     unsigned Q= *((unsigned char*)input+offset);
+     if( Q == '\'' || Q == '\"') {
+       size_t size= length-1;
+       if( Q == *((unsigned char*)input+offset+size) && size > 0 )
+         size--;
+       string result(input+offset+1, size); // (The string without quotes)
+       return result;
+     }
+   }
+
+   string result(input+offset, length);
+   return result;
+}
+
+bool                                // TRUE iff Iterators are equal
+   Tokenizer::Iterator::operator==( // Is this Iterator equal to
+     const Iterator&   that)        // That Iterator
+{  return strcmp(input+offset, that.remainder()) == 0; }
+
+bool                                // TRUE iff Iterators are not equal
+   Tokenizer::Iterator::operator!=( // Is this Iterator not equal to
+     const Iterator&   that)        // That Iterator
+{  return strcmp(input+offset, that.remainder()) != 0; }
+
+Tokenizer::Iterator&
+   Tokenizer::Iterator::operator++( void ) // Prefix ++operator
+{  return next(); }
+
+Tokenizer::Iterator
+   Tokenizer::Iterator::operator++( int ) // Postfix operator++, parameter ignored
+{
+   Iterator result(*this);
+   next();
+   return result;
 }
 
 //----------------------------------------------------------------------------
@@ -69,7 +117,7 @@ const Tokenizer::Iterator
 //       Return the next token, always *this
 //
 //----------------------------------------------------------------------------
-Tokenizer::Iterator&                 // The next Iterator, always *this
+Tokenizer::Iterator&                // The next Iterator, always *this
    Tokenizer::Iterator::next( void ) // Get next Iterator
 {
    offset += length;                // Skip over the current token, if any
@@ -77,7 +125,7 @@ Tokenizer::Iterator&                 // The next Iterator, always *this
      // Skip leading delimiters
      unsigned C= *((unsigned char*)input + offset);
      while( strchr(delim, C) != nullptr ) {
-       if( C == 0 ) {
+       if( C == 0 ) {               // If end of input ('\0' is a delimiter)
          length= 0;
          return *this;
        }
@@ -123,55 +171,5 @@ Tokenizer::Iterator&                 // The next Iterator, always *this
    }
 
    return *this;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Tokenizer::Iterator::operators
-//
-// Purpose-
-//       Implement Tokenizer::Iterator operators
-//
-//----------------------------------------------------------------------------
-std::string                         // The associated substring
-   Tokenizer::Iterator::operator()( void ) // Get associated substring
-{
-   // Handle quoted string
-   if( _quote ) {                   // If quotes are enabled
-     unsigned Q= *((unsigned char*)input+offset);
-     if( Q == '\'' || Q == '\"') {
-       size_t size= length-1;
-       if( Q == *((unsigned char*)input+offset+size) )
-         size--;
-       string result(input+offset+1, size); // (The string without quotes)
-       return result;
-     }
-   }
-
-   string result(input+offset, length);
-   return result;
-}
-
-bool                                // TRUE iff Iterators are equal
-   Tokenizer::Iterator::operator==( // Is this Iterator equal to
-     const Iterator&   that)        // That Iterator
-{  return strcmp(input+offset, that.remainder()) == 0; }
-
-bool                                // TRUE iff Iterators are not equal
-   Tokenizer::Iterator::operator!=( // Is this Iterator not equal to
-     const Iterator&   that)        // That Iterator
-{  return strcmp(input+offset, that.remainder()) != 0; }
-
-Tokenizer::Iterator&
-   Tokenizer::Iterator::operator++( void ) // Prefix ++operator
-{  return next(); }
-
-Tokenizer::Iterator
-   Tokenizer::Iterator::operator++( int ) // Postfix operator++, parameter ignored
-{
-   Iterator result(*this);
-   next();
-   return result;
 }
 } // namespace _LIBPUB_NAMESPACE

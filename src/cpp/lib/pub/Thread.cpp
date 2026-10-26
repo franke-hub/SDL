@@ -49,10 +49,10 @@
 //       Similarly, running Threads *can* detach themselves, but detach from
 //       a different Thread is never permitted. Threads that complete without
 //       detaching first must be joined before they are deleted. The Thread
-//       destructor assumes that, if neither deatach nor join hast been
+//       destructor assumes that, if neither deatach nor join has been
 //       invoked the application "just forgot" to join and will do the join.
-//       If join is actually invoked after a destructor's invocation, results
-//       are unpredictable.
+//       If join is then invoked after a destructor's invocation, results are
+//       unpredictable.
 //
 // Implementation notes (Thread::cancel)-
 //       Thread::cancel is not implemented. Within the pub library, derived

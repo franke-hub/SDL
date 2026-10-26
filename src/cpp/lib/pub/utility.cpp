@@ -17,7 +17,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2026/02/09
+//       2026/10/26
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -145,6 +145,7 @@ long                                // Resultant value
 
      if( *inp == '\0' )             // If empty string
        errno= EINVAL;
+     int exponent= 0;
      while( *inp != '\0' && !isspace(*inp) ) {
        if( *inp < '0' || *inp > '9') {
          errno= EINVAL;
@@ -153,7 +154,8 @@ long                                // Resultant value
 
        result *= 10;
        result += *inp - '0';
-       if( result < 0 && (minus == false || result != LONG_MIN) ) { // If overflow
+       if( (++exponent > 19)
+           || (result < 0 && (minus == false || result != LONG_MIN)) ) {
          errno= ERANGE;
          break;
        }
@@ -198,7 +200,8 @@ unsigned long                       // Resultant value
    atoul(                           // Convert ASCII to unsigned long
      const char*       inp)         // Input string
 {
-   long                result= 0;   // Resultant
+   unsigned long       result= 0;   // Resultant
+   unsigned long       prior= result; // Prior resultant
 
    inp= skip_space(inp);
    if( *inp == '0' && (inp[1] == 'x' || inp[1] == 'X') )
@@ -217,11 +220,12 @@ unsigned long                       // Resultant value
 
        result *= 10;
        result += *inp - '0';
-       if( result < 0 ) {           // If overflow
+       if( result < prior ) {       // If overflow
          errno= ERANGE;
          break;
        }
 
+       prior= result;
        inp++;
      }
    }
@@ -242,7 +246,7 @@ unsigned long                       // Resultant value
 //       errno= ERANGE; // Indicates invalid range detected.
 //
 //----------------------------------------------------------------------------
-long                                // Resultant value
+unsigned long                       // Resultant value
    atox(                            // Convert ASCII to hexidecimal
      const char*       inp)         // Input string
 {
@@ -634,33 +638,42 @@ int                                 // Resultant 0, !0
      const char*       L_,          // Left hand side (May contain wildchars)
      const char*       R_)          // Right hand side
 {
-   const unsigned char* W= (const unsigned char*)L_;
-   const unsigned char* R= (const unsigned char*)R_;
-   while( true ) {
-     if( *W == '\\' )
-       ++W;
+   const unsigned char* W= (const unsigned char*)L_; // The wild string
+   const unsigned char* R= (const unsigned char*)R_; // The remainder string
+   int                 diff= 0;     // Difference
 
-     int diff= *W - *R;
-     if( diff != 0 ) {
-       if( *W == '*' ) {
-         while( *W == '*' )
+   while( true ) {
+     if( *W == '\\' ) {             // If escaped
+       ++W;
+       diff= *W - *R;
+       if( diff != 0 )
+         return diff;
+       if( *W == '\0' )             // If ending escaped wild character
+         return '\\';               // (Invalid sequence, matches nothing)
+     } else {                       // If not escaped
+       if( *W == '?' ) {            // If single character wild match
+         if( *R == '\0' )           // (Doesn't match end of string)
+           return diff;
+       } else if( *W == '*' ) {     // If multiple character wild match
+         while( *W == '*' )         // "**" is identical to "*"
            W++;
-         if( *W == '\0' )
+         if( *W == '\0' )           // Ending '*' matches any remainder
            return 0;
+
          while( *R != '\0' ) {
            diff= strcmp((char*)W, (char*)R);
            if( diff == 0 )
              break;
            R++;
          }
-         return diff;
-       } else if( *W == '?' ) {
-         if( *R == '\0' )
+       } else {                     // If not a wild character
+         diff= *W - *R;
+         if( diff != 0 )
            return diff;
-       } else
-         return diff;
-     } else if( *W == '\0' )
-       break;
+         else if( *W == '\0' )
+           break;
+       }
+     }
 
      W++;
      R++;
@@ -674,30 +687,42 @@ int                                 // Resultant 0, !0
      const char*       L_,          // Left hand side (May contain wildchars)
      const char*       R_)          // Right hand side
 {
-   const unsigned char* W= (const unsigned char*)L_;
-   const unsigned char* R= (const unsigned char*)R_;
+   const unsigned char* W= (const unsigned char*)L_; // The wild string
+   const unsigned char* R= (const unsigned char*)R_; // The remainder string
+   int                 diff= 0;     // Difference
+
    while( true ) {
-     int diff= toupper(*W) - toupper(*R);
-     if( diff != 0 ) {
-       if( *W == '*' ) {
-         while( *W == '*' )
+     if( *W == '\\' ) {             // If escaped
+       ++W;
+       diff= toupper(*W) - toupper(*R);
+       if( diff != 0 )
+         return diff;
+       if( *W == '\0' )             // If ending escaped wild character
+         return '\\';               // (Invalid sequence, matches nothing)
+     } else {                       // If not escaped
+       if( *W == '?' ) {            // If single character wild match
+         if( *R == '\0' )           // (Doesn't match end of string)
+           return diff;
+       } else if( *W == '*' ) {     // If multiple character wild match
+         while( *W == '*' )         // "**" is identical to "*"
            W++;
-         if( *W == '\0' )
+         if( *W == '\0' )           // Ending '*' matches any remainder
            return 0;
+
          while( *R != '\0' ) {
            diff= strcasecmp((char*)W, (char*)R);
            if( diff == 0 )
              break;
            R++;
          }
-         return diff;
-       } else if( *W == '?' ) {
-         if( *R == '\0' )
+       } else {                     // If not a wild character
+         diff= toupper(*W) - toupper(*R);
+         if( diff != 0 )
            return diff;
-       } else
-         return diff;
-     } else if( *W == '\0' )
-       break;
+         else if( *W == '\0' )
+           break;
+       }
+     }
 
      W++;
      R++;

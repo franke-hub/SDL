@@ -17,13 +17,15 @@
 //       Define the the Named attribute class.
 //
 // Last change date-
-//       2026/09/07
+//       2026/10/17
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_NAMED_H_INCLUDED
 #define _LIBPUB_NAMED_H_INCLUDED
 
 #include <string>                   // For std::string
+
+#include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------

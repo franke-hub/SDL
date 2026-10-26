@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2025 Frank Eskesen.
+//       Copyright (c) 2020-2026 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       Tokenizer object.
 //
 // Last change date-
-//       2025/09/08
+//       2026/10/26
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_TOKENIZER_H_INCLUDED
@@ -40,29 +40,20 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 class Tokenizer {                   // Tokenizer object
 //----------------------------------------------------------------------------
-// Tokenizer::Attributes
-//----------------------------------------------------------------------------
-typedef std::string    string;      // Using std::string within Tokenizer
-
-protected:
-string                 _delim;      // Holder for delim string
-string                 _input;      // Holder for input string
-const char*            delim;       // The token delimiter, may be nullptr
-const char*            input;       // The input string
-
-//----------------------------------------------------------------------------
 // Tokenizer::Iterator::Attributes
 //----------------------------------------------------------------------------
 public:
 class Iterator {                    // The Tokenizer iterator
 public:
-static const Iterator  _end;        // An end() iterator
+static const Iterator  _end;        // *THE* end() iterator
 
 protected:
+typedef std::string    string;      // Using std::string within Iterator
+
 const char*            input;       // The input string
 size_t                 offset;      // The current offset
 size_t                 length;      // The current token length
-const char*            delim;       // The token delimiters, usually nullptr
+const char*            delim;       // The token delimiters (default nullptr)
 bool                   _quote= true; // Enable quoted strings
 
 //----------------------------------------------------------------------------
@@ -114,21 +105,47 @@ const char*                         // The remaining source
 {  return input + offset; }
 }; // class Tokenizer::Iterator
 
+//============================================================================
+// Tokenizer::Attributes
+//----------------------------------------------------------------------------
+protected:
+typedef std::string    string;      // Using std::string within Tokenizer
+
+string                 _delim;      // Holder for delim string
+string                 _input;      // Holder for input string
+const char*            delim;       // The token delimiter, may be nullptr
+const char*            input;       // The input string
+
 //----------------------------------------------------------------------------
 // Tokenizer::Constructors
 //----------------------------------------------------------------------------
 public:
    Tokenizer(                       // Constructor
-     const string&     input)       // The source string
-:  _delim(), _input(input), delim(nullptr), input(_input.c_str()) {}
+     const string&     _input_)     // The source string
+:  _delim(), _input(_input_), delim(nullptr), input(_input.c_str())
+{  }
 
    Tokenizer(                       // Constructor
-     const string&     input,       // The source string
-     const string&     delim)       // The token delimiter
-:  _delim(delim), _input(input), delim(_delim.c_str()), input(_input.c_str()) {}
+     const string&     _input_,     // The source string
+     const string&     _delim_)     // The token delimiter
+:  _delim(_delim_), _input(_input_)
+,  delim(_delim.c_str()), input(_input.c_str())
+{  if( _delim == "" ) delim= nullptr; }
 
-   Tokenizer(const Tokenizer&) = default; // Copy constructor
-Tokenizer& operator=(const Tokenizer&) = default; // Assignment operator
+   Tokenizer(const Tokenizer& that) // Copy constructor
+:  _delim(that._delim), _input(that._input)
+,  delim(_delim.c_str()), input(_input.c_str())
+{  if( _delim == "" ) delim= nullptr; }
+
+Tokenizer& operator=(const Tokenizer& that) // Assignment operator
+{
+   _delim= that._delim;
+   _input= that._input;
+   delim= _delim == "" ? nullptr : _delim.c_str();
+   input= _input.c_str();
+
+   return *this;
+}
 
 //----------------------------------------------------------------------------
 // Tokenizer::Methods
@@ -143,8 +160,8 @@ Iterator                            // The end Iterator
 
 void
    reset(                           // Reset the Tokenizer string
-     const string&     input)       // The replacement string
-{  _input= input; this->input= _input.c_str(); }
+     const string&     _input_)     // The replacement string
+{  _input= _input_; this->input= _input.c_str(); }
 }; // class Tokenizer
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_TOKENIZER_H_INCLUDED

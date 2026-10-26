@@ -17,7 +17,7 @@
 //       Worker object methods.
 //
 // Last change date-
-//       2026/03/23
+//       2026/10/17
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<>
@@ -153,7 +153,7 @@ virtual void
        return;
      }
 
-     debugf("..worker(%p) operational(%s)\n", info, b2c(operational));
+     debugf("..worker(%p) operational(%s)\n", this, b2c(operational));
      Thread::debug(info);
    }}}}
 }

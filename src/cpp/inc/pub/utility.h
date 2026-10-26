@@ -17,10 +17,10 @@
 //       Utility functions.
 //
 // Last change date-
-//       2026/02/11
+//       2026/10/26
 //
 // Implementation notes-
-//       ato* routines:
+//       The ato* routines:
 //         DO NOT set errno= 0.
 //         Ignore leading white space, allow trailing white space.
 //         Disallow invalid (hexi)decimal characters.
@@ -146,7 +146,7 @@ unsigned long                       // Resultant value
 //       errno= ERANGE; // Indicates invalid range detected.
 //
 //----------------------------------------------------------------------------
-long                                // Resultant value
+unsigned long                       // Resultant value
    atox(                            // Convert ASCII to hexidecimal long
      const char*       inp);        // Input string
 

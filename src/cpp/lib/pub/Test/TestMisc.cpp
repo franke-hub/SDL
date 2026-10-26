@@ -17,7 +17,7 @@
 //       Miscellaneous tests.
 //
 // Last change date-
-//       2026/09/08
+//       2026/10/26
 //
 //----------------------------------------------------------------------------
 #include <functional>               // For std::function
@@ -842,8 +842,8 @@ static inline int
    typedef _LIBPUB_NAMESPACE::Tokenizer::Iterator Iterator;
    Tokenizer izer(" a  b  c  def g "); // Our test object
    Iterator it= izer.begin();
-   error_count += VERIFY( it != izer.end() );
-   error_count += VERIFY( it() == "a" );
+   error_count += VERIFY( it       != izer.end() );
+   error_count += VERIFY( it()     == "a" );
    error_count += VERIFY( (it++)() == "a" );
    error_count += VERIFY( (++it)() == "c" );
    error_count += VERIFY( (++it)() == "def" );
@@ -856,7 +856,7 @@ static inline int
 
    izer.reset(" alpha ' beta gamma ' delta");
    it= izer.begin();
-   error_count += VERIFY( it() == "alpha" );
+   error_count += VERIFY( it()     == "alpha" );
    error_count += VERIFY( (++it)() == " beta gamma " );
    error_count += VERIFY( (++it)() == "delta" );
    error_count += VERIFY( (++it)   == izer.end() );
@@ -864,7 +864,7 @@ static inline int
 
    it= izer.begin();
    it.set_quote(false);
-   error_count += VERIFY( it() == "alpha" );
+   error_count += VERIFY( it()     == "alpha" );
    error_count += VERIFY( (++it)() == "\'" );
    error_count += VERIFY( (++it)() == "beta" );
    error_count += VERIFY( (++it)() == "gamma" );
@@ -875,13 +875,35 @@ static inline int
 
    Tokenizer date(" 08/09/2025 17:50 ", " /:=");
    it= date.begin();
-   error_count += VERIFY( it() == "08" );
+   error_count += VERIFY( it()     == "08" );
    error_count += VERIFY( (++it)() == "09" );
    error_count += VERIFY( (++it)() == "2025" );
    error_count += VERIFY( (++it)() == "17" );
    error_count += VERIFY( (++it)() == "50" );
    error_count += VERIFY( (++it)   == date.end() );
    show_Tokenizer(date);
+
+   if( opt_verbose )
+     debugf("\n(Duplicate end iterator)\n");
+   error_count += VERIFY( (++it)   == date.end() );
+   show_Tokenizer(date);
+
+   //-------------------------------------------------------------------------
+   // Regression error tests
+   izer.reset("ends with quote   '");
+   it= izer.begin();
+   error_count += VERIFY( it()     == "ends" );
+   error_count += VERIFY( (++it)() == "with" );
+   error_count += VERIFY( (++it)() == "quote" );
+   error_count += VERIFY( (++it)() == "" );
+   error_count += VERIFY( (++it)   == izer.end() );
+   show_Tokenizer(izer);
+
+   izer.reset("' starts with quote");
+   it= izer.begin();
+   error_count += VERIFY( it()     == " starts with quote" );
+   error_count += VERIFY( (++it)   == izer.end() );
+   show_Tokenizer(izer);
 
    return error_count;
 }
