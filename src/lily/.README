@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2020 Frank Eskesen.
+##       Copyright (C) 2020-2026 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -13,16 +13,46 @@
 ##       ~/src/lily/.README
 ##
 ## Purpose-
-##       Basic subdirectory content information.
+##       Basic subdirectory references.
 ##
 ## Last change date-
-##       2020/02/01
+##       2026/11/08
 ##
-## References-
+##############################################################################
+
+##############################################################################
+##
+## Book references:
 ##       A Dictionary of Musial Themes
 ##           M. Barton, Sam Morgenstern, Harold Berlow
 ##
 ##       The Director of Tunes and Musical Themes
 ##           Denys Parsons
+##
+##############################################################################
+
+##############################################################################
+##
+## Notation reference:
+##       c             C below middle C
+##       c'            Middle C, [relative] one octive higher
+##       c,            C one ocative below middle C, [relative] one octave lower
+##       cis           C sharp
+##       ces           C flat
+##       c4            C quarter note (following notes keep same time)
+##       c8            C eighth  note (following notes keep same time)
+##
+##       <c e g>       Chord: c + e + g
+##
+##############################################################################
+
+##############################################################################
+##
+## Lyric alignment references:
+##       https://lilypond.org/doc/v2.24/Documentation/learning/
+##               aligning-lyrics-to-a-melody
+##
+##       https://lilypond.org/doc/v2.24/Documentation/notation/
+##               techniques-specific-to-lyrics
 ##
 ##############################################################################

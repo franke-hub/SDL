@@ -17,7 +17,7 @@
 //       Thread method implementations.
 //
 // Last change date-
-//       2026/10/17
+//       2026/11/06
 //
 // Implementation notes-
 //       Thread::tlss is used to maintain the Thread state. There are three
@@ -49,7 +49,7 @@
 //       Similarly, running Threads *can* detach themselves, but detach from
 //       a different Thread is never permitted. Threads that complete without
 //       detaching first must be joined before they are deleted. The Thread
-//       destructor assumes that, if neither deatach nor join has been
+//       destructor assumes that, if neither detach nor join has been
 //       invoked the application "just forgot" to join and will do the join.
 //       If join is then invoked after a destructor's invocation, results are
 //       unpredictable.

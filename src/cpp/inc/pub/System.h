@@ -17,7 +17,7 @@
 //       Define the System namespace
 //
 // Last change date-
-//       2026/10/09
+//       2026/11/06
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_SYSTEM_H_INCLUDED
@@ -35,7 +35,7 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //       System PUB library controls
 //
 // Implementation notes-
-//       The system log file name is "$HOME/.local/log/system.log".
+//       The system log file name is "$HOME/.local/log/syslog.out".
 //       All log messages are recorded there, regardless of level.
 //
 //----------------------------------------------------------------------------
